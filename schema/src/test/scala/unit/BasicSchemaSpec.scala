@@ -1,14 +1,13 @@
 package unit
 
-import com.rauchenberg.cupcat1.schema.{AvroSchema, SchemaError}
-import com.rauchenberg.cupcat1.schema.instances._
+import com.rauchenberg.cupcatAvro.schema.{AvroSchema, SchemaError}
+import com.rauchenberg.cupcatAvro.schema.instances._
 import AvroSchema._
+import common._
 import common.ProperyChecksSpecBase
-import org.scalacheck.{Arbitrary, Gen}
+import SimpleCases._
 
 class BasicSchemaSpec extends ProperyChecksSpecBase {
-
-  implicit val arbString: Arbitrary[String] = Arbitrary(Gen.alphaNumStr)
 
   "schema" should {
 
@@ -46,20 +45,20 @@ class BasicSchemaSpec extends ProperyChecksSpecBase {
   }
 
   trait TestContext {
-
-    def schemaAsString[T : AvroSchema] = AvroSchema[T].schema.map(_.toString)
-
     def simpleSchema(valueType: String) = s"""{"type":"record","fields":[{"name":"value","type":"$valueType"}]}"""
   }
 
 }
 
-case class SimpleNull(value: Null)
-case class SimpleBool(value: Boolean)
-case class SimpleString(value: String)
-case class SimpleInt(value: Int)
-case class SimpleLong(value: Long)
-case class SimpleFloat(value: Float)
-case class SimpleDouble(value: Double)
-case class SimpleByte(value: Byte)
+object SimpleCases {
+  case class SimpleNull(value: Null)
+  case class SimpleBool(value: Boolean)
+  case class SimpleString(value: String)
+  case class SimpleStringWithDefault(value: String)
+  case class SimpleInt(value: Int)
+  case class SimpleLong(value: Long)
+  case class SimpleFloat(value: Float)
+  case class SimpleDouble(value: Double)
+  case class SimpleByte(value: Byte)
+}
 
