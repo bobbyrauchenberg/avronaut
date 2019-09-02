@@ -19,17 +19,15 @@ trait unionInstances {
   }
 
   implicit def cnilSchema[H](implicit hSchema: AvroSchema[H]) = new AvroSchema[H :+: CNil] {
-    override def schema: SchemaResult = {
-      hSchema.schema.flatMap(v => safe(Schema.createUnion(v)))
-    }
+    override def schema: SchemaResult = hSchema.schema.flatMap(v => safe(Schema.createUnion(v)))
+
   }
 
   implicit def coproductSchema[H, T <: Coproduct](implicit hSchema: AvroSchema[H], tSchema: AvroSchema[T]) = new AvroSchema[H :+: T] {
-    override def schema: SchemaResult = {
+    override def schema: SchemaResult =
       tSchema.schema.map2(hSchema.schema){ (l, r) =>
         safe(Schema.createUnion((l.getTypes.asScala.toList :+ r).asJava))
       }.flatten
-    }
   }
 
 }
