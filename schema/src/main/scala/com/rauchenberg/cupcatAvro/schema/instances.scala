@@ -25,7 +25,7 @@ object instances {
     override def schema: SchemaResult = safeSchema(SchemaBuilder.builder.doubleType)
   }
 
-  implicit val byteSchema = new AvroSchema[Byte] {
+  implicit val byteSchema = new AvroSchema[Array[Byte]] {
     override def schema: SchemaResult = safeSchema(SchemaBuilder.builder.bytesType)
   }
 
