@@ -12,6 +12,18 @@ object SchemaAnnotations {
 
   case class SchemaMetadata(values: Map[AnnotationKeys, String]) extends StaticAnnotation
 
-  def getAnnotations(annotations: Seq[Any]) = annotations.toList.filter(_.isInstanceOf[SchemaMetadata]).headOption.map(_.asInstanceOf[SchemaMetadata])
+  def getAnnotations(annotations: Seq[Any]): Option[SchemaMetadata] = annotations.toList.filter(_.isInstanceOf[SchemaMetadata]).headOption.map(_.asInstanceOf[SchemaMetadata])
 
+  def getName(annotations: Option[SchemaMetadata], defaultName: String) = annotations.flatMap(_.values.get(SchemaAnnotations.Name)).getOrElse(defaultName)
+
+  def getDoc(annotations: Option[SchemaMetadata]) = annotations.flatMap(_.values.get(SchemaAnnotations.Doc)).getOrElse("")
+
+  def getNameAndNamespace(annotations: Option[SchemaMetadata], defaultName: String, defaultNamespace: String): (String, String) = {
+
+    val name = getName(annotations, defaultName)
+    val namespace = annotations.flatMap(_.values.get(SchemaAnnotations.Namespace))
+
+    if(name.contains(".")) (name, defaultNamespace)
+    else (name, namespace.getOrElse(defaultNamespace))
+  }
 }

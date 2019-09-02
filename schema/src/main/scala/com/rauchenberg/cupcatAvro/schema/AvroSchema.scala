@@ -1,8 +1,7 @@
 package com.rauchenberg.cupcatAvro.schema
 
 import cats.implicits._
-import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations
-import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations.SchemaMetadata
+import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
 import org.apache.avro.Schema
 import magnolia.{CaseClass, Magnolia, Param}
 
@@ -25,24 +24,25 @@ object AvroSchema {
   def combine[T](cc: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
     override def schema: SchemaResult = {
 
-      val annotations = SchemaAnnotations.getAnnotations(cc.annotations)
-      val namespace = annotations.flatMap(_.values.get(SchemaAnnotations.Namespace))
+      val annotations = getAnnotations(cc.annotations)
+      val (name, namespace) = getNameAndNamespace(annotations, cc.typeName.short, "")
 
       cc.parameters.toList.traverse { param =>
         param.typeclass.schema.flatMap { schema =>
-          mkField(schema, cc, param, namespace)
+          mkField(schema, param)
         }
       }.flatMap { fields =>
-        safeSchema(Schema.createRecord(cc.typeName.short, "", namespace.getOrElse(""), false, fields.asJava))
+        safeSchema(Schema.createRecord(name, "", namespace, false, fields.asJava))
       }
     }
   }
 
-  def mkField[T](schema: Schema, cc: CaseClass[Typeclass, T], param: Param[AvroSchema.Typeclass, T], namespace: Option[String]) = {
-    val annotation: Option[SchemaMetadata] = SchemaAnnotations.getAnnotations(param.annotations)
+  def mkField[T](schema: Schema, param: Param[AvroSchema.Typeclass, T]) = {
 
-    val name = annotation.flatMap(_.values.get(SchemaAnnotations.Name)).getOrElse(param.label)
-    val doc = annotation.flatMap(_.values.get(SchemaAnnotations.Doc)).getOrElse("")
+    val annotations = getAnnotations(param.annotations)
+
+    val name = getName(annotations, param.label)
+    val doc = getDoc(annotations)
 
     param.default.traverse { default =>
         safeSchema(new Schema.Field(name, schema, doc, default))
