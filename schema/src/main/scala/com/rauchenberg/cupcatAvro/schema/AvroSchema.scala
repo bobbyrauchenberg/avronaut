@@ -45,7 +45,9 @@ object AvroSchema {
         param.default.traverse { default =>
           moveDefaultToHead(schema, default, schemaFor(default))
             .map((_, default))
-            .flatMap(v => schemaField(name, v._1, doc, extractDefault(v._2, schema)))
+            .flatMap { case (updatedSchema, defaultValue) =>
+              schemaField(name, updatedSchema, doc, extractDefault(defaultValue, schema))
+            }
         }.flatMap(_.map(_.asRight).getOrElse(schemaField(name, schema, doc)))
       case _ =>
         param.default
