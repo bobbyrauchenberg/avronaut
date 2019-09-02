@@ -1,10 +1,11 @@
-package com.rauchenberg.cupcatAvro.schema
+package com.rauchenberg.cupcatAvro.schema.instances
 
+import com.rauchenberg.cupcatAvro.schema.{AvroSchema, SchemaResult, safe}
 import org.apache.avro.SchemaBuilder
 
-object instances extends instances
+object primitiveInstances extends primitiveInstances
 
-trait instances {
+trait primitiveInstances {
 
   implicit val stringSchema = new AvroSchema[String] {
     override def schema: SchemaResult = safe(SchemaBuilder.builder.stringType)

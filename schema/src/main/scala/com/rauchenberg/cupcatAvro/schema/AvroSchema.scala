@@ -21,7 +21,8 @@ object AvroSchema {
     override def schema: SchemaResult = {
 
       val annotations = getAnnotations(cc.annotations)
-      val (name, namespace) = getNameAndNamespace(annotations, cc.typeName.short, "")
+
+      val (name, namespace) = getNameAndNamespace(annotations, cc.typeName.short, cc.typeName.owner)
       val doc = getDoc(annotations)
 
       cc.parameters.toList.traverse { param =>
