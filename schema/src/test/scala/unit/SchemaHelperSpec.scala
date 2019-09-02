@@ -36,12 +36,15 @@ class SchemaHelperSpec extends UnitSpecBase {
       schemaFor(Option(Map("cup" -> "cat"))) shouldBe Schema.Type.MAP.some
     }
 
+    "return schema type Null for None" in {
+      schemaFor(None) shouldBe Schema.Type.NULL.some
+    }
+
   }
 
   "moveDefaultToHead" should {
     "reorder the schema in a union with a default, so the type of the default value comes first" in {
         val schema = AvroSchema[UnionWithDefault].schema.right.get.getField("cupcat").schema
-
         moveDefaultToHead(schema, "cupcat".some, Option(Schema.Type.STRING)).map(_.toString) should beRight("""["string","null"]""")
     }
   }

@@ -11,6 +11,9 @@ object SchemaHelper {
   def schemaFor[T](t: T): Option[Schema.Type] = {
     t match {
       case Some(v) => schemaFor(v)
+      case None => Schema.Type.NULL.some
+      case Right(v) => schemaFor(v)
+      case Left(v) => schemaFor(v)
       case _: String => Schema.Type.STRING.some
       case _: Long => Schema.Type.LONG.some
       case _: Int => Schema.Type.INT.some
@@ -29,21 +32,24 @@ object SchemaHelper {
   }
 
   def moveDefaultToHead[T](schema: Schema, default: T, schemaTypeOfDefault: Option[Schema.Type]): SchemaResult = {
-    val (first, rest) = schema.getTypes.asScala.partition { t =>
-      default match {
-        case _ => schemaTypeOfDefault == t.getType.some
+      val (first, rest) = schema.getTypes.asScala.partition { t =>
+        default match {
+          case _ => schemaTypeOfDefault == t.getType.some
+        }
       }
-    }
-    safe {
-      val result = Schema.createUnion(first.headOption.toSeq ++ rest: _*)
-      schema.getObjectProps.asScala.foreach { case (k, v) => result.addProp(k, v) }
-      result
-    }
+      safe {
+        val result = Schema.createUnion(first.headOption.toSeq ++ rest: _*)
+        schema.getObjectProps.asScala.foreach { case (k, v) => result.addProp(k, v) }
+        result
+      }
   }
 
   def extractDefault[T](t: T, schema: Schema): Any = {
     t match {
-      case Some(v) => extractDefault(v, schema)
+      case Some(v) => v
+      case None => JsonProperties.NULL_VALUE
+      case Right(v) => v
+      case Left(v) => v
       case other => other
     }
   }

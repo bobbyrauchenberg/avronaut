@@ -25,6 +25,15 @@ class OptionUnionSpec extends UnitSpecBase {
 
       schemaAsString[OptionUnionWithDefault] should beRight(expected)
     }
+
+    "create a union from an Option with None as default" in {
+      val expected =
+        """
+          |{"type":"record","name":"OptionUnionWithDefaultNone","namespace":"unit.OptionUnion","doc":"",
+          |"fields":[{"name":"cupcat","type":["null","string"],"doc":"","default":null}]}""".stripMargin.replace("\n","")
+
+      schemaAsString[OptionUnionWithDefaultNone] should beRight(expected)
+    }
   }
 
 }
@@ -32,4 +41,5 @@ class OptionUnionSpec extends UnitSpecBase {
 private [this] object OptionUnion {
   case class OptionUnion(cupcat : Option[String])
   case class OptionUnionWithDefault(cupcat: Option[String] = "cupcat".some)
+  case class OptionUnionWithDefaultNone(cupcat: Option[String] = None)
 }

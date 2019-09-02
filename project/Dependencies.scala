@@ -19,12 +19,13 @@ object Dependencies {
 
 
   private val sharedDeps = catsDeps ++ refinedDeps ++ Seq(
-    "org.apache.avro"            % "avro"                     % "1.9.0",
-    "com.propensive" % "magnolia_2.12" % "0.11.0",
-    "org.scalatest" %% "scalatest" % "3.0.8" % "test",
-    "org.scalacheck"   %% "scalacheck"   % "1.14.0" % Test,
-    "com.danielasfregola"     %% "random-data-generator-magnolia" % "2.6"     % Test,
-    "com.ironcorelabs"        %% "cats-scalatest"                 % "2.4.1"               % Test)
+    "org.apache.avro"     % "avro"           % "1.9.0",
+    "com.propensive"      % "magnolia_2.12"  % "0.11.0",
+    "org.scalatest"       %% "scalatest"     % "3.0.8" % "test",
+    "com.chuusai" % "shapeless_2.12" % "2.3.3",
+    "org.scalacheck"      %% "scalacheck"                     % "1.14.0" % Test,
+    "com.danielasfregola" %% "random-data-generator-magnolia" % "2.6"     % Test,
+    "com.ironcorelabs"    %% "cats-scalatest"                 % "2.4.1"               % Test)
 
   def configureDependencies(extraDeps: Seq[ModuleID] = Seq.empty): Seq[Def.Setting[Seq[ModuleID]]] = Seq(
     libraryDependencies ++= sharedDeps
