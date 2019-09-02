@@ -32,8 +32,8 @@ object AvroSchema {
         param.typeclass.schema.flatMap { schema =>
           mkField(schema, cc, param, namespace)
         }
-      }.map { fields =>
-        Schema.createRecord(cc.typeName.short, "", namespace.getOrElse(""), false, fields.asJava)
+      }.flatMap { fields =>
+        safeSchema(Schema.createRecord(cc.typeName.short, "", namespace.getOrElse(""), false, fields.asJava))
       }
     }
   }
