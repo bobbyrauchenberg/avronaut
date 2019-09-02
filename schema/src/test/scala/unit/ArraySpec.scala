@@ -22,7 +22,8 @@ class ArraySpec extends UnitSpecBase {
   trait TestContext {
     def runAssert[T : AvroSchema](name: String) =
       schemaAsString[T] should beRight(
-        s"""{"type":"record","name":"$name","namespace":"unit.RecordsWithArrays","doc":"",
+        s"""
+           |{"type":"record","name":"$name","namespace":"unit.RecordsWithArrays","doc":"",
            |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"},"doc":""}]}
            |""".stripMargin.replace("\n","")
       )

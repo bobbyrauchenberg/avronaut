@@ -36,7 +36,7 @@ trait primitiveInstances {
   }
 
   implicit def nullSchema = new AvroSchema[Null] {
-    override def schema: SchemaResult = safe(SchemaBuilder.builder.nullType)
+      override def schema: SchemaResult = safe(SchemaBuilder.builder.nullType)
   }
 
 }
