@@ -5,12 +5,8 @@ import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
 import org.apache.avro.Schema
 import magnolia.{CaseClass, Magnolia, Param}
 
-import scala.collection.JavaConverters._
-
 trait AvroSchema[T] {
-
   def schema: SchemaResult
-
 }
 
 object AvroSchema {
@@ -26,14 +22,11 @@ object AvroSchema {
 
       val annotations = getAnnotations(cc.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, cc.typeName.short, "")
+      val doc = getDoc(annotations)
 
       cc.parameters.toList.traverse { param =>
-        param.typeclass.schema.flatMap { schema =>
-          mkField(schema, param)
-        }
-      }.flatMap { fields =>
-        safeSchema(Schema.createRecord(name, "", namespace, false, fields.asJava))
-      }
+        param.typeclass.schema.flatMap(mkField(_, param))
+      }.flatMap(fields => schemaRecord(name, doc, namespace, false, fields))
     }
   }
 
@@ -44,11 +37,9 @@ object AvroSchema {
     val name = getName(annotations, param.label)
     val doc = getDoc(annotations)
 
-    param.default.traverse { default =>
-        safeSchema(new Schema.Field(name, schema, doc, default))
-      }.flatMap { withDefault =>
-        withDefault.map(_.asRight).getOrElse(safeSchema(new Schema.Field(name, schema, doc)))
-      }
+    param.default.
+      traverse(default => schemaField(name, schema, doc, default)).
+      flatMap(_.map(_.asRight).getOrElse(schemaField(name, schema, doc)))
   }
 
 
