@@ -3,10 +3,10 @@ package unit
 import common._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}
 import common.UnitSpecBase
-import com.rauchenberg.cupcatAvro.schema.instances._
 import Records._
+import com.rauchenberg.cupcatAvro.schema.instances
 
-class SchemaAnnotationsSpec extends UnitSpecBase {
+class SchemaAnnotationsSpec extends UnitSpecBase with instances {
 
   "annotations" should {
 

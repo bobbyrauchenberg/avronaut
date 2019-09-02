@@ -1,13 +1,12 @@
 package unit
 
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
-import com.rauchenberg.cupcatAvro.schema.instances._
+import com.rauchenberg.cupcatAvro.schema.{AvroSchema, instances}
 import AvroSchema._
 import common._
 import common.ProperyChecksSpecBase
 import SimpleRecords._
 
-class SimpleRecordSchemaSpec extends ProperyChecksSpecBase {
+class SimpleRecordSchemaSpec extends ProperyChecksSpecBase with instances {
 
   "schema" should {
 

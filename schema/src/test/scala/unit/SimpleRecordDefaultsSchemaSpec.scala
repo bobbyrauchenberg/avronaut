@@ -1,14 +1,13 @@
 package unit
 
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
-import com.rauchenberg.cupcatAvro.schema.instances._
+import com.rauchenberg.cupcatAvro.schema.{AvroSchema, instances}
 import common._
 import AvroSchema._
 import common.ProperyChecksSpecBase
 import org.scalacheck.{Arbitrary, Gen}
 import SimpleRecordDefaults._
 
-class SimpleRecordDefaultsSchemaSpec extends ProperyChecksSpecBase {
+class SimpleRecordDefaultsSchemaSpec extends ProperyChecksSpecBase with instances {
 
   implicit val arbString: Arbitrary[String] = Arbitrary(Gen.alphaNumStr)
 

@@ -10,13 +10,11 @@ import scala.collection.JavaConverters._
 
 trait AvroSchema[T] {
 
-  def schema: AvroSchema.SchemaResult
+  def schema: SchemaResult
 
 }
 
 object AvroSchema {
-
-  type SchemaResult = Either[SchemaError, Schema]
 
   def apply[T](implicit avroSchema: AvroSchema[T]) = avroSchema
 

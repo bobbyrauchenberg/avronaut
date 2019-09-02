@@ -1,9 +1,10 @@
 package com.rauchenberg.cupcatAvro.schema
 
-import com.rauchenberg.cupcatAvro.schema.AvroSchema.SchemaResult
 import org.apache.avro.SchemaBuilder
 
-object instances {
+object instances extends instances
+
+trait instances {
 
   implicit val stringSchema = new AvroSchema[String] {
     override def schema: SchemaResult = safeSchema(SchemaBuilder.builder.stringType)
@@ -38,3 +39,5 @@ object instances {
   }
 
 }
+
+
