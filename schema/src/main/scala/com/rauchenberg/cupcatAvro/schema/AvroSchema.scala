@@ -1,6 +1,7 @@
 package com.rauchenberg.cupcatAvro.schema
 
 import cats.implicits._
+
 import collection.JavaConverters._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
 import com.rauchenberg.cupcatAvro.schema.helpers.AvroHelper._
@@ -45,22 +46,22 @@ object AvroSchema {
     val doc = getDoc(annotations)
 
     override def schema: SchemaResult = {
+
       val subtypes = ctx.subtypes.map { st =>
         st.cast.asInstanceOf[Subtype[Typeclass, T]]
       }.toList
-      subtypes.traverse { v =>
-        v.typeclass.schema
-      }.flatMap { schemas =>
-        if(isEnum(schemas)) {
-          val subtypeSymbols = subtypes.map(_.typeName.short)
-          subtypes.headOption.map { typeName =>
-            safe(SchemaBuilder.builder.enumeration(typeName.typeName.owner).namespace(namespace).doc(doc).symbols(subtypeSymbols:_*))
-          }.getOrElse(SchemaError("could fine no subtypes to build enum").asLeft)
-        } else {
-          safe(Schema.createUnion(schemas:_*))
-        }
-      }
+
+      def toEnumOrUnion(schemas: List[Schema]) =
+        if (isEnum(schemas))
+          schemaEnumeration(ctx.typeName.owner, namespace, doc, subtypes.map(_.typeName.short))
+        else schemaUnion(schemas)
+
+      for {
+        schemas <- subtypes.traverse(_.typeclass.schema)
+        enumOrUnion <- toEnumOrUnion(schemas)
+      } yield enumOrUnion
     }
+
   }
 
   private def toField[T](param: Param[Typeclass, T], schema: Schema): Either[SchemaError, Field[T]] = {

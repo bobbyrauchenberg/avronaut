@@ -1,7 +1,7 @@
 package com.rauchenberg.cupcatAvro
 
 import cats.syntax.either._
-import org.apache.avro.Schema
+import org.apache.avro.{Schema, SchemaBuilder}
 import shapeless.Coproduct
 import shapeless.ops.coproduct.Inject
 
@@ -21,6 +21,11 @@ package object schema {
 
   def schemaRecord[T](name: String, doc: String, namespace: String, isError: Boolean, fields: List[Schema.Field]) =
     safe(Schema.createRecord(name, doc, namespace, false, fields.asJava))
+
+  def schemaEnumeration(name: String, namespace: String, doc: String, symbols: List[String]) =
+    safe(SchemaBuilder.builder.enumeration(name).namespace(namespace).doc(doc).symbols(symbols:_*))
+
+  def schemaUnion(types: List[Schema]) = safe(Schema.createUnion(types:_*))
 
   def safe[T](f: => T): Either[SchemaError, T] = {
     Either.catchNonFatal(f).leftMap {
