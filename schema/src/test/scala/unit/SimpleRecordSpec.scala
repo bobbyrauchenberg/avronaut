@@ -1,10 +1,7 @@
 package unit
 
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
-import AvroSchema._
 import common._
-import common.ProperyChecksSpecBase
-import SimpleRecords._
+import SimpleRecord._
 
 class SimpleRecordSchemaSpec extends UnitSpecBase {
 
@@ -44,12 +41,12 @@ class SimpleRecordSchemaSpec extends UnitSpecBase {
   }
 
   trait TestContext {
-    def simpleSchema(typeName: String, valueType: String) = s"""{"type":"record","name":"$typeName","namespace":"unit.SimpleRecords","doc":"","fields":[{"name":"value","type":"$valueType","doc":""}]}"""
+    def simpleSchema(typeName: String, valueType: String) = s"""{"type":"record","name":"$typeName","namespace":"unit.SimpleRecord","doc":"","fields":[{"name":"value","type":"$valueType","doc":""}]}"""
   }
 
 }
 
-private [this] object SimpleRecords {
+private [this] object SimpleRecord {
   case class SimpleNull(value: Null)
   case class SimpleBool(value: Boolean)
   case class SimpleString(value: String)

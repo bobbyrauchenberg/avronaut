@@ -1,10 +1,9 @@
 package unit
 
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
 import common._
-import AvroSchema._
 import org.scalacheck.{Arbitrary, Gen}
 import SimpleRecordDefaults._
+import com.rauchenberg.cupcatAvro.schema.AvroSchema
 
 class SimpleRecordDefaultsSchemaSpec extends UnitSpecBase {
 
@@ -17,7 +16,7 @@ class SimpleRecordDefaultsSchemaSpec extends UnitSpecBase {
     }
 
     "have a default for a basic string record" in new TestContext {
-        runAssert[StringWithDefault, String]("StringWithDefault", "string", "\"cupcat\"")
+      runAssert[StringWithDefault, String]("StringWithDefault", "string", "\"cupcat\"")
     }
 
     "have a default for a basic int record" in new TestContext {
@@ -44,7 +43,7 @@ class SimpleRecordDefaultsSchemaSpec extends UnitSpecBase {
 
   trait TestContext {
 
-    def runAssert[S : AvroSchema, T](typeName: String, valueType: String, default: T) =
+    def runAssert[S : AvroSchema,  T](typeName: String, valueType: String, default: T) =
       schemaAsString[S] should beRight(simpleSchema(typeName, valueType, default))
 
     def simpleSchema[T](typeName: String, valueType: String, default: T) = s"""{"type":"record","name":"$typeName","namespace":"unit.SimpleRecordDefaults","doc":"","fields":[{"name":"value","type":"$valueType","doc":"","default":$default}]}"""

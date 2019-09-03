@@ -44,15 +44,4 @@ object SchemaHelper {
       }
   }
 
-  def extractDefault[T](t: T, schema: Schema): Any = {
-    t match {
-      case Some(v) => v
-      case None => JsonProperties.NULL_VALUE
-      case Right(v) => v
-      case Left(v) => v
-      case other => other
-    }
-  }
-
-
 }
