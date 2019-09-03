@@ -8,8 +8,7 @@ import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization.write
 import org.apache.avro.Schema
 import org.json4s.DefaultFormats
-
-
+import com.rauchenberg.cupcatAvro.schema._
 import scala.collection.JavaConverters._
 
 object SchemaHelper {
@@ -20,14 +19,13 @@ object SchemaHelper {
     val (first, rest) = schema.getTypes.asScala.partition { t =>
       default match {
         case _ => schemaTypeOfDefault == t.getType.some || t.getName == default.toString
-
       }
     }
-    safe {
-      val result = Schema.createUnion(first.headOption.toSeq ++ rest: _*)
-      schema.getObjectProps.asScala.foreach { case (k, v) => result.addProp(k, v) }
-      result
+    val union = schemaUnion((first.headOption.toSeq ++ rest).toList)
+    schemaUnion((first.headOption.toSeq ++ rest).toList).flatMap { u =>
+      safe(schema.getObjectProps.asScala.foreach { case (k, v) => u.addProp(k, v) })
     }
+    union
   }
 
   def makeSchemaField[T](field: Field[T]): Either[SchemaError, Schema.Field] = field match {

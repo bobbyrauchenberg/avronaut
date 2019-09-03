@@ -1,13 +1,11 @@
 package com.rauchenberg.cupcatAvro.schema
 
 import cats.implicits._
-
-import collection.JavaConverters._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
 import com.rauchenberg.cupcatAvro.schema.helpers.AvroHelper._
 import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
-import magnolia.{CaseClass, Magnolia, Param, SealedTrait, Subtype}
-import org.apache.avro.{Schema, SchemaBuilder}
+import org.apache.avro.Schema
+import magnolia._
 
 case class Field[T](name: String, doc: String, default: Option[T], schema: Schema)
 
@@ -39,14 +37,13 @@ object AvroSchema {
     }
   }
 
-  def dispatch[T](ctx: SealedTrait[Typeclass, T])(): Typeclass[T] = new Typeclass[T] {
+  def dispatch[T](ctx: SealedTrait[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
 
     val annotations = getAnnotations(ctx.annotations)
     val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
     val doc = getDoc(annotations)
 
     override def schema: SchemaResult = {
-
       val subtypes = ctx.subtypes.map { st =>
         st.cast.asInstanceOf[Subtype[Typeclass, T]]
       }.toList
@@ -61,7 +58,6 @@ object AvroSchema {
         enumOrUnion <- toEnumOrUnion(schemas)
       } yield enumOrUnion
     }
-
   }
 
   private def toField[T](param: Param[Typeclass, T], schema: Schema): Either[SchemaError, Field[T]] = {
