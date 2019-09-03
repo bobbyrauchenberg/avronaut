@@ -5,6 +5,7 @@ import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
 import org.apache.avro.{JsonProperties, Schema}
 import magnolia.{CaseClass, Magnolia, Param}
 import SchemaHelper._
+import shapeless.{Inl, Inr}
 
 case class Field[T](name: String, doc: String, default: Option[T], schema: Schema)
 
@@ -57,6 +58,8 @@ object AvroSchema {
     case Field(name, doc, Some(None), schema) => schemaField(name, schema, doc, JsonProperties.NULL_VALUE)
     case Field(name, doc, Some(Left(default)), schema) => schemaField(name, schema, doc, default)
     case Field(name, doc, Some(Right(default)), schema) => schemaField(name, schema, doc, default)
+    case Field(name, doc, Some(Inl(default)), schema) => schemaField(name, schema, doc, default)
+    case Field(name, doc, Some(Inr(default)), schema) => makeSchemaField(Field(name, doc, default.some, schema))
     case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
     case Field(name, doc, None, schema) => schemaField(name, schema, doc)
   }

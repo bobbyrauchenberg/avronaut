@@ -3,6 +3,7 @@ package com.rauchenberg.cupcatAvro.schema
 import cats.syntax.option._
 import org.apache.avro.generic.GenericData
 import org.apache.avro.{JsonProperties, Schema}
+import shapeless.{Inl, Inr}
 
 import scala.collection.JavaConverters._
 
@@ -11,6 +12,8 @@ object SchemaHelper {
   def schemaFor[T](t: T): Option[Schema.Type] = {
     t match {
       case Some(v) => schemaFor(v)
+      case Inl(v) => schemaFor(v)
+      case Inr(v) => schemaFor(v)
       case None => Schema.Type.NULL.some
       case Right(v) => schemaFor(v)
       case Left(v) => schemaFor(v)

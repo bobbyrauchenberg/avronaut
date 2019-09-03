@@ -2,6 +2,9 @@ package com.rauchenberg.cupcatAvro
 
 import cats.syntax.either._
 import org.apache.avro.Schema
+import shapeless.Coproduct
+import shapeless.ops.coproduct.Inject
+
 import scala.collection.JavaConverters._
 
 package object schema {
@@ -25,6 +28,11 @@ package object schema {
         SchemaError(e.getMessage)
     }
   }
+
+  implicit class CoproductOps[T](val t: T) extends AnyVal {
+    def toCP[U <: Coproduct](implicit inj: Inject[U, T]): U = Coproduct[U](t)
+  }
+
 
 
 }
