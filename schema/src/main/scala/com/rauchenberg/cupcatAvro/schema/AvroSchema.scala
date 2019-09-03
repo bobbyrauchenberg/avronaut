@@ -51,8 +51,7 @@ object AvroSchema {
       subtypes.traverse { v =>
         v.typeclass.schema
       }.flatMap { schemas =>
-        val fields = schemas.flatMap(_.getFields.asScala.toList)
-        if(fields.isEmpty) {
+        if(isEnum(schemas)) {
           val subtypeSymbols = subtypes.map(_.typeName.short)
           subtypes.headOption.map { typeName =>
             safe(SchemaBuilder.builder.enumeration(typeName.typeName.owner).namespace(namespace).doc(doc).symbols(subtypeSymbols:_*))

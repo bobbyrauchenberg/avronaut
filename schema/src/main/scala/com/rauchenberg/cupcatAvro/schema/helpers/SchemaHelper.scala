@@ -42,6 +42,8 @@ object SchemaHelper {
     case Field(name, doc, None, schema) => schemaField(name, schema, doc)
   }
 
+  def isEnum(schemas: List[Schema]) = schemas.flatMap(_.getFields.asScala.toList).isEmpty
+
   private def toAvroFormat[T](t: T) = parse(write(t)).extract[Map[String, Any]].asJava
 
 
