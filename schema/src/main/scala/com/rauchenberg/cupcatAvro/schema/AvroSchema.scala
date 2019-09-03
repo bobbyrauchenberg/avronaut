@@ -28,7 +28,6 @@ object AvroSchema {
       val annotations = getAnnotations(ctx.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
       val doc = getDoc(annotations)
-
       ctx.parameters.toList.traverse { param =>
         for {
           schema <- param.typeclass.schema
@@ -63,10 +62,6 @@ object AvroSchema {
       }
 
     }
-  }
-
-  private def toField[T](subtype: Subtype[Typeclass,T], schema: Schema) = {
-
   }
 
   private def toField[T](param: Param[Typeclass, T], schema: Schema): Either[SchemaError, Field[T]] = {
