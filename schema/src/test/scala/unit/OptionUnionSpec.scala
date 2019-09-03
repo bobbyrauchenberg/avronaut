@@ -4,6 +4,7 @@ import cats.syntax.option._
 import common._
 import common.UnitSpecBase
 import OptionUnion._
+import com.rauchenberg.cupcatAvro.schema.SchemaError
 
 class OptionUnionSpec extends UnitSpecBase {
 
@@ -34,6 +35,10 @@ class OptionUnionSpec extends UnitSpecBase {
 
       schemaAsString[OptionUnionWithDefaultNone] should beRight(expected)
     }
+
+    "error if a union contains a union" in {
+      schemaAsString[IllegalNestedUnion] should beLeft(SchemaError("""Nested union: ["null",["null","string"]]"""))
+    }
   }
 
 }
@@ -42,4 +47,5 @@ private [this] object OptionUnion {
   case class OptionUnion(cupcat : Option[String])
   case class OptionUnionWithDefault(cupcat: Option[String] = "cupcat".some)
   case class OptionUnionWithDefaultNone(cupcat: Option[String] = None)
+  case class IllegalNestedUnion(cupcat: Option[Option[String]])
 }

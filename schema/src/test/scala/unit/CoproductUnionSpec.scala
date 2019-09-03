@@ -35,14 +35,22 @@ class CoproductUnionSpec extends UnitSpecBase {
 
       schemaAsString[CoproductWithIntDefault] should beRight(expected)
     }
+
+    "error if a union contains a duplicate" in {
+      schemaAsString[IllegalDuplicateCP] should beLeft(SchemaError("Duplicate in union:string"))
+    }
   }
 }
 
 private [this] object CoproductUnion {
 
   type CP = String :+: Boolean :+: Int :+: CNil
+  type IllegalNestedCP = String :+: (Boolean :+: Int :+: CNil) :+: Double :+: CNil
+  type IllegalDuplicateCP = String :+: String :+: CNil
 
   case class CoproductUnion(cupcat: CP)
   case class CoproductWithStringDefault(cupcat: CP = "cupcat".toCP[CP])
   case class CoproductWithIntDefault(cupcat: CP = 123.toCP[CP])
+  case class IllegalNestedUnion(cupcat: IllegalNestedCP)
+  case class IllegalDuplicateUnion(cupcat: IllegalDuplicateCP)
 }
