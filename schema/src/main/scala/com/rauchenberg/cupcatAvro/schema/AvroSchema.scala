@@ -47,20 +47,20 @@ object AvroSchema {
     override def schema: SchemaResult = {
       val subtypes = ctx.subtypes.map { st =>
         st.cast.asInstanceOf[Subtype[Typeclass, T]]
-      }
-      val eitherSchemas = subtypes.toList.traverse { v =>
+      }.toList
+      subtypes.traverse { v =>
         v.typeclass.schema
-      }
-      eitherSchemas.flatMap { schemas =>
+      }.flatMap { schemas =>
         val fields = schemas.flatMap(_.getFields.asScala.toList)
         if(fields.isEmpty) {
-          val subtypeSymbols = subtypes.toList.map(_.typeName.short)
-          safe(SchemaBuilder.builder.enumeration(subtypes.head.typeName.owner).namespace(namespace).doc(doc).symbols(subtypeSymbols:_*))
+          val subtypeSymbols = subtypes.map(_.typeName.short)
+          subtypes.headOption.map { typeName =>
+            safe(SchemaBuilder.builder.enumeration(typeName.typeName.owner).namespace(namespace).doc(doc).symbols(subtypeSymbols:_*))
+          }.getOrElse(SchemaError("could fine no subtypes to build enum").asLeft)
         } else {
           safe(Schema.createUnion(schemas:_*))
         }
       }
-
     }
   }
 
