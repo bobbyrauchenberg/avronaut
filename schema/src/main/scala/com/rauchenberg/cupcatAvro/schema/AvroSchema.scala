@@ -1,11 +1,12 @@
 package com.rauchenberg.cupcatAvro.schema
 
 import cats.implicits._
+import collection.JavaConverters._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
-import org.apache.avro.{JsonProperties, Schema}
-import magnolia.{CaseClass, Magnolia, Param}
-import SchemaHelper._
-import shapeless.{Inl, Inr}
+import com.rauchenberg.cupcatAvro.schema.helpers.AvroHelper._
+import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
+import magnolia.{CaseClass, Magnolia, Param, SealedTrait, Subtype}
+import org.apache.avro.{Schema, SchemaBuilder}
 
 case class Field[T](name: String, doc: String, default: Option[T], schema: Schema)
 
@@ -21,21 +22,51 @@ object AvroSchema {
 
   implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
 
-  def combine[T](cc: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
+  def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
     override def schema: SchemaResult = {
 
-      val annotations = getAnnotations(cc.annotations)
-      val (name, namespace) = getNameAndNamespace(annotations, cc.typeName.short, cc.typeName.owner)
+      val annotations = getAnnotations(ctx.annotations)
+      val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
       val doc = getDoc(annotations)
 
-      cc.parameters.toList.traverse { param =>
+      ctx.parameters.toList.traverse { param =>
         for {
           schema <- param.typeclass.schema
-          field <- (toField(param, schema))
+          field <- toField(param, schema)
           schemaField <- makeSchemaField(field)
         } yield schemaField
       }.flatMap(fields => schemaRecord(name, doc, namespace, false, fields))
     }
+  }
+
+  def dispatch[T](ctx: SealedTrait[Typeclass, T])(): Typeclass[T] = new Typeclass[T] {
+
+    val annotations = getAnnotations(ctx.annotations)
+    val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
+    val doc = getDoc(annotations)
+
+    override def schema: SchemaResult = {
+      val subtypes = ctx.subtypes.map { st =>
+        st.cast.asInstanceOf[Subtype[Typeclass, T]]
+      }
+      val eitherSchemas = subtypes.toList.traverse { v =>
+        v.typeclass.schema
+      }
+      eitherSchemas.flatMap { schemas =>
+        val fields = schemas.flatMap(_.getFields.asScala.toList)
+        if(fields.isEmpty) {
+          val subtypeSymbols = subtypes.toList.map(_.typeName.short)
+          safe(SchemaBuilder.builder.enumeration(subtypes.head.typeName.owner).namespace(namespace).doc(doc).symbols(subtypeSymbols:_*))
+        } else {
+          safe(Schema.createUnion(schemas:_*))
+        }
+      }
+
+    }
+  }
+
+  private def toField[T](subtype: Subtype[Typeclass,T], schema: Schema) = {
+
   }
 
   private def toField[T](param: Param[Typeclass, T], schema: Schema): Either[SchemaError, Field[T]] = {
@@ -47,22 +78,12 @@ object AvroSchema {
     schema.getType match {
       case Schema.Type.UNION =>
         default.traverse { defaultValue =>
-          moveDefaultToHead(schema, defaultValue, schemaFor(default)).map(Field(name, doc, default, _))
+          moveDefaultToHead(schema, defaultValue, avroTypeFor(default)).map(Field(name, doc, default, _))
         }.map(_.getOrElse(Field(name, doc, None, schema)))
       case _ => Field(name, doc, default, schema).asRight[SchemaError]
     }
   }
 
-  private def makeSchemaField[T](field: Field[T]): Either[SchemaError, Schema.Field] = field match {
-    case Field(name, doc, Some(Some(default)), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, Some(None), schema) => schemaField(name, schema, doc, JsonProperties.NULL_VALUE)
-    case Field(name, doc, Some(Left(default)), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, Some(Right(default)), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, Some(Inl(default)), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, Some(Inr(default)), schema) => makeSchemaField(Field(name, doc, default.some, schema))
-    case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, None, schema) => schemaField(name, schema, doc)
-  }
 
 }
 

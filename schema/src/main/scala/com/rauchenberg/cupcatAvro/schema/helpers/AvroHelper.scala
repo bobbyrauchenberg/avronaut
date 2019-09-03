@@ -1,22 +1,20 @@
-package com.rauchenberg.cupcatAvro.schema
+package com.rauchenberg.cupcatAvro.schema.helpers
 
-import cats.syntax.option._
 import org.apache.avro.generic.GenericData
 import org.apache.avro.{JsonProperties, Schema}
 import shapeless.{Inl, Inr}
+import cats.syntax.option._
 
-import scala.collection.JavaConverters._
+object AvroHelper {
 
-object SchemaHelper {
-
-  def schemaFor[T](t: T): Option[Schema.Type] = {
+  def avroTypeFor[T](t: T): Option[Schema.Type] = {
     t match {
-      case Some(v) => schemaFor(v)
-      case Inl(v) => schemaFor(v)
-      case Inr(v) => schemaFor(v)
+      case Some(v) => avroTypeFor(v)
+      case Inl(v) => avroTypeFor(v)
+      case Inr(v) => avroTypeFor(v)
       case None => Schema.Type.NULL.some
-      case Right(v) => schemaFor(v)
-      case Left(v) => schemaFor(v)
+      case Right(v) => avroTypeFor(v)
+      case Left(v) => avroTypeFor(v)
       case _: String => Schema.Type.STRING.some
       case _: Long => Schema.Type.LONG.some
       case _: Int => Schema.Type.INT.some
@@ -32,19 +30,6 @@ object SchemaHelper {
       case JsonProperties.NULL_VALUE => Schema.Type.NULL.some
       case _ => None
     }
-  }
-
-  def moveDefaultToHead[T](schema: Schema, default: T, schemaTypeOfDefault: Option[Schema.Type]): SchemaResult = {
-      val (first, rest) = schema.getTypes.asScala.partition { t =>
-        default match {
-          case _ => schemaTypeOfDefault == t.getType.some
-        }
-      }
-      safe {
-        val result = Schema.createUnion(first.headOption.toSeq ++ rest: _*)
-        schema.getObjectProps.asScala.foreach { case (k, v) => result.addProp(k, v) }
-        result
-      }
   }
 
 }
