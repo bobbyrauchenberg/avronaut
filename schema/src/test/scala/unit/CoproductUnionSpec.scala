@@ -13,7 +13,7 @@ class CoproductUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"CoproductUnion","namespace":"unit.CoproductUnion",
-          |"doc":"","fields":[{"name":"cupcat","type":["int","boolean","string"],"doc":""}]}""".stripMargin.replace("\n", "")
+          |"doc":"","fields":[{"name":"cupcat","type":["int","boolean","string"]}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[CoproductUnion] should beRight(expected)
     }

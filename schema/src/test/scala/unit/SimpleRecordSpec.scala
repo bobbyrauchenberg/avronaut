@@ -2,6 +2,7 @@ package unit
 
 import common._
 import SimpleRecord._
+import org.apache.avro.SchemaBuilder
 
 class SimpleRecordSchemaSpec extends UnitSpecBase {
 
@@ -41,7 +42,10 @@ class SimpleRecordSchemaSpec extends UnitSpecBase {
   }
 
   trait TestContext {
-    def simpleSchema(typeName: String, valueType: String) = s"""{"type":"record","name":"$typeName","namespace":"unit.SimpleRecord","doc":"","fields":[{"name":"value","type":"$valueType","doc":""}]}"""
+    def simpleSchema(typeName: String, valueType: String) =
+      s"""{"type":"record","name":"$typeName",
+         |"namespace":"unit.SimpleRecord","doc":"",
+         |"fields":[{"name":"value","type":"$valueType"}]}""".stripMargin.replace("\n","")
   }
 
 }

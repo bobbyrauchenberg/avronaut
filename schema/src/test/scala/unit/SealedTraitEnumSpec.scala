@@ -11,8 +11,8 @@ class SealedTraitEnumSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EnumCC","namespace":"unit.SealedTraitEnum","doc":"",
-          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"SealedTraitEnum","namespace":"unit","doc":"",
-          |"symbols":["Cupcat","Rendal"]},"doc":""}]}""".stripMargin.replace("\n","")
+          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"SealedTraitEnum","namespace":"unit",
+          |"symbols":["Cupcat","Rendal"]}}]}""".stripMargin.replace("\n","")
 
       schemaAsString[EnumCC] should beRight(expected)
     }

@@ -19,14 +19,8 @@ lazy val root = Project(id = "disco-map", base = file("."))
 
 lazy val schema = newModule("schema")
 
+lazy val decoder = newModule("decoder")
+
 def newModule(name: String): Project =
   Project(id = name, base = file(name))
 
-// The dependencies are in Maven format, with % separating the parts.  
-// Notice the extra bit "test" on the end of JUnit and ScalaTest, which will 
-// mean it is only a test dependency.
-//
-// The %% means that it will automatically add the specific Scala version to the dependency name.  
-// For instance, this will actually download scalatest_2.9.2
-
-// Initial commands to be run in your REPL.  I like to import various project-specific things here.

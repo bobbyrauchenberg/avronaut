@@ -14,7 +14,7 @@ class EitherUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EitherUnion","namespace":"unit.EitherUnion",
-          |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"],"doc":""}]}""".stripMargin.replace("\n","")
+          |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"]}]}""".stripMargin.replace("\n","")
 
       schemaAsString[EitherUnion] should beRight(expected)
     }

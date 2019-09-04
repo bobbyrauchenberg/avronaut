@@ -13,7 +13,7 @@ class OptionUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"Union","namespace":"unit.OptionUnion",
-          |"doc":"","fields":[{"name":"cupcat","type":["null","string"],"doc":""}]}""".stripMargin.replace("\n","")
+          |"doc":"","fields":[{"name":"cupcat","type":["null","string"]}]}""".stripMargin.replace("\n","")
 
       schemaAsString[Union] should beRight(expected)
     }
@@ -21,8 +21,8 @@ class OptionUnionSpec extends UnitSpecBase {
     "create a union from an Option with a default" in {
       val expected =
         """
-          |{"type":"record","name":"UnionWithDefault","namespace":"unit.OptionUnion",
-          |"doc":"","fields":[{"name":"cupcat","type":["string","null"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n","")
+          |{"type":"record","name":"UnionWithDefault","namespace":"unit.OptionUnion","doc":"",
+          |"fields":[{"name":"cupcat","type":["string","null"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n","")
 
       schemaAsString[UnionWithDefault] should beRight(expected)
     }
@@ -41,8 +41,8 @@ class OptionUnionSpec extends UnitSpecBase {
         """
           |{"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.OptionUnion","doc":"",
           |"fields":[{"name":"cupcat","type":{"type":"record","name":"Default","doc":"",
-          |"fields":[{"name":"cupcat","type":"string","doc":""}]},"doc":""
-          |,"default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n","")
+          |"fields":[{"name":"cupcat","type":"string"}]},"doc":"",
+          |"default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n","")
 
       schemaAsString[UnionWithCaseClassDefault] should beRight(expected)
     }

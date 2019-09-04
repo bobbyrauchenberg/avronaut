@@ -16,7 +16,7 @@ object SchemaAnnotations {
 
   def getName(annotations: Option[SchemaMetadata], defaultName: String) = annotations.flatMap(_.values.get(Name)).getOrElse(defaultName)
 
-  def getDoc(annotations: Option[SchemaMetadata]) = annotations.flatMap(_.values.get(Doc)).getOrElse("")
+  def getDoc(annotations: Option[SchemaMetadata]): Option[String] = annotations.flatMap(_.values.get(Doc))
 
   def getNameAndNamespace(annotations: Option[SchemaMetadata], defaultName: String, defaultNamespace: String): (String, String) = {
 

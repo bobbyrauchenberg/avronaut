@@ -11,28 +11,34 @@ class AnnotationsSpec extends UnitSpecBase {
   "annotations" should {
 
     "amend the field name if name annotation is present" in new TestContext {
-      runAssert[FieldNameAnnotation](s"""{"type":"record","name":"FieldNameAnnotation","namespace":"unit.Records","doc":"","fields":[{"name":"cuppers","type":"string","doc":""}]}""")
+      runAssert[FieldNameAnnotation](
+        s"""{"type":"record","name":"FieldNameAnnotation","namespace":"unit.Records",
+           |"doc":"","fields":[{"name":"cuppers","type":"string"}]}""".stripMargin.replace("\n",""))
     }
 
     "add documentation if present" in new TestContext {
-      runAssert[FieldDocAnnotation](s"""{"type":"record","name":"FieldDocAnnotation","namespace":"unit.Records","doc":"","fields":[{"name":"cupcat","type":"string","doc":\"Field now deprecated"}]}""")
+      runAssert[FieldDocAnnotation](
+        s"""{"type":"record","name":"FieldDocAnnotation","namespace":"unit.Records",
+           |"doc":"","fields":[{"name":"cupcat","type":"string","doc":\"Field now deprecated"}]}""".stripMargin.replace("\n",""))
     }
 
     "add global namespace if present" in new TestContext {
       runAssert[NamespaceAnnotation](
-        s"""{"type":"record","name":"NamespaceAnnotation","namespace":"com.cupcat","doc":"","fields":[{"name":"cupcat","type":"string","doc":""}]}"""
+        s"""{"type":"record","name":"NamespaceAnnotation","namespace":"com.cupcat","doc":"",
+           |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n","")
       )
     }
 
     "treat a name with a dot as a fullname, so namespace is ignored" in new TestContext {
       runAssert[FullName](
-        s"""{"type":"record","name":"Cat","namespace":"cup","doc":"","fields":[{"name":"cupcat","type":"string","doc":""}]}"""
+        s"""{"type":"record","name":"Cat","namespace":"cup","doc":"","fields":[{"name":"cupcat","type":"string"}]}"""
       )
     }
 
     "document a top level record " in new TestContext {
       runAssert[TopLevelDoc](
-        s"""{"type":"record","name":"TopLevelDoc","namespace":"unit.Records","doc":"Record is now deprecated","fields":[{"name":"cupcat","type":"string","doc":""}]}"""
+        s"""{"type":"record","name":"TopLevelDoc","namespace":"unit.Records","doc":"Record is now deprecated",
+           |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n","")
       )
     }
 

@@ -8,7 +8,7 @@ import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
 import org.apache.avro.Schema
 import magnolia._
 
-case class Field[T](name: String, doc: String, default: Option[T], schema: Schema)
+case class Field[T](name: String, doc: Option[String], default: Option[T], schema: Schema)
 
 trait AvroSchema[T] {
   def schema: SchemaResult
@@ -23,18 +23,19 @@ object AvroSchema {
   implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
 
   def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
-    override def schema: SchemaResult = {
 
-      val annotations = getAnnotations(ctx.annotations)
-      val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
-      val doc = getDoc(annotations)
+    val annotations = getAnnotations(ctx.annotations)
+    val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
+    val toSchema = schemaRecord(name, getDoc(annotations), namespace, false, _: List[Schema.Field])
+
+    override def schema: SchemaResult = {
       ctx.parameters.toList.traverse { param =>
         for {
           schema <- param.typeclass.schema
           field <- toField(param, schema)
           schemaField <- makeSchemaField(field)
         } yield schemaField
-      }.flatMap(fields => schemaRecord(name, doc, namespace, false, fields))
+      }.flatMap(toSchema)
     }
   }
 
@@ -45,9 +46,7 @@ object AvroSchema {
     val doc = getDoc(annotations)
 
     override def schema: SchemaResult = {
-      val subtypes = ctx.subtypes.map { st =>
-        st.cast.asInstanceOf[Subtype[Typeclass, T]]
-      }.toList
+      val subtypes = ctx.subtypes.map(_.cast.asInstanceOf[Subtype[Typeclass, T]]).toList
 
       def toEnumOrUnion(schemas: List[Schema]) =
         if (schemas.flatMap(_.getFields.asScala.toList).isEmpty)
@@ -64,15 +63,17 @@ object AvroSchema {
   private def toField[T](param: Param[Typeclass, T], schema: Schema): Either[SchemaError, Field[T]] = {
     val annotations = getAnnotations(param.annotations)
     val name = getName(annotations, param.label)
-    val doc = getDoc(annotations)
     val default = param.default.asInstanceOf[Option[T]]
+    val doc = getDoc(annotations)
+
+    val toField = Field(name, doc, _: Option[T], schema)
 
     schema.getType match {
       case Schema.Type.UNION =>
-        default.traverse { defaultValue =>
-          moveDefaultToHead(schema, defaultValue, avroTypeFor(default)).map(Field(name, doc, default, _))
-        }.map(_.getOrElse(Field(name, doc, None, schema)))
-      case _ => Field(name, doc, default, schema).asRight[SchemaError]
+        default.traverse(moveDefaultToHead(schema, _, avroTypeFor(default))
+          .map(Field(name, doc, default, _)))
+          .map(_.getOrElse(toField(None)))
+      case _ => toField(default).asRight[SchemaError]
     }
   }
 

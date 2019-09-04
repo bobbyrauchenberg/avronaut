@@ -11,8 +11,8 @@ class SealedTraitUnionSpec extends UnitSpecBase {
         """
           |{"type":"record","name":"Union","namespace":"unit.SealedTraitUnion","doc":"",
           |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Cupcat","doc":"","fields":[]},
-          |{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string","doc":""}]},
-          |{"type":"record","name":"Rendal","doc":"","fields":[]}],"doc":""}]}""".stripMargin.replace("\n","")
+          |{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string"}]},
+          |{"type":"record","name":"Rendal","doc":"","fields":[]}]}]}""".stripMargin.replace("\n","")
 
       schemaAsString[Union] should beRight(expected)
     }
@@ -21,7 +21,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
         """
           |{"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.SealedTraitUnion","doc":"",
           |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Cupcat","doc":"","fields":[]},
-          |{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string","doc":""}]},
+          |{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string"}]},
           |{"type":"record","name":"Rendal","doc":"","fields":[]}],
           |"doc":"","default":{"name":"cupcat"}}]}""".stripMargin.replace("\n","")
 
@@ -33,7 +33,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"UnionWithCaseObjectDefault","namespace":"unit.SealedTraitUnion","doc":"",
           |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Rendal","doc":"","fields":[]},
           |{"type":"record","name":"Cupcat","doc":"","fields":[]},{"type":"record","name":"Snoutley","doc":"",
-          |"fields":[{"name":"name","type":"string","doc":""}]}],"doc":"","default":{}}]}""".stripMargin.replace("\n","")
+          |"fields":[{"name":"name","type":"string"}]}],"doc":"","default":{}}]}""".stripMargin.replace("\n","")
 
       schemaAsString[UnionWithCaseObjectDefault] should beRight(expected)
     }
