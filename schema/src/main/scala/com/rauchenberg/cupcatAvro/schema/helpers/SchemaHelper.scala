@@ -1,14 +1,13 @@
 package com.rauchenberg.cupcatAvro.schema.helpers
 
 import cats.syntax.option._
-import com.rauchenberg.cupcatAvro.schema.{Field, SchemaError, SchemaResult, safe, schemaField}
+import com.rauchenberg.cupcatAvro.schema.{Field, SchemaError, SchemaResult, safe, schemaField, _}
 import org.apache.avro.{JsonProperties, Schema}
-import shapeless.{Inl, Inr}
+import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization.write
-import org.apache.avro.Schema
-import org.json4s.DefaultFormats
-import com.rauchenberg.cupcatAvro.schema._
+import shapeless.{Inl, Inr}
+
 import scala.collection.JavaConverters._
 
 object SchemaHelper {
@@ -39,8 +38,6 @@ object SchemaHelper {
     case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
     case Field(name, doc, None, schema) => schemaField(name, schema, doc)
   }
-
-  def isEnum(schemas: List[Schema]) = schemas.flatMap(_.getFields.asScala.toList).isEmpty
 
   private def toAvroFormat[T](t: T) = parse(write(t)).extract[Map[String, Any]].asJava
 

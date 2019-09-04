@@ -1,6 +1,7 @@
 package com.rauchenberg.cupcatAvro.schema
 
 import cats.implicits._
+import scala.collection.JavaConverters._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
 import com.rauchenberg.cupcatAvro.schema.helpers.AvroHelper._
 import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
@@ -49,7 +50,7 @@ object AvroSchema {
       }.toList
 
       def toEnumOrUnion(schemas: List[Schema]) =
-        if (isEnum(schemas))
+        if (schemas.flatMap(_.getFields.asScala.toList).isEmpty)
           schemaEnumeration(ctx.typeName.owner, namespace, doc, subtypes.map(_.typeName.short))
         else schemaUnion(schemas)
 
