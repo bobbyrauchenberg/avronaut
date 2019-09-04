@@ -1,7 +1,7 @@
 package com.rauchenberg.cupcatAvro.schema.helpers
 
 import cats.syntax.option._
-import com.rauchenberg.cupcatAvro.schema.{Field, SchemaError, SchemaResult, safe, schemaField, _}
+import com.rauchenberg.cupcatAvro.schema.{SchemaError, SchemaResult, safe, schemaField, _}
 import org.apache.avro.{JsonProperties, Schema}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods.parse
@@ -11,6 +11,8 @@ import shapeless.{Inl, Inr}
 import scala.collection.JavaConverters._
 
 object SchemaHelper {
+
+  case class Field[T](name: String, doc: Option[String], default: Option[T], schema: Schema)
 
   implicit val formats = DefaultFormats
 
@@ -36,12 +38,12 @@ object SchemaHelper {
     case Field(name, doc, Some(Right(default)), schema) => schemaField(name, schema, doc, default)
     case Field(name, doc, Some(Inl(default)), schema) => schemaField(name, schema, doc, default)
     case Field(name, doc, Some(Inr(default)), schema) => makeSchemaField(Field(name, doc, default.some, schema))
-    case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toAvroFormat(p))
+    case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toJavaMap(p))
     case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
     case Field(name, doc, None, schema) => schemaField(name, schema, doc)
   }
 
-  private def toAvroFormat[T](t: T) = parse(write(t)).extract[Map[String, Any]].asJava
+  private def toJavaMap[T](t: T) = parse(write(t)).extract[Map[String, Any]].asJava
 
 
 }

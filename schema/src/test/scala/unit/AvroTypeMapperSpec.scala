@@ -2,10 +2,10 @@ package unit
 
 import cats.syntax.option._
 import common.UnitSpecBase
-import com.rauchenberg.cupcatAvro.schema.helpers.AvroHelper._
+import com.rauchenberg.cupcatAvro.schema.helpers.AvroTypeMapper._
 import org.apache.avro.Schema
 
-class AvroHelperSpec extends UnitSpecBase {
+class AvroTypeMapperSpec extends UnitSpecBase {
 
   "schemaFor" should {
     "return the schema type for a value" in {

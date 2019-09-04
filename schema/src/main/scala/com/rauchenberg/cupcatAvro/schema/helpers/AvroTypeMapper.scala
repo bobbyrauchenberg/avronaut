@@ -5,14 +5,14 @@ import org.apache.avro.{JsonProperties, Schema}
 import shapeless.{Inl, Inr}
 import cats.syntax.option._
 
-object AvroHelper {
+object AvroTypeMapper {
 
   def avroTypeFor[T](t: T): Option[Schema.Type] = {
     t match {
       case Some(v) => avroTypeFor(v)
+      case None => Schema.Type.NULL.some
       case Inl(v) => avroTypeFor(v)
       case Inr(v) => avroTypeFor(v)
-      case None => Schema.Type.NULL.some
       case Right(v) => avroTypeFor(v)
       case Left(v) => avroTypeFor(v)
       case _: String => Schema.Type.STRING.some

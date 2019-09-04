@@ -3,12 +3,10 @@ package com.rauchenberg.cupcatAvro.schema
 import cats.implicits._
 import scala.collection.JavaConverters._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
-import com.rauchenberg.cupcatAvro.schema.helpers.AvroHelper._
+import com.rauchenberg.cupcatAvro.schema.helpers.AvroTypeMapper._
 import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
 import org.apache.avro.Schema
 import magnolia._
-
-case class Field[T](name: String, doc: Option[String], default: Option[T], schema: Schema)
 
 trait AvroSchema[T] {
   def schema: SchemaResult
@@ -26,7 +24,7 @@ object AvroSchema {
 
     val annotations = getAnnotations(ctx.annotations)
     val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
-    val toSchema = schemaRecord(name, getDoc(annotations), namespace, false, _: List[Schema.Field])
+    val toSchema = schemaRecord(name, annotations.doc, namespace, false, _: List[Schema.Field])
 
     override def schema: SchemaResult = {
       ctx.parameters.toList.traverse { param =>
@@ -41,16 +39,13 @@ object AvroSchema {
 
   def dispatch[T](ctx: SealedTrait[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
 
-    val annotations = getAnnotations(ctx.annotations)
-    val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
-    val doc = getDoc(annotations)
+    val anno = getAnnotations(ctx.annotations)
+    val subtypes = ctx.subtypes.map(_.cast.asInstanceOf[Subtype[Typeclass, T]]).toList
 
     override def schema: SchemaResult = {
-      val subtypes = ctx.subtypes.map(_.cast.asInstanceOf[Subtype[Typeclass, T]]).toList
-
       def toEnumOrUnion(schemas: List[Schema]) =
         if (schemas.flatMap(_.getFields.asScala.toList).isEmpty)
-          schemaEnumeration(ctx.typeName.owner, namespace, doc, subtypes.map(_.typeName.short))
+          schemaEnum(ctx.typeName.owner, anno.namespace(ctx.typeName.owner), anno.doc, subtypes.map(_.typeName.short))
         else schemaUnion(schemas)
 
       for {
@@ -62,9 +57,9 @@ object AvroSchema {
 
   private def toField[T](param: Param[Typeclass, T], schema: Schema): Either[SchemaError, Field[T]] = {
     val annotations = getAnnotations(param.annotations)
-    val name = getName(annotations, param.label)
+    val name = annotations.name(param.label)
     val default = param.default.asInstanceOf[Option[T]]
-    val doc = getDoc(annotations)
+    val doc = annotations.doc
 
     val toField = Field(name, doc, _: Option[T], schema)
 
