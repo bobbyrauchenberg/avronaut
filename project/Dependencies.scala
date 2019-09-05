@@ -11,7 +11,7 @@ object Dependencies {
         "cats-testkit"
       ).map("org.typelevel" %% _ % "1.6.1")
 
-  val refinedDeps = Seq(
+  private val refinedDeps = Seq(
       "refined",
       "refined-pureconfig",
       "refined-scalacheck"
@@ -29,7 +29,7 @@ object Dependencies {
     "com.ironcorelabs"    %% "cats-scalatest"                 % "2.4.1"               % Test)
 
   def configureDependencies(extraDeps: Seq[ModuleID] = Seq.empty): Seq[Def.Setting[Seq[ModuleID]]] = Seq(
-    libraryDependencies ++= sharedDeps
+    libraryDependencies ++= sharedDeps ++ extraDeps
   )
       
 }

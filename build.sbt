@@ -1,15 +1,5 @@
 import Dependencies._
 
-name := "cupcat-avro"
-
-version := "0.1"
-
-organization := "CupcatCorp"
-
-scalaVersion := "2.12.9"
-
-sbtVersion := "1.2.8"
-
 configureDependencies()
 
 lazy val aggregatedProjects: Seq[ProjectReference] = Seq(schema)
@@ -23,4 +13,5 @@ lazy val decoder = newModule("decoder")
 
 def newModule(name: String): Project =
   Project(id = name, base = file(name))
+    .settings(CupcatBuild.buildSettings)
 
