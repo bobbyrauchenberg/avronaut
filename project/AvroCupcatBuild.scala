@@ -2,7 +2,7 @@ import sbt.Keys._
 import sbt._
 
 
-object CupcatBuild {
+object AvroCupcatBuild {
 
   lazy val buildSettings = Seq(
     organization := "com.rauchenberg.cupcat",

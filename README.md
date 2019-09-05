@@ -3,3 +3,8 @@
 # cupcat-avro
 
 Scala Avro library inspired by Avro4s
+
+Currently just builds schemas, and has very basic case class decoding
+
+Also currently has no support for UUID / DateTime / Aliases, Fixed types and field mapping
+

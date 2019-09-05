@@ -1,6 +1,6 @@
 import Dependencies._
 
-CupcatBuild.projectSettings
+AvroCupcatBuild.projectSettings
 
 configureDependencies()
 

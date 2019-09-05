@@ -13,5 +13,5 @@ lazy val decoder = newModule("decoder")
 
 def newModule(name: String): Project =
   Project(id = name, base = file(name))
-    .settings(CupcatBuild.buildSettings)
+    .settings(AvroCupcatBuild.buildSettings)
 

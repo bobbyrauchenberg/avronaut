@@ -61,6 +61,17 @@ class SimpleRecordsSpec extends UnitSpecBase {
         runAssert(field, record.field, record)
       }
     }
+    "convert a record with a nested record field" in new TestContext {
+
+        val intField = new Schema.Field("field", SchemaBuilder.builder.intBuilder().endInt())
+        val intSchema = Schema.createRecord("IntRecord", "", "", false, List(intField).asJava)
+        val recordField = new Schema.Field("field", intSchema)
+        val recordSchema = Schema.createRecord("NestedRecord", "", "", false, List(recordField).asJava)
+        val record = new GenericData.Record(recordSchema.getField("field").schema())
+        record.put("field", 123)
+
+        DecodeTo[NestedRecord](record) should beRight(NestedRecord(IntRecord(123)))
+      }
 
   }
 
@@ -94,4 +105,5 @@ private[this] object SimpleRecords {
 
   case class BytesRecord(field: Array[Byte])
 
+  case class NestedRecord(field: IntRecord)
 }
