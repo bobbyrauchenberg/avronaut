@@ -1,10 +1,8 @@
 package unit.schema
 
 import common._
-import SimpleRecord._
-import org.apache.avro.SchemaBuilder
 
-class SimpleRecordSchemaSpec extends UnitSpecBase {
+class SimpleRecordSpec extends UnitSpecBase {
 
   "schema" should {
 
@@ -44,13 +42,10 @@ class SimpleRecordSchemaSpec extends UnitSpecBase {
   trait TestContext {
     def simpleSchema(typeName: String, valueType: String) =
       s"""{"type":"record","name":"$typeName",
-         |"namespace":"unit.SimpleRecord","doc":"",
+         |"namespace":"unit.schema.SimpleRecordSpec","doc":"",
          |"fields":[{"name":"value","type":"$valueType"}]}""".stripMargin.replace("\n","")
   }
 
-}
-
-private [this] object SimpleRecord {
   case class SimpleNull(value: Null)
   case class SimpleBool(value: Boolean)
   case class SimpleString(value: String)
@@ -61,4 +56,5 @@ private [this] object SimpleRecord {
   case class SimpleDouble(value: Double)
   case class SimpleByte(value: Array[Byte])
 }
+
 

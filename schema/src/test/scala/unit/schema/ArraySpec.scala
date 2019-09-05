@@ -2,7 +2,6 @@ package unit.schema
 
 import common.UnitSpecBase
 import common._
-import RecordsWithArrays._
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 
 class ArraySpec extends UnitSpecBase {
@@ -32,22 +31,18 @@ class ArraySpec extends UnitSpecBase {
     def runAssert[T : AvroSchema](name: String) =
       schemaAsString[T] should beRight(
         s"""
-           |{"type":"record","name":"$name","namespace":"unit.RecordsWithArrays","doc":"",
+           |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec","doc":"",
            |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"}}]}
            |""".stripMargin.replace("\n","")
       )
     def runAssertWithDefault[T : AvroSchema](name: String) =
       schemaAsString[T] should beRight(
         s"""
-           |{"type":"record","name":"$name","namespace":"unit.RecordsWithArrays","doc":"",
+           |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec","doc":"",
            |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"},"doc":"","default":["cup","cat"]}]}
            |""".stripMargin.replace("\n","")
       )
   }
-
-}
-
-private[this] object RecordsWithArrays {
 
   case class RecordWithList(cupcat: List[String])
   case class RecordWithSeq(cupcat: Seq[String])
@@ -56,5 +51,5 @@ private[this] object RecordsWithArrays {
   case class RecordWithListDefault(cupcat: List[String] = List("cup", "cat"))
   case class RecordWithSeqDefault(cupcat: Seq[String] = Seq("cup", "cat"))
   case class RecordWithVectorDefault(cupcat: Vector[String] = Vector("cup", "cat"))
-
 }
+

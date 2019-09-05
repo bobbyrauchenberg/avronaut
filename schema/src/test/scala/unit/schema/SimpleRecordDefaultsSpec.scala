@@ -2,10 +2,9 @@ package unit.schema
 
 import common._
 import org.scalacheck.{Arbitrary, Gen}
-import SimpleRecordDefaults._
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 
-class SimpleRecordDefaultsSchemaSpec extends UnitSpecBase {
+class SimpleRecordDefaultsSpec extends UnitSpecBase {
 
   implicit val arbString: Arbitrary[String] = Arbitrary(Gen.alphaNumStr)
 
@@ -48,12 +47,11 @@ class SimpleRecordDefaultsSchemaSpec extends UnitSpecBase {
     def runAssert[S : AvroSchema,  T](typeName: String, valueType: String, default: T) =
       schemaAsString[S] should beRight(simpleSchema(typeName, valueType, default))
 
-    def simpleSchema[T](typeName: String, valueType: String, default: T) = s"""{"type":"record","name":"$typeName","namespace":"unit.SimpleRecordDefaults","doc":"","fields":[{"name":"value","type":"$valueType","doc":"","default":$default}]}"""
+    def simpleSchema[T](typeName: String, valueType: String, default: T) =
+      s"""{"type":"record","name":"$typeName","namespace":"unit.schema.SimpleRecordDefaultsSpec","doc":"",
+         |"fields":[{"name":"value","type":"$valueType","doc":"","default":$default}]}""".stripMargin.replace("\n","")
   }
 
-}
-
-private [this] object SimpleRecordDefaults {
   case class BoolWithDefault(value: Boolean = true)
   case class StringWithDefault(value: String = "cupcat")
   case class IntWithDefault(value: Int = 5)

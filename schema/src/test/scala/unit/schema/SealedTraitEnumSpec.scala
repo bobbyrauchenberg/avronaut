@@ -10,8 +10,8 @@ class SealedTraitEnumSpec extends UnitSpecBase {
     "treat sealed trait hierachies of case objects as an enum" in {
       val expected =
         """
-          |{"type":"record","name":"EnumCC","namespace":"unit.SealedTraitEnum","doc":"",
-          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"SealedTraitEnum","namespace":"unit",
+          |{"type":"record","name":"EnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
+          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"SealedTraitEnum","namespace":"unit.schema",
           |"symbols":["Cupcat","Rendal"]}}]}""".stripMargin.replace("\n","")
 
       schemaAsString[EnumCC] should beRight(expected)

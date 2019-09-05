@@ -3,7 +3,6 @@ package unit.schema
 import common._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}
 import common.UnitSpecBase
-import Records._
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 
 class AnnotationsSpec extends UnitSpecBase {
@@ -12,13 +11,13 @@ class AnnotationsSpec extends UnitSpecBase {
 
     "amend the field name if name annotation is present" in new TestContext {
       runAssert[FieldNameAnnotation](
-        s"""{"type":"record","name":"FieldNameAnnotation","namespace":"unit.Records",
+        s"""{"type":"record","name":"FieldNameAnnotation","namespace":"unit.schema.AnnotationsSpec",
            |"doc":"","fields":[{"name":"cuppers","type":"string"}]}""".stripMargin.replace("\n",""))
     }
 
     "add documentation if present" in new TestContext {
       runAssert[FieldDocAnnotation](
-        s"""{"type":"record","name":"FieldDocAnnotation","namespace":"unit.Records",
+        s"""{"type":"record","name":"FieldDocAnnotation","namespace":"unit.schema.AnnotationsSpec",
            |"doc":"","fields":[{"name":"cupcat","type":"string","doc":\"Field now deprecated"}]}""".stripMargin.replace("\n",""))
     }
 
@@ -37,7 +36,7 @@ class AnnotationsSpec extends UnitSpecBase {
 
     "document a top level record " in new TestContext {
       runAssert[TopLevelDoc](
-        s"""{"type":"record","name":"TopLevelDoc","namespace":"unit.Records","doc":"Record is now deprecated",
+        s"""{"type":"record","name":"TopLevelDoc","namespace":"unit.schema.AnnotationsSpec","doc":"Record is now deprecated",
            |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n","")
       )
     }
@@ -48,18 +47,12 @@ class AnnotationsSpec extends UnitSpecBase {
     def runAssert[T : AvroSchema](expected: String) = schemaAsString[T] should beRight(expected)
   }
 
-}
-
-private [this] object Records {
   case class FieldNameAnnotation(@SchemaMetadata(Map(Name -> "cuppers")) cupcat: String)
   case class FieldDocAnnotation(@SchemaMetadata(Map(Doc -> "Field now deprecated")) cupcat: String)
-
   @SchemaMetadata(Map(Namespace -> "com.cupcat"))
   case class NamespaceAnnotation(cupcat: String)
-
   @SchemaMetadata(Map(Name -> "cup.Cat", Namespace -> "com.cupcat"))
   case class FullName(cupcat: String)
-
   @SchemaMetadata(Map(Doc -> "Record is now deprecated"))
   case class TopLevelDoc(cupcat: String)
 }

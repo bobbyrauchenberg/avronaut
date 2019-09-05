@@ -9,7 +9,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
     "treat mixed sealed trait hierachies as unions" in {
       val expected =
         """
-          |{"type":"record","name":"Union","namespace":"unit.SealedTraitUnion","doc":"",
+          |{"type":"record","name":"Union","namespace":"unit.schema.SealedTraitUnion","doc":"",
           |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Cupcat","doc":"","fields":[]},
           |{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string"}]},
           |{"type":"record","name":"Rendal","doc":"","fields":[]}]}]}""".stripMargin.replace("\n","")
@@ -19,7 +19,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
     "handle mixed sealed trait unions with defaults" in {
       val expected =
         """
-          |{"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.SealedTraitUnion","doc":"",
+          |{"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.schema.SealedTraitUnion","doc":"",
           |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Cupcat","doc":"","fields":[]},
           |{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string"}]},
           |{"type":"record","name":"Rendal","doc":"","fields":[]}],
@@ -30,7 +30,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
     "handle mixed sealed trait unions with case object defaults" in {
       val expected =
         """
-          |{"type":"record","name":"UnionWithCaseObjectDefault","namespace":"unit.SealedTraitUnion","doc":"",
+          |{"type":"record","name":"UnionWithCaseObjectDefault","namespace":"unit.schema.SealedTraitUnion","doc":"",
           |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Rendal","doc":"","fields":[]},
           |{"type":"record","name":"Cupcat","doc":"","fields":[]},{"type":"record","name":"Snoutley","doc":"",
           |"fields":[{"name":"name","type":"string"}]}],"doc":"","default":{}}]}""".stripMargin.replace("\n","")

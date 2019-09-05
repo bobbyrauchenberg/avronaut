@@ -6,7 +6,7 @@ import org.apache.avro.generic.GenericRecord
 
 trait Decoder[T] {
 
-  def decodeFrom(fieldName: String, record: GenericRecord): DecodeResult[T]
+  def decodeFrom(value: String, record: GenericRecord): DecodeResult[T]
 
 }
 
@@ -21,11 +21,13 @@ object Decoder {
   def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
 
     override def decodeFrom(fieldName: String, record: GenericRecord): DecodeResult[T] = {
-      val applied = ctx.parameters.toList.traverse { param =>
-        record.get(param.label)
-        param.typeclass.decodeFrom(param.label, record)
-      }
-      applied.map(ctx.rawConstruct(_))
+      ctx.parameters.toList.traverse { param =>
+        val decodeResult = param.typeclass.decodeFrom(param.label, record)
+        (decodeResult, param.default) match {
+          case (Left(_), Some(default)) => default.asRight
+          case (res, _) => res
+        }
+      }.map(ctx.rawConstruct(_))
     }
 
   }

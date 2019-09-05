@@ -6,6 +6,7 @@ import com.rauchenberg.cupcatAvro.decoder._
 
 object arrayInstances extends arrayInstances
 
+//will need to change these to decode T properly
 trait arrayInstances {
 
   implicit def listDecoder[T] = new Decoder[List[T]] {

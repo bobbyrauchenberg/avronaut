@@ -5,7 +5,6 @@ import common.UnitSpecBase
 import org.apache.avro.Schema
 import cats.syntax.option._
 import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
-import SchemaHelper.UnionWithDefault
 
 class SchemaHelperSpec extends UnitSpecBase {
 
@@ -16,9 +15,6 @@ class SchemaHelperSpec extends UnitSpecBase {
     }
   }
 
-
-}
-
-private [this] object SchemaHelper {
   case class UnionWithDefault(cupcat: Option[String] = "cupcat".some, cuppers: Int)
+
 }

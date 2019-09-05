@@ -42,6 +42,3 @@ class AvroTypeMapperSpec extends UnitSpecBase {
 
 }
 
-private[this] object AvroHelper {
-  case class Blah(cupcat: String)
-}

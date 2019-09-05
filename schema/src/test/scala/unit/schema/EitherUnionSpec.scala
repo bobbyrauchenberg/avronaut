@@ -2,7 +2,6 @@ package unit.schema
 
 import common.UnitSpecBase
 import cats.syntax.either._
-import EitherUnion._
 import com.rauchenberg.cupcatAvro.schema.SchemaError
 import common._
 
@@ -13,7 +12,7 @@ class EitherUnionSpec extends UnitSpecBase {
     "create a union from an Either" in {
       val expected =
         """
-          |{"type":"record","name":"EitherUnion","namespace":"unit.EitherUnion",
+          |{"type":"record","name":"EitherUnion","namespace":"unit.schema.EitherUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"]}]}""".stripMargin.replace("\n","")
 
       schemaAsString[EitherUnion] should beRight(expected)
@@ -22,7 +21,7 @@ class EitherUnionSpec extends UnitSpecBase {
     "create a union from an Either with a Left default" in {
       val expected =
         """
-          |{"type":"record","name":"EitherUnionWithLeftDefault","namespace":"unit.EitherUnion",
+          |{"type":"record","name":"EitherUnionWithLeftDefault","namespace":"unit.schema.EitherUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"],"doc":"","default":true}]}""".stripMargin.replace("\n","")
 
       schemaAsString[EitherUnionWithLeftDefault] should beRight(expected)
@@ -31,7 +30,7 @@ class EitherUnionSpec extends UnitSpecBase {
     "create a union from an Either with a Right default" in {
       val expected =
         """
-          |{"type":"record","name":"EitherUnionWithRightDefault","namespace":"unit.EitherUnion",
+          |{"type":"record","name":"EitherUnionWithRightDefault","namespace":"unit.schema.EitherUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["string","boolean"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n","")
 
       schemaAsString[EitherUnionWithRightDefault] should beRight(expected)
@@ -45,10 +44,6 @@ class EitherUnionSpec extends UnitSpecBase {
       schemaAsString[IllegalDuplicateUnion] should beLeft(SchemaError("Duplicate in union:string"))
     }
   }
-
-}
-
-private [this] object EitherUnion {
 
   case class EitherUnion(cupcat: Either[Boolean, String])
   case class EitherUnionWithLeftDefault(cupcat: Either[Boolean, String] = true.asLeft)

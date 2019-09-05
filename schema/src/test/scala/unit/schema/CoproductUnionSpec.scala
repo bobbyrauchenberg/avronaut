@@ -3,7 +3,6 @@ package unit.schema
 import com.rauchenberg.cupcatAvro.schema._
 import common.{UnitSpecBase, schemaAsString}
 import shapeless._
-import CoproductUnion._
 
 class CoproductUnionSpec extends UnitSpecBase {
 
@@ -12,7 +11,7 @@ class CoproductUnionSpec extends UnitSpecBase {
     "create a union from a Coproduct" in {
       val expected =
         """
-          |{"type":"record","name":"CoproductUnion","namespace":"unit.CoproductUnion",
+          |{"type":"record","name":"CoproductUnion","namespace":"unit.schema.CoproductUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["int","boolean","string"]}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[CoproductUnion] should beRight(expected)
@@ -21,7 +20,7 @@ class CoproductUnionSpec extends UnitSpecBase {
     "respect a Coproduct default" in {
       val expected =
         """
-          |{"type":"record","name":"CoproductWithStringDefault","namespace":"unit.CoproductUnion",
+          |{"type":"record","name":"CoproductWithStringDefault","namespace":"unit.schema.CoproductUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["string","int","boolean"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[CoproductWithStringDefault] should beRight(expected)
@@ -30,7 +29,7 @@ class CoproductUnionSpec extends UnitSpecBase {
     "respect a Coproduct default regardless of place in the coproduct" in {
       val expected =
         """
-          |{"type":"record","name":"CoproductWithIntDefault","namespace":"unit.CoproductUnion",
+          |{"type":"record","name":"CoproductWithIntDefault","namespace":"unit.schema.CoproductUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["int","boolean","string"],"doc":"","default":123}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[CoproductWithIntDefault] should beRight(expected)
@@ -40,9 +39,6 @@ class CoproductUnionSpec extends UnitSpecBase {
       schemaAsString[IllegalDuplicateCP] should beLeft(SchemaError("Duplicate in union:string"))
     }
   }
-}
-
-private [this] object CoproductUnion {
 
   type CP = String :+: Boolean :+: Int :+: CNil
   type IllegalNestedCP = String :+: (Boolean :+: Int :+: CNil) :+: Double :+: CNil
@@ -54,3 +50,4 @@ private [this] object CoproductUnion {
   case class IllegalNestedUnion(cupcat: IllegalNestedCP)
   case class IllegalDuplicateUnion(cupcat: IllegalDuplicateCP)
 }
+
