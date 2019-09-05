@@ -3,7 +3,6 @@ package com.rauchenberg.cupcatAvro.schema
 import cats.implicits._
 import scala.collection.JavaConverters._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
-import com.rauchenberg.cupcatAvro.schema.helpers.AvroTypeMapper._
 import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
 import org.apache.avro.Schema
 import magnolia._
@@ -65,9 +64,7 @@ object AvroSchema {
 
     schema.getType match {
       case Schema.Type.UNION =>
-        default.traverse(moveDefaultToHead(schema, _, avroTypeFor(default))
-          .map(Field(name, doc, default, _)))
-          .map(_.getOrElse(toField(None)))
+        default.traverse(moveDefaultToHead(schema, _).map(Field(name, doc, default, _))).map(_.getOrElse(toField(None)))
       case _ => toField(default).asRight[SchemaError]
     }
   }

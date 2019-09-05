@@ -16,18 +16,23 @@ object SchemaHelper {
 
   implicit val formats = DefaultFormats
 
-  def moveDefaultToHead[T](schema: Schema, default: T, schemaTypeOfDefault: Option[Schema.Type]): SchemaResult = {
-    val (first, rest) = schema.getTypes.asScala.partition { t =>
-      default match {
-        case _ => schemaTypeOfDefault == t.getType.some || t.getName == default.toString
-      }
+  def moveDefaultToHead[T](schema: Schema, default: T): SchemaResult =
+    default match {
+      case Some(v) => moveDefaultToHead(schema, v)
+      case Inl(v) => moveDefaultToHead(schema, v)
+      case Inr(v) => moveDefaultToHead(schema, v)
+      case Right(v) => moveDefaultToHead(schema, v)
+      case Left(v) => moveDefaultToHead(schema, v)
+      case _ =>
+        val (first, rest) = schema.getTypes.asScala.partition { t =>
+          t.getName.toLowerCase == formatClassName(default.getClass.getSimpleName)
+        }
+        val union = schemaUnion((first ++ rest).toList)
+        schemaUnion((first.headOption.toSeq ++ rest).toList).flatMap { u =>
+          safe(schema.getObjectProps.asScala.foreach { case (k, v) => u.addProp(k, v) })
+        }
+        union
     }
-    val union = schemaUnion((first.headOption.toSeq ++ rest).toList)
-    schemaUnion((first.headOption.toSeq ++ rest).toList).flatMap { u =>
-      safe(schema.getObjectProps.asScala.foreach { case (k, v) => u.addProp(k, v) })
-    }
-    union
-  }
 
   def makeSchemaField[T](field: Field[T]): Either[SchemaError, Schema.Field] =
     field match {
@@ -44,6 +49,8 @@ object SchemaHelper {
       case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
       case Field(name, doc, None, schema) => schemaField(name, schema, doc)
     }
+
+  private def formatClassName(s: String) = (if (s.endsWith("$")) s.dropRight(1) else s).toLowerCase
 
   private def toJavaMap[T](t: T) = parse(write(t)).extract[Map[String, Any]].asJava
 
