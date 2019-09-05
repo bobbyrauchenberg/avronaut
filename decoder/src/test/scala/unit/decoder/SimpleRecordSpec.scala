@@ -1,15 +1,16 @@
-package unit.common
+package unit.decoder
 
-import com.rauchenberg.cupcatAvro.decoder.{DecodeTo, Decoder}
-import org.apache.avro.generic.{GenericData, GenericRecord}
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
+import com.rauchenberg.cupcatAvro.decoder.{DecodeTo, Decoder}
+import com.rauchenberg.cupcatAvro.schema.AvroSchema
+import org.apache.avro.generic.GenericData
 import org.apache.avro.{Schema, SchemaBuilder}
-import unit.common.common.UnitSpecBase
+import unit.common.UnitSpecBase
 import SimpleRecords._
 
 import scala.collection.JavaConverters._
 
-class SimpleRecordsSpec extends UnitSpecBase {
+class SimpleRecordSpec extends UnitSpecBase {
 
   "decoder" should {
     "convert a record with a string field" in new TestContext {
@@ -62,19 +63,18 @@ class SimpleRecordsSpec extends UnitSpecBase {
       }
     }
     "convert a record with a nested record field" in new TestContext {
+      forAll { record: NestedRecord =>
+        val schema = AvroSchema[NestedRecord].schema
+        schema.isRight shouldBe true
 
-        val intField = new Schema.Field("field", SchemaBuilder.builder.intBuilder().endInt())
-        val intSchema = Schema.createRecord("IntRecord", "", "", false, List(intField).asJava)
-        val recordField = new Schema.Field("field", intSchema)
-        val recordSchema = Schema.createRecord("NestedRecord", "", "", false, List(recordField).asJava)
-        val record = new GenericData.Record(recordSchema.getField("field").schema())
-        record.put("field", 123)
+        val genericRecord = new GenericData.Record(schema.right.get.getField("field").schema())
+        genericRecord.put("field", record.field.field)
 
-        DecodeTo[NestedRecord](record) should beRight(NestedRecord(IntRecord(123)))
+        DecodeTo[NestedRecord](genericRecord) should beRight(NestedRecord(record.field))
+
       }
-
+    }
   }
-
 
   trait TestContext {
     def runAssert[T, U: Decoder](field: Schema.Field, fieldValue: T, expected: U) = {
@@ -106,4 +106,5 @@ private[this] object SimpleRecords {
   case class BytesRecord(field: Array[Byte])
 
   case class NestedRecord(field: IntRecord)
+
 }

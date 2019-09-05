@@ -1,4 +1,4 @@
-package unit
+package unit.schema
 
 import common._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}

@@ -1,4 +1,4 @@
-package unit
+package unit.schema
 
 import common._
 import org.scalacheck.{Arbitrary, Gen}

@@ -1,4 +1,4 @@
-package unit
+package unit.schema
 
 import cats.syntax.option._
 import common.UnitSpecBase

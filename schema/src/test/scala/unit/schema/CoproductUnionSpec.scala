@@ -1,4 +1,4 @@
-package unit
+package unit.schema
 
 import com.rauchenberg.cupcatAvro.schema._
 import common.{UnitSpecBase, schemaAsString}

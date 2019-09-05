@@ -9,7 +9,9 @@ lazy val root = Project(id = "disco-map", base = file("."))
 
 lazy val schema = newModule("schema")
 
-lazy val decoder = newModule("decoder")
+lazy val decoder = newModule("decoder").dependsOn(
+  schema % "test->compile"
+)
 
 def newModule(name: String): Project =
   Project(id = name, base = file(name))

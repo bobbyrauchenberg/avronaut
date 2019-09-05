@@ -1,4 +1,4 @@
-package unit
+package unit.schema
 
 import common.UnitSpecBase
 import common._
