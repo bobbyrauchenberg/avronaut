@@ -35,9 +35,11 @@ class SimpleRecordDefaultsSchemaSpec extends UnitSpecBase {
       runAssert[DoubleWithDefault, Double]("DoubleWithDefault", "double", 5d)
     }
 
-    "error when trying to give a default for a bytes record" in new TestContext {
+    "have a default for a bytes record" in new TestContext {
       runAssert[ByteWithDefault, String]("ByteWithDefault", "bytes", "\"cupcat\"")
     }
+
+
 
   }
 
