@@ -1,26 +1,27 @@
 package unit.decoder
 
+import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
 import com.rauchenberg.cupcatAvro.decoder.{DecodeTo, Decoder}
-import org.apache.avro.{Schema, SchemaBuilder}
+import com.rauchenberg.cupcatAvro.schema.AvroSchema
+import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData
 import unit.common.UnitSpecBase
-import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
+import unit.decoder.RecordsWithMaps._
+import unit.decoder.utils.RunAssert._
 
 import scala.collection.JavaConverters._
-import RecordsWithMaps._
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
 
 class MapSpec extends UnitSpecBase {
 
   "decoder" should {
-    "convert a record with a map" in new TestContext {
+    "convert a record with a map" in {
       forAll { record: RecordWithMap =>
-        runAssert(record.field, record)
+        singleFieldAssertion(record.field, record)
       }
     }
-    "convert a record with a map with a default" in new TestContext {
+    "convert a record with a map with a default" in {
       forAll { record: RecordWithDefaultMap =>
-        runAssert(record.field, record)
+        singleFieldAssertion(record.field, record)
       }
     }
   }
