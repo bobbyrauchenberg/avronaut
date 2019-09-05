@@ -46,6 +46,16 @@ class OptionUnionSpec extends UnitSpecBase {
       schemaAsString[UnionWithCaseClassDefault] should beRight(expected)
     }
 
+    "create a union from an Option with a default optional case class" in {
+      val expected =
+        """{"type":"record","name":"UnionWithOptionalCaseClassDefault","namespace":"unit.schema.OptionUnionSpec",
+          |"doc":"","fields":[{"name":"cupcat","type":[{"type":"record","name":"Default","doc":"",
+          |"fields":[{"name":"cupcat","type":"string"}]},"null"],
+          |"doc":"","default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n","")
+
+      schemaAsString[UnionWithOptionalCaseClassDefault] should beRight(expected)
+    }
+
     "error if a union contains a union" in {
       schemaAsString[IllegalNestedUnion] should beLeft(SchemaError("""Nested union: ["null",["null","string"]]"""))
     }
@@ -57,6 +67,7 @@ class OptionUnionSpec extends UnitSpecBase {
 
   case class Default(cupcat: String)
   case class UnionWithCaseClassDefault(cupcat: Default = Default("cupcat"))
+  case class UnionWithOptionalCaseClassDefault(cupcat: Option[Default] = Default("cupcat").some)
 
   case class IllegalNestedUnion(cupcat: Option[Option[String]])
 }

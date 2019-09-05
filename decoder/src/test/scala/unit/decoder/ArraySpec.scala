@@ -34,6 +34,26 @@ class ArraySpec extends UnitSpecBase {
       val record = RecordWithVectorDefault()
       runAssert(record.field, record)
     }
+    "decode a record with a list of caseclass" in {
+      forAll { record: RecordWithListOfCaseClass =>
+        runAssert(record.field, record)
+      }
+    }
+    "decode a record with a seq of caseclass" in {
+      forAll { record: RecordWithSeqOfCaseClass =>
+        runAssert(record.field, record)
+      }
+    }
+    "decode a record with a vector of caseclass" in {
+      forAll { record: RecordWithVectorOfCaseClass =>
+        runAssert(record.field, record)
+      }
+    }
+    "decode a record with a list of optional caseclass" in {
+      forAll { record: RecordWithListOfOptionalCaseClass =>
+        runAssert(record.field, record)
+      }
+    }
   }
 
   case class RecordWithList(field: List[String])
@@ -43,5 +63,11 @@ class ArraySpec extends UnitSpecBase {
   case class RecordWithSeqDefault(field: Seq[String] = Seq("cup", "cat"))
   case class RecordWithVectorDefault(field: Vector[String] = Vector("cup", "cat"))
 
+  case class Cupcat(cup: String, cat: Int)
+  case class RecordWithListOfCaseClass(field: List[Cupcat])
+  case class RecordWithSeqOfCaseClass(field: Seq[Cupcat])
+  case class RecordWithVectorOfCaseClass(field: Vector[Cupcat])
+
+  case class RecordWithListOfOptionalCaseClass(field: List[Option[Cupcat]])
 
 }

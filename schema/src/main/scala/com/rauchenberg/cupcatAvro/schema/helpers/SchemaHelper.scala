@@ -29,19 +29,21 @@ object SchemaHelper {
     union
   }
 
-  def makeSchemaField[T](field: Field[T]): Either[SchemaError, Schema.Field] = field match {
-    case Field(name, doc, Some(default: Map[_, _]), schema) => schemaField(name, schema, doc, default.asJava)
-    case Field(name, doc, Some(default: Seq[_]), schema) => schemaField(name, schema, doc, default.asJava)
-    case Field(name, doc, Some(Some(default)), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, Some(None), schema) => schemaField(name, schema, doc, JsonProperties.NULL_VALUE)
-    case Field(name, doc, Some(Left(default)), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, Some(Right(default)), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, Some(Inl(default)), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, Some(Inr(default)), schema) => makeSchemaField(Field(name, doc, default.some, schema))
-    case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toJavaMap(p))
-    case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
-    case Field(name, doc, None, schema) => schemaField(name, schema, doc)
-  }
+  def makeSchemaField[T](field: Field[T]): Either[SchemaError, Schema.Field] =
+    field match {
+      case Field(name, doc, Some(default: Map[_, _]), schema) => schemaField(name, schema, doc, default.asJava)
+      case Field(name, doc, Some(default: Seq[_]), schema) => schemaField(name, schema, doc, default.asJava)
+      case Field(name, doc, Some(Some(p: Product)), schema) => schemaField(name, schema, doc, toJavaMap(p))
+      case Field(name, doc, Some(Some(default)), schema) => schemaField(name, schema, doc, default)
+      case Field(name, doc, Some(None), schema) => schemaField(name, schema, doc, JsonProperties.NULL_VALUE)
+      case Field(name, doc, Some(Left(default)), schema) => schemaField(name, schema, doc, default)
+      case Field(name, doc, Some(Right(default)), schema) => schemaField(name, schema, doc, default)
+      case Field(name, doc, Some(Inl(default)), schema) => schemaField(name, schema, doc, default)
+      case Field(name, doc, Some(Inr(default)), schema) => makeSchemaField(Field(name, doc, default.some, schema))
+      case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toJavaMap(p))
+      case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
+      case Field(name, doc, None, schema) => schemaField(name, schema, doc)
+    }
 
   private def toJavaMap[T](t: T) = parse(write(t)).extract[Map[String, Any]].asJava
 

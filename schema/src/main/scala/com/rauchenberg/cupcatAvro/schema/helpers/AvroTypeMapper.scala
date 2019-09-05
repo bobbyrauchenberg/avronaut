@@ -27,6 +27,7 @@ object AvroTypeMapper {
       case _: java.util.Map[_, _] => Schema.Type.MAP.some
       case _: Map[_, _] => Schema.Type.MAP.some
       case _: Seq[_] => Schema.Type.ARRAY.some
+      case _: Product => Schema.Type.RECORD.some
       case JsonProperties.NULL_VALUE => Schema.Type.NULL.some
       case _ => None
     }
