@@ -50,7 +50,14 @@ object SchemaHelper {
       case Field(name, doc, None, schema) => schemaField(name, schema, doc)
     }
 
-  private def formatClassName(s: String) = (if (s.endsWith("$")) s.dropRight(1) else s).toLowerCase
+  private def formatClassName(s: String) = {
+    val className = (if (s.endsWith("$")) s.dropRight(1) else s).toLowerCase
+    className match {
+      case "integer" => "int"
+      case "byte[]" => "bytes"
+      case other => other
+    }
+  }
 
   private def toJavaMap[T](t: T) = parse(write(t)).extract[Map[String, Any]].asJava
 

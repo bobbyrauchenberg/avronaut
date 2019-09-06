@@ -17,13 +17,31 @@ class OptionUnionSpec extends UnitSpecBase {
       schemaAsString[Union] should beRight(expected)
     }
 
-    "create a union from an Option with a default" in {
+    "create a union from an Option with a string default" in {
       val expected =
         """
-          |{"type":"record","name":"UnionWithDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
+          |{"type":"record","name":"UnionWithStringDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
           |"fields":[{"name":"cupcat","type":["string","null"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n","")
 
-      schemaAsString[UnionWithDefault] should beRight(expected)
+      schemaAsString[UnionWithStringDefault] should beRight(expected)
+    }
+
+    "create a union from an Option with an int default" in {
+      val expected =
+        """
+          |{"type":"record","name":"UnionWithIntDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
+          |"fields":[{"name":"cupcat","type":["int","null"],"doc":"","default":123}]}""".stripMargin.replace("\n","")
+
+      schemaAsString[UnionWithIntDefault] should beRight(expected)
+    }
+
+    "create a union from an Option with a Byte Array default" in {
+      val expected =
+        """
+          |{"type":"record","name":"UnionWithByteArrayDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
+          |"fields":[{"name":"cupcat","type":["bytes","null"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n","")
+
+      schemaAsString[UnionWithByteArrayDefault] should beRight(expected)
     }
 
     "create a union from an Option with None as default" in {
@@ -62,7 +80,10 @@ class OptionUnionSpec extends UnitSpecBase {
   }
 
   case class Union(cupcat : Option[String])
-  case class UnionWithDefault(cupcat: Option[String] = "cupcat".some)
+  case class UnionWithStringDefault(cupcat: Option[String] = "cupcat".some)
+  case class UnionWithIntDefault(cupcat: Option[Int] = 123.some)
+  case class UnionWithByteArrayDefault(cupcat: Option[Array[Byte]] = "cupcat".getBytes.some)
+
   case class UnionWithDefaultNone(cupcat: Option[String] = None)
 
   case class Default(cupcat: String)
