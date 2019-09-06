@@ -6,7 +6,7 @@ import org.apache.avro.generic.GenericRecord
 
 trait Decoder[T] {
 
-  def decodeFrom(value: String, record: GenericRecord): DecodeResult[T]
+  def decodeFrom(fieldName: String, record: GenericRecord): DecodeResult[T]
 
 }
 

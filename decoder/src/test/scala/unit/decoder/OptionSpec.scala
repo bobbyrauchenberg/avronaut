@@ -17,25 +17,40 @@ class OptionSpec extends UnitSpecBase {
         runAssert(i, record)
       }
     }
-    "decode an option with a default" in {
-      val schema = AvroSchema[UnionWithDefault].schema.right.get
+
+    "decode a union to None when the record value is null" in {
+      val eitherSchema = AvroSchema[Union].schema
+
+      val schema = eitherSchema.value
       val record = new GenericData.Record(schema)
+      record.put("field", null)
+
+      DecodeTo[Union](record) should beRight(Union(None))
+    }
+
+
+    "decode an option with a default" in {
+      val schema = AvroSchema[UnionWithDefault].schema
+      val record = new GenericData.Record(schema.value)
 
       DecodeTo[UnionWithDefault](record) should beRight(UnionWithDefault())
     }
+
     "decode an option with a caseclass default" in new TestContext {
-      runAssert[UnionWithCaseClassDefault](UnionWithCaseClassDefault())
-    }
-    "decode an option with none as default" in new TestContext {
-      runAssert[UnionWithNoneAsDefault](UnionWithNoneAsDefault(None))
+      assertHasDefault[UnionWithCaseClassDefault](UnionWithCaseClassDefault())
     }
 
+    "decode an option with none as default" in new TestContext {
+      assertHasDefault[UnionWithNoneAsDefault](UnionWithNoneAsDefault(None))
+    }
+
+
     trait TestContext {
-      def runAssert[T : AvroSchema : Decoder](expected: T)  = {
+      def assertHasDefault[T : AvroSchema : Decoder](expected: T)  = {
         val eitherSchema = AvroSchema[T].schema
         eitherSchema.isRight shouldBe true
 
-        val schema = eitherSchema.right.get
+        val schema = eitherSchema.value
         val record = new GenericData.Record(schema)
 
         DecodeTo[T](record) should beRight(expected)
