@@ -1,14 +1,13 @@
 package com.rauchenberg.cupcatAvro
 
-import cats.syntax.either._
+import com.rauchenberg.cupcatAvro.common._
 import org.apache.avro.{Schema, SchemaBuilder}
-import shapeless.Coproduct
-import shapeless.ops.coproduct.Inject
+
 import scala.collection.JavaConverters._
 
 package object schema {
 
-  type SchemaResult = Either[SchemaError, Schema]
+  type SchemaResult = Result[Schema]
 
   def schemaField[T](name: String, schema: Schema, doc: Option[String]) =
     safe(doc.fold(new Schema.Field(name, schema))(new Schema.Field(name, schema, _)))
@@ -25,18 +24,6 @@ package object schema {
     })
 
   def schemaUnion(types: List[Schema]) = safe(Schema.createUnion(types:_*))
-
-  def safe[T](f: => T): Either[SchemaError, T] = {
-    Either.catchNonFatal(f).leftMap {
-      e =>
-        SchemaError(e.getMessage)
-    }
-  }
-
-  implicit class CoproductOps[T](val t: T) extends AnyVal {
-    def toCP[U <: Coproduct](implicit inj: Inject[U, T]): U = Coproduct[U](t)
-  }
-
 
 
 }

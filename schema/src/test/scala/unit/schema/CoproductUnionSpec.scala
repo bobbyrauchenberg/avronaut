@@ -1,6 +1,6 @@
 package unit.schema
 
-import com.rauchenberg.cupcatAvro.schema._
+import com.rauchenberg.cupcatAvro.common._
 import common.{UnitSpecBase, schemaAsString}
 import shapeless._
 
@@ -36,7 +36,7 @@ class CoproductUnionSpec extends UnitSpecBase {
     }
 
     "error if a union contains a duplicate" in {
-      schemaAsString[IllegalDuplicateCP] should beLeft(SchemaError("Duplicate in union:string"))
+      schemaAsString[IllegalDuplicateCP] should beLeft(Error("Duplicate in union:string"))
     }
   }
 

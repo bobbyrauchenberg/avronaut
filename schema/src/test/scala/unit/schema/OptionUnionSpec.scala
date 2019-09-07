@@ -3,7 +3,7 @@ package unit.schema
 import cats.syntax.option._
 import common._
 import common.UnitSpecBase
-import com.rauchenberg.cupcatAvro.schema.SchemaError
+import com.rauchenberg.cupcatAvro.common.Error
 
 class OptionUnionSpec extends UnitSpecBase {
 
@@ -75,7 +75,7 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "error if a union contains a union" in {
-      schemaAsString[IllegalNestedUnion] should beLeft(SchemaError("""Nested union: ["null",["null","string"]]"""))
+      schemaAsString[IllegalNestedUnion] should beLeft(Error("""Nested union: ["null",["null","string"]]"""))
     }
   }
 

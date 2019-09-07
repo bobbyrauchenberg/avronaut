@@ -1,6 +1,8 @@
 package com.rauchenberg.cupcatAvro.schema
 
 import cats.implicits._
+import com.rauchenberg.cupcatAvro.common._
+
 import scala.collection.JavaConverters._
 import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
 import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
@@ -54,7 +56,7 @@ object AvroSchema {
     }
   }
 
-  private def toField[T](param: Param[Typeclass, T], schema: Schema): Either[SchemaError, Field[T]] = {
+  private def toField[T](param: Param[Typeclass, T], schema: Schema): Result[Field[T]] = {
     val annotations = getAnnotations(param.annotations)
     val name = annotations.name(param.label)
     val default = param.default.asInstanceOf[Option[T]]
@@ -65,7 +67,7 @@ object AvroSchema {
     schema.getType match {
       case Schema.Type.UNION =>
         default.traverse(moveDefaultToHead(schema, _).map(Field(name, doc, default, _))).map(_.getOrElse(toField(None)))
-      case _ => toField(default).asRight[SchemaError]
+      case _ => toField(default).asRight[Error]
     }
   }
 

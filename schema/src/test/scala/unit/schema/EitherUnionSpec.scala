@@ -1,9 +1,8 @@
 package unit.schema
 
-import common.UnitSpecBase
+import com.rauchenberg.cupcatAvro.common._
 import cats.syntax.either._
-import com.rauchenberg.cupcatAvro.schema.SchemaError
-import common._
+import common.{UnitSpecBase, _}
 
 class EitherUnionSpec extends UnitSpecBase {
 
@@ -37,11 +36,11 @@ class EitherUnionSpec extends UnitSpecBase {
     }
 
     "error if a union contains a union" in {
-      schemaAsString[IllegalNestedUnion] should beLeft(SchemaError("""Nested union: ["boolean",["int","string"]]"""))
+      schemaAsString[IllegalNestedUnion] should beLeft(Error("""Nested union: ["boolean",["int","string"]]"""))
     }
 
     "error if a union contains a duplicate" in {
-      schemaAsString[IllegalDuplicateUnion] should beLeft(SchemaError("Duplicate in union:string"))
+      schemaAsString[IllegalDuplicateUnion] should beLeft(Error("Duplicate in union:string"))
     }
   }
 

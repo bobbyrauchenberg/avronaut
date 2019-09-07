@@ -2,14 +2,19 @@ import Dependencies._
 
 configureDependencies()
 
-lazy val aggregatedProjects: Seq[ProjectReference] = Seq(schema)
+lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema)
 
-lazy val root = Project(id = "disco-map", base = file("."))
+lazy val root = Project(id = "cupcat-avro", base = file("."))
   .aggregate(aggregatedProjects: _*)
 
-lazy val schema = newModule("schema")
+lazy val common = newModule("common")
+
+lazy val schema = newModule("schema").dependsOn(
+  common % "compile->compile"
+)
 
 lazy val decoder = newModule("decoder").dependsOn(
+  common % "compile->compile",
   schema % "test->compile"
 )
 

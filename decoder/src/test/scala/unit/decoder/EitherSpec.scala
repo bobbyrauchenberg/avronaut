@@ -1,11 +1,8 @@
 package unit.decoder
 
 import cats.syntax.either._
-import com.rauchenberg.cupcatAvro.decoder.{DecodeTo, Decoder}
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
-import org.apache.avro.generic.GenericData
 import unit.common.UnitSpecBase
-import unit.decoder.utils.RunAssert.{beRight, _}
+import unit.decoder.utils.RunAssert._
 
 class EitherSpec extends UnitSpecBase {
 

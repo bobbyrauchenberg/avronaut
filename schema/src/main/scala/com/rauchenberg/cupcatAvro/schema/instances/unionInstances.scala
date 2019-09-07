@@ -1,10 +1,11 @@
 package com.rauchenberg.cupcatAvro.schema.instances
 
-import scala.collection.JavaConverters._
 import cats.implicits._
-import com.rauchenberg.cupcatAvro.schema.{AvroSchema, SchemaResult, safe}
+import com.rauchenberg.cupcatAvro.schema.{AvroSchema, SchemaResult}
 import org.apache.avro.{Schema, SchemaBuilder}
 import shapeless.{:+:, CNil, Coproduct}
+import com.rauchenberg.cupcatAvro.common._
+import scala.collection.JavaConverters._
 
 trait unionInstances {
 

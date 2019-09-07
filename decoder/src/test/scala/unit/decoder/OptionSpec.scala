@@ -13,8 +13,7 @@ class OptionSpec extends UnitSpecBase {
   "decoder" should {
     "decode an union of null and T" in {
       forAll { i: Int =>
-        val record = Union(i.some)
-        runAssert(i, record)
+        runAssert(i, Union(i.some))
       }
     }
 

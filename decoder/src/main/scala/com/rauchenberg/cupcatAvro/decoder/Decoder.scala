@@ -2,11 +2,12 @@ package com.rauchenberg.cupcatAvro.decoder
 
 import magnolia.{CaseClass, Magnolia}
 import cats.implicits._
+import com.rauchenberg.cupcatAvro.common.Result
 import org.apache.avro.generic.GenericRecord
 
 trait Decoder[T] {
 
-  def decodeFrom(fieldName: String, record: GenericRecord): DecodeResult[T]
+  def decodeFrom(fieldName: String, record: GenericRecord): Result[T]
 
 }
 
@@ -20,7 +21,7 @@ object Decoder {
 
   def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
 
-    override def decodeFrom(fieldName: String, record: GenericRecord): DecodeResult[T] = {
+    override def decodeFrom(fieldName: String, record: GenericRecord): Result[T] = {
       ctx.parameters.toList.traverse { param =>
         val decodeResult = param.typeclass.decodeFrom(param.label, record)
         (decodeResult, param.default) match {

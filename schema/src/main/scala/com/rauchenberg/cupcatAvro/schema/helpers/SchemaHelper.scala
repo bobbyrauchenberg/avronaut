@@ -1,7 +1,8 @@
 package com.rauchenberg.cupcatAvro.schema.helpers
 
 import cats.syntax.option._
-import com.rauchenberg.cupcatAvro.schema.{SchemaError, SchemaResult, safe, schemaField, _}
+import com.rauchenberg.cupcatAvro.common._
+import com.rauchenberg.cupcatAvro.schema.{schemaField, _}
 import org.apache.avro.{JsonProperties, Schema}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods.parse
@@ -34,7 +35,7 @@ object SchemaHelper {
         union
     }
 
-  def makeSchemaField[T](field: Field[T]): Either[SchemaError, Schema.Field] =
+  def makeSchemaField[T](field: Field[T]): Result[Schema.Field] =
     field match {
       case Field(name, doc, Some(default: Map[_, _]), schema) => schemaField(name, schema, doc, default.asJava)
       case Field(name, doc, Some(default: Seq[_]), schema) => schemaField(name, schema, doc, default.asJava)
