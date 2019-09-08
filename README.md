@@ -13,14 +13,14 @@ Currently Supports:
 * Avro Union types expressed using Option / Either / Shapeless Coproducts / Sealed trait hierachies of case class / case objects
 * Avro Enum types expressed using sealed trait hierachies of only case objects
 
-##Schema 
+## Schema 
 
 The schema module has support for setting:
 * Avro name
 * Avro namespace
 * Avro doc field
 
-##Decoder 
+## Decoder 
 
 The decoder module hasn't implemented the name / namespace functionality yet, but it will happen soon
 
