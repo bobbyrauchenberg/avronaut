@@ -4,7 +4,7 @@
 
 Scala Avro library inspired by Avro4s
 
-Currently just builds schemas, and has very basic case class decoding
+Currently just builds schemas, and does case class decoding - not all cases will be covered ATM
 
 Also currently has no support for UUID / DateTime / Aliases, Fixed types and field mapping
 
