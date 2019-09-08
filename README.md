@@ -27,5 +27,5 @@ The decoder module hasn't implemented the name / namespace functionality yet, bu
 ## Encoder
 This is coming soon
 
-Currently there is no support in either module for UUID / DateTime / Aliases, Fixed types and field mapping
+Currently there is no support in any module for UUID / DateTime / Aliases, Fixed types and field mapping
 
