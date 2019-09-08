@@ -10,8 +10,12 @@ Currently Supports:
 * Scala primitives which map to Avro primitives
 * Scala immutable collections which map to Avro Arrays
 * Scala immutable maps which map to Avro Maps
-* Avro Union types expressed using Option / Either / Shapeless Coproducts / Sealed trait hierachies of case class / case objects
-* Avro Enum types expressed using sealed trait hierachies of only case objects
+* Avro Union types encoded using
+  * Option
+  * Either
+  * Shapeless Coproducts 
+  * Sealed trait hierachies of case class and / or case objects
+* Avro Enum types encoded using sealed trait hierachies of case objects
 
 ## Schema 
 
