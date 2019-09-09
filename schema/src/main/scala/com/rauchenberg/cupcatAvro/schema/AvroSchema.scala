@@ -25,7 +25,7 @@ object AvroSchema {
 
     val annotations = getAnnotations(ctx.annotations)
     val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
-    val toSchema = schemaRecord(name, annotations.doc, namespace, false, _: List[Schema.Field])
+    val toSchema = schemaRecord(name, annotations.doc, namespace, _: List[Schema.Field])
 
     override def schema: SchemaResult = {
       ctx.parameters.toList.traverse { param =>

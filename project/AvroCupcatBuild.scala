@@ -21,6 +21,11 @@ object AvroCupcatBuild {
       "-encoding", "UTF-8",
       "-unchecked",
       "-Ywarn-dead-code",
+      "-Ywarn-unused:imports",
+      "-Ywarn-unused:locals",
+      "-Ywarn-unused:params",
+      "-Ywarn-unused:patvars",
+      "-Ywarn-unused:privates",
       "-Xfatal-warnings",
       "-language:implicitConversions",
       "-language:postfixOps",
@@ -30,6 +35,5 @@ object AvroCupcatBuild {
       "-feature",
       "-Ypartial-unification"
     ))
-
-
+ 
 }

@@ -14,12 +14,12 @@ class EitherSpec extends UnitSpecBase {
     }
     "decode a union of A and B into a Right[B]" in {
       forAll { v: Boolean =>
-        runAssert(true, Union(true.asLeft))
+        runAssert(v, Union(v.asLeft))
       }
     }
     "always try to decode string second " in {
       forAll { v: Boolean =>
-        runAssert(true, UnionWithStringFirst(true.asRight))
+        runAssert(v, UnionWithStringFirst(v.asRight))
       }
     }
   }

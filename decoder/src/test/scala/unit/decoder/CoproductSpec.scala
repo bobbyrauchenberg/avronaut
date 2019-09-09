@@ -4,7 +4,6 @@ package unit.decoder
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
 import com.rauchenberg.cupcatAvro.decoder.{DecodeTo}
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
-import com.rauchenberg.cupcatAvro.common._
 import org.apache.avro.generic.GenericData
 import shapeless.{:+:, CNil}
 import unit.common.UnitSpecBase

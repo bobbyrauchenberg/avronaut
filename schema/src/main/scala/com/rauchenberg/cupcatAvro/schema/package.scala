@@ -15,7 +15,7 @@ package object schema {
   def schemaField[T](name: String, schema: Schema, doc: Option[String], default: T) =
     safe(new Schema.Field(name, schema, doc.getOrElse(""), default))
 
-  def schemaRecord[T](name: String, doc: Option[String], namespace: String, isError: Boolean, fields: List[Schema.Field]) =
+  def schemaRecord[T](name: String, doc: Option[String], namespace: String, fields: List[Schema.Field]) =
     safe(Schema.createRecord(name, doc.getOrElse(""), namespace, false, fields.asJava))
 
   def schemaEnum(name: String, namespace: String, doc: Option[String], symbols: List[String]) =

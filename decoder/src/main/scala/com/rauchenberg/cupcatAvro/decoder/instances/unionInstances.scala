@@ -5,7 +5,7 @@ import com.rauchenberg.cupcatAvro.common._
 import com.rauchenberg.cupcatAvro.decoder.Decoder
 import org.apache.avro.generic.GenericRecord
 import shapeless.{:+:, CNil, Coproduct, Inr}
-
+import com.rauchenberg.cupcatAvro.decoder.helpers.ReflectionHelpers._
 import scala.reflect.runtime.universe._
 
 object unionInstances extends unionInstances
@@ -27,11 +27,7 @@ trait unionInstances {
 
         def decodeLeft = leftDecoder.decodeFrom(fieldName, record)
 
-        val leftIsString = (ttL.tpe match {
-          case TypeRef(_, us, _) => us
-        }).fullName == "scala.Predef.String"
-
-        if (leftIsString)
+        if (isOfType[L]("scala.Predef.String"))
           decodeRight match {
             case Right(v) => v.asRight.asRight
             case _ => decodeLeft.map(_.asLeft)

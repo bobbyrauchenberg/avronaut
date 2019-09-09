@@ -1,14 +1,12 @@
 package com.rauchenberg.cupcatAvro.decoder
 
-import collection.JavaConverters._
-import com.rauchenberg.cupcatAvro.common._
-import magnolia.{CaseClass, Magnolia, SealedTrait, Subtype}
 import cats.implicits._
-import com.rauchenberg.cupcatAvro.common.{Error, Result}
+import com.rauchenberg.cupcatAvro.common.{Error, Result, _}
+import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.Schema
-import org.apache.avro.generic.{GenericContainer, GenericData, GenericEnumSymbol, GenericRecord}
-
-import scala.reflect.runtime.universe
+import org.apache.avro.generic.{GenericData, GenericRecord}
+import com.rauchenberg.cupcatAvro.decoder.helpers.ReflectionHelpers._
+import scala.collection.JavaConverters._
 
 trait Decoder[T] {
 
@@ -47,7 +45,7 @@ object Decoder {
       val recordValue = record.get(fieldName)
       val schema = record.getSchema.getField(fieldName).schema()
 
-      def findSubtypeMatching(typeToMatch: String) = ctx.subtypes.filter(_.typeName.full == typeToMatch)
+      def findSubtypeMatching(typeToMatch: String) = ctx.subtypes.filter(_.typeName.full == typeToMatch).headOption
 
 
       schema.getType match {
@@ -55,42 +53,41 @@ object Decoder {
           recordValue match {
             case container: GenericData.Record =>
 
-              val containerSchema = container.getSchema
-              val schemaFullName = containerSchema.getFullName
-              val os = schema.getTypes.asScala.find(_.getFullName == schemaFullName)
+              val recordSchema = container.getSchema
+              val schemaFullName = recordSchema.getFullName
+              val maybeSubschema = schema.getTypes.asScala.find(_.getFullName == schemaFullName).headOption
 
-              def createSubRecord(subSchema: Schema) = {
+              def createSubRecord(subSchema: Schema): Either[Error, GenericData.Record] = {
                 val gr = new GenericData.Record(subSchema)
-                containerSchema.getFields.asScala.toList.traverse { f =>
-                  safe(gr.put(f.name, container.get(f.name)))
-                }.map(_ => gr)
+                recordSchema.getFields.asScala.toList
+                  .traverse(f => safe(gr.put(f.name, container.get(f.name)))).map(_ => gr)
               }
 
-              findSubtypeMatching(schemaFullName).headOption.flatMap { v: Subtype[Typeclass, T] =>
-                os.headOption.map { subSchema =>
-                  createSubRecord(subSchema).flatMap(subRecord => v.typeclass.decodeFrom(fieldName, subRecord))
-                    .leftMap(_ => Error(s"$unionErrorMsg, couldn't add fields to GenericData.Record"))
-                }
-              }.getOrElse(Error(s"$unionErrorMsg, couldn't find a subtype candidate").asLeft)
+              (for {
+                subSchema <- maybeSubschema
+                subType <- findSubtypeMatching(schemaFullName)
+              } yield {
+                (for {
+                  subRecord <- createSubRecord(subSchema)
+                  decoded <- subType.typeclass.decodeFrom(fieldName, subRecord)
+                } yield decoded).leftMap(_ => Error(s"$unionErrorMsg, couldn't create the GenericData.Record subrecord"))
+              }).getOrElse(Error(s"$unionErrorMsg, couldn't find a subtype candidate").asLeft)
+
             case _ =>
               safe(
-                findSubtypeMatching(recordValue.asInstanceOf[Schema].getFullName).map(toCaseObject)
-                  .headOption.map(_.asRight[Error]).getOrElse(Error(s"$enumErrorMsg $fieldName").asLeft)
+                findSubtypeMatching(recordValue.asInstanceOf[Schema].getFullName)
+                  .map(st => toCaseObject[T](st.typeName.full))
+                  .map(_.asRight[Error])
+                  .getOrElse(Error(s"$enumErrorMsg $fieldName").asLeft)
               ).flatten
           }
         case Schema.Type.ENUM =>
-          ctx.subtypes.filter(_.typeName.short == recordValue).map(toCaseObject)
+          ctx.subtypes.filter(_.typeName.short == recordValue)
+            .map(st => toCaseObject[T](st.typeName.full))
             .headOption.map(_.asRight[Error]).getOrElse(Error(s"$enumErrorMsg $fieldName").asLeft)
         case other => Error(s"Unsupported sealed trait type : $other, only UNION and ENUM are supported").asLeft
       }
 
-    }
-
-    def toCaseObject(v: Subtype[Typeclass, T]) = {
-      val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
-      val module = runtimeMirror.staticModule(v.typeName.full)
-      val companion = runtimeMirror.reflectModule(module.asModule)
-      companion.instance.asInstanceOf[T]
     }
 
   }
