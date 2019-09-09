@@ -4,7 +4,32 @@
 
 Scala Avro library inspired by Avro4s
 
-Currently just builds schemas, and has very basic case class decoding
+Currently just builds schemas, and does case class decoding - not all cases will be covered right now
 
-Also currently has no support for UUID / DateTime / Aliases, Fixed types and field mapping
+Currently Supports: 
+* Scala primitives which map to Avro primitives
+* Scala immutable collections which map to Avro Arrays
+* Scala immutable maps which map to Avro Maps
+* Avro Union types encoded using
+  * Option
+  * Either
+  * Shapeless Coproducts 
+  * Sealed trait hierachies of case class and / or case objects
+* Avro Enum types encoded using sealed trait hierachies of case objects
+
+## Schema 
+
+The schema module has support for setting:
+* Avro name
+* Avro namespace
+* Avro doc field
+
+## Decoder 
+
+The decoder module hasn't implemented the name / namespace functionality yet, but it will happen soon
+
+## Encoder
+This is coming soon
+
+Currently there is no support in any module for UUID / DateTime / Aliases, Fixed types and field mapping
 
