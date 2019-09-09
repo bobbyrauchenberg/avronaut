@@ -41,33 +41,46 @@ object Decoder {
   def dispatch[T: TypeTag](ctx: SealedTrait[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
     override def decodeFrom(fieldName: String, record: GenericRecord): Result[T] = {
 
-      val recordValue = record.get(fieldName)
+      val unionErrorMsg = "Was not able to create a sealed trait UNION"
+      val enumErrorMsg = "couldn't instantiate ENUM for field"
 
+      val recordValue = record.get(fieldName)
       val schema = record.getSchema.getField(fieldName).schema()
+
+      def findSubtypeMatching(typeToMatch: String) = ctx.subtypes.filter(_.typeName.full == typeToMatch)
+
+
       schema.getType match {
         case Schema.Type.UNION =>
           recordValue match {
             case container: GenericData.Record =>
-              val os = schema.getTypes.asScala.find(_.getFullName == container.getSchema.getFullName)
-              val subschema = os.headOption
-              ctx.subtypes.filter(_.typeName.full == container.getSchema.getFullName).headOption.flatMap { v: Subtype[Typeclass, T] =>
-                subschema.map { ss =>
-                  val gr = new GenericData.Record(ss)
-                  container.getSchema.getFields.asScala.toList.traverse { f =>
-                    safe(gr.put(f.name, container.get(f.name)))
-                  }.flatMap(_ => v.typeclass.decodeFrom(fieldName, gr))
-                    .leftMap(_ => Error("Was not able to create a sealed trait UNION, couldn't add fields to GenericData.Record"))
+
+              val containerSchema = container.getSchema
+              val schemaFullName = containerSchema.getFullName
+              val os = schema.getTypes.asScala.find(_.getFullName == schemaFullName)
+
+              def createSubRecord(subSchema: Schema) = {
+                val gr = new GenericData.Record(subSchema)
+                containerSchema.getFields.asScala.toList.traverse { f =>
+                  safe(gr.put(f.name, container.get(f.name)))
+                }.map(_ => gr)
+              }
+
+              findSubtypeMatching(schemaFullName).headOption.flatMap { v: Subtype[Typeclass, T] =>
+                os.headOption.map { subSchema =>
+                  createSubRecord(subSchema).flatMap(subRecord => v.typeclass.decodeFrom(fieldName, subRecord))
+                    .leftMap(_ => Error(s"$unionErrorMsg, couldn't add fields to GenericData.Record"))
                 }
-              }.getOrElse(Error("Was not able to create a sealed trait UNION, couldn't find a subtype candidate").asLeft)
-             case _ =>
-               safe(
-                 ctx.subtypes.filter(_.typeName.full == recordValue.asInstanceOf[Schema].getFullName).map(toCaseObject)
-                 .headOption.map(_.asRight[Error]).getOrElse(Error(s"couldn't instantiate ENUM for field $fieldName").asLeft)
-               ).flatten
+              }.getOrElse(Error(s"$unionErrorMsg, couldn't find a subtype candidate").asLeft)
+            case _ =>
+              safe(
+                findSubtypeMatching(recordValue.asInstanceOf[Schema].getFullName).map(toCaseObject)
+                  .headOption.map(_.asRight[Error]).getOrElse(Error(s"$enumErrorMsg $fieldName").asLeft)
+              ).flatten
           }
         case Schema.Type.ENUM =>
           ctx.subtypes.filter(_.typeName.short == recordValue).map(toCaseObject)
-            .headOption.map(_.asRight[Error]).getOrElse(Error(s"couldn't instantiate ENUM for field $fieldName").asLeft)
+            .headOption.map(_.asRight[Error]).getOrElse(Error(s"$enumErrorMsg $fieldName").asLeft)
         case other => Error(s"Unsupported sealed trait type : $other, only UNION and ENUM are supported").asLeft
       }
 
