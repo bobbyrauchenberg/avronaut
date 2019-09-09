@@ -1,7 +1,7 @@
 package unit.schema
 
 import common._
-import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}
+import com.rauchenberg.cupcatAvro.common.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}
 import common.UnitSpecBase
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 
@@ -41,6 +41,12 @@ class AnnotationsSpec extends UnitSpecBase {
       )
     }
 
+    "apply annotations to an enum" in new TestContext {
+      runAssert[AnnotatedEnum](
+        """{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
+          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat",
+          |"symbols":["AnnotatedCup","AnnotatedCat"]}}]}""".stripMargin.replace("\n",""))
+    }
   }
 
   trait TestContext {
@@ -55,4 +61,11 @@ class AnnotationsSpec extends UnitSpecBase {
   case class FullName(cupcat: String)
   @SchemaMetadata(Map(Doc -> "Record is now deprecated"))
   case class TopLevelDoc(cupcat: String)
+
 }
+
+@SchemaMetadata(Map(Name -> "cupcat"))
+sealed trait Annotated
+case object AnnotatedCup extends Annotated
+case object AnnotatedCat extends Annotated
+case class AnnotatedEnum(cupcat: Annotated)

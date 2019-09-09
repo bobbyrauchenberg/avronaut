@@ -52,5 +52,6 @@ class SimpleRecordSpec extends UnitSpecBase {
   case class StringRecord(field: String)
   case class BytesRecord(field: Array[Byte])
   case class NestedRecord(field: IntRecord)
+
 }
 

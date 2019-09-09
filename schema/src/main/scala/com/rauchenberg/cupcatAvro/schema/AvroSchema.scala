@@ -4,7 +4,7 @@ import cats.implicits._
 import com.rauchenberg.cupcatAvro.common._
 
 import scala.collection.JavaConverters._
-import com.rauchenberg.cupcatAvro.schema.annotations.SchemaAnnotations._
+import com.rauchenberg.cupcatAvro.common.annotations.SchemaAnnotations._
 import com.rauchenberg.cupcatAvro.schema.helpers.SchemaHelper._
 import org.apache.avro.Schema
 import magnolia._
@@ -41,12 +41,14 @@ object AvroSchema {
   def dispatch[T](ctx: SealedTrait[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
 
     val anno = getAnnotations(ctx.annotations)
+    val (name, namespace) = getNameAndNamespace(anno, ctx.typeName.short, ctx.typeName.owner)
+
     val subtypes = ctx.subtypes.map(_.cast.asInstanceOf[Subtype[Typeclass, T]]).toList
 
     override def schema: SchemaResult = {
       def toEnumOrUnion(schemas: List[Schema]) =
         if (schemas.flatMap(_.getFields.asScala.toList).isEmpty)
-          schemaEnum(ctx.typeName.owner, anno.namespace(ctx.typeName.owner), anno.doc, subtypes.map(_.typeName.short))
+          schemaEnum(name, namespace, anno.doc, subtypes.map(_.typeName.short))
         else schemaUnion(schemas)
 
       for {

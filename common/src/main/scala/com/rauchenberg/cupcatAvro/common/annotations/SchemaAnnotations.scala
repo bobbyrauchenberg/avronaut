@@ -1,4 +1,4 @@
-package com.rauchenberg.cupcatAvro.schema.annotations
+package com.rauchenberg.cupcatAvro.common.annotations
 
 import scala.annotation.StaticAnnotation
 
@@ -23,7 +23,7 @@ object SchemaAnnotations {
     if(name.contains(".")) (name, defaultNamespace) else (name, namespace)
   }
 
-  private def getName(annotations: Option[SchemaMetadata], defaultName: String) =
+  def getName(annotations: Option[SchemaMetadata], defaultName: String) =
     annotations.flatMap(_.values.get(Name)).getOrElse(defaultName)
 
   private def getNamespace(annotations: Option[SchemaMetadata], defaultNamespace: String) =

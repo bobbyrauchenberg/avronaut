@@ -1,11 +1,13 @@
 package com.rauchenberg.cupcatAvro.decoder
 
 import cats.implicits._
+import com.rauchenberg.cupcatAvro.common.annotations.SchemaAnnotations._
 import com.rauchenberg.cupcatAvro.common.{Error, Result, _}
+import com.rauchenberg.cupcatAvro.decoder.helpers.ReflectionHelpers._
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import com.rauchenberg.cupcatAvro.decoder.helpers.ReflectionHelpers._
+
 import scala.collection.JavaConverters._
 
 trait Decoder[T] {
@@ -24,8 +26,10 @@ object Decoder {
 
   def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
     override def decodeFrom(fieldName: String, record: GenericRecord): Result[T] = {
+
       ctx.parameters.toList.traverse { param =>
-        val decodeResult = param.typeclass.decodeFrom(param.label, record)
+        val annotations = getAnnotations(param.annotations)
+        val decodeResult = param.typeclass.decodeFrom(getName(annotations, param.label), record)
         (decodeResult, param.default) match {
           case (Left(_), Some(default)) => default.asRight
           case (res, _) => res
@@ -46,7 +50,6 @@ object Decoder {
       val schema = record.getSchema.getField(fieldName).schema()
 
       def findSubtypeMatching(typeToMatch: String) = ctx.subtypes.filter(_.typeName.full == typeToMatch).headOption
-
 
       schema.getType match {
         case Schema.Type.UNION =>

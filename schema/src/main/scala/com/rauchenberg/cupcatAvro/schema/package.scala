@@ -18,12 +18,12 @@ package object schema {
   def schemaRecord[T](name: String, doc: Option[String], namespace: String, fields: List[Schema.Field]) =
     safe(Schema.createRecord(name, doc.getOrElse(""), namespace, false, fields.asJava))
 
-  def schemaEnum(name: String, namespace: String, doc: Option[String], symbols: List[String]) =
+  def schemaEnum(name: String, namespace: String, doc: Option[String], symbols: List[String]) = {
     safe(doc.fold(SchemaBuilder.builder.enumeration(name).namespace(namespace).symbols(symbols:_*)){ docValue =>
       SchemaBuilder.builder.enumeration(name).namespace(namespace).doc(docValue).symbols(symbols:_*)
     })
+  }
 
   def schemaUnion(types: List[Schema]) = safe(Schema.createUnion(types:_*))
-
-
 }
+
