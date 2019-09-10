@@ -27,10 +27,7 @@ case class MyRecordType(name: String, age: Int)
 AvroSchema[MyRecordType].schema
 
 Right({
-	"type": "record",
-	"name": "MyRecordType",
-	"namespace": "my.org.com",
-	"doc": "",
+	"type": "record", "name": "MyRecordType", "namespace": "my.org.com", "doc": "",
 	"fields": [{
 		"name": "name",
 		"type": "string"
