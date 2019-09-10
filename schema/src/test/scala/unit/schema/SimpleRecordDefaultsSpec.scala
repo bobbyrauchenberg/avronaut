@@ -38,10 +38,9 @@ class SimpleRecordDefaultsSpec extends UnitSpecBase {
       runAssert[ByteWithDefault, String]("ByteWithDefault", "bytes", "\"cupcat\"")
     }
 
-
-
   }
 
+  case class MyRecordType(name: String)
   trait TestContext {
 
     def runAssert[S : AvroSchema,  T](typeName: String, valueType: String, default: T) =

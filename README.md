@@ -4,7 +4,7 @@
 
 Scala Avro library inspired by Avro4s
 
-Currently just builds schemas, and does case class decoding - not all cases will be covered right now
+Currently just builds schemas, and does case class decoding, encoding is coming soon
 
 Currently Supports: 
 * Scala primitives which map to Avro primitives
@@ -19,31 +19,11 @@ Currently Supports:
 
 ## Schema 
 
-Create an Avro schema for a record (returned inside an `Either`)
-
-```scala
-case class MyRecordType(name: String, age: Int)
-
-AvroSchema[MyRecordType].schema
-
-Right({
-	"type": "record", "name": "MyRecordType", "namespace": "my.org.com", "doc": "",
-	"fields": [{
-		"name": "name",
-		"type": "string"
-	}, {
-		"name": "age",
-		"type": "int"
-	}]
-})
-```
-
-The schema module has support for setting:
-* Avro name
-* Avro namespace
-* Avro doc field
+Schema functionality is described in [schema](schema/README.md)
 
 ## Decoder 
+
+Decoder functionality is described in [decoder](decoder/README.md)
 
 
 ## Encoder
