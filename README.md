@@ -26,7 +26,6 @@ The schema module has support for setting:
 
 ## Decoder 
 
-The decoder module hasn't implemented the name / namespace functionality yet, but it will happen soon
 
 ## Encoder
 This is coming soon
