@@ -55,6 +55,7 @@ class SimpleRecordSpec extends UnitSpecBase {
   case class SimpleFloat(value: Float)
   case class SimpleDouble(value: Double)
   case class SimpleByte(value: Array[Byte])
+
 }
 
 

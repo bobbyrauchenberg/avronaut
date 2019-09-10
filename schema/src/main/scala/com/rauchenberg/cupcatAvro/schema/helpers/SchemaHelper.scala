@@ -46,10 +46,13 @@ object SchemaHelper {
       case Field(name, doc, Some(Right(default)), schema) => schemaField(name, schema, doc, default)
       case Field(name, doc, Some(Inl(default)), schema) => schemaField(name, schema, doc, default)
       case Field(name, doc, Some(Inr(default)), schema) => makeSchemaField(Field(name, doc, default.some, schema))
+      case Field(name, doc, Some(p: Product), schema) if(isEnum(p, schema)) => schemaField(name, schema, doc, p.toString)
       case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toJavaMap(p))
       case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
       case Field(name, doc, None, schema) => schemaField(name, schema, doc)
     }
+
+  def isEnum(p: Product, schema: Schema) = p.productArity == 0 && schema.getType == Schema.Type.ENUM
 
   private def formatClassName(s: String) = {
     val className = (if (s.endsWith("$")) s.dropRight(1) else s).toLowerCase

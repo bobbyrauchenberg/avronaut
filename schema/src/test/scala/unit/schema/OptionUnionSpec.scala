@@ -1,9 +1,7 @@
 package unit.schema
 
 import cats.syntax.option._
-import common._
-import common.UnitSpecBase
-import com.rauchenberg.cupcatAvro.common.Error
+import common.{UnitSpecBase, _}
 
 class OptionUnionSpec extends UnitSpecBase {
 
@@ -74,9 +72,16 @@ class OptionUnionSpec extends UnitSpecBase {
       schemaAsString[UnionWithOptionalCaseClassDefault] should beRight(expected)
     }
 
-    "error if a union contains a union" in {
-      schemaAsString[IllegalNestedUnion] should beLeft(Error("""Nested union: ["null",["null","string"]]"""))
+    "flatten a nested structure of types that are encoded as unions" in {
+      val expected =
+        """
+          |{"type":"record","name":"NestedUnion","namespace":"unit.schema.OptionUnionSpec","doc":"",
+          |"fields":[{"name":"cupcat","type":["null","boolean","string"]}]}""".stripMargin.replace("\n", "")
+
+      schemaAsString[NestedUnion] should beRight(expected)
     }
+
+
   }
 
   case class Union(cupcat : Option[String])
@@ -90,5 +95,5 @@ class OptionUnionSpec extends UnitSpecBase {
   case class UnionWithCaseClassDefault(cupcat: Default = Default("cupcat"))
   case class UnionWithOptionalCaseClassDefault(cupcat: Option[Default] = Default("cupcat").some)
 
-  case class IllegalNestedUnion(cupcat: Option[Option[String]])
+  case class NestedUnion(cupcat: Option[Either[Boolean, String]])
 }

@@ -10,13 +10,29 @@ import scala.collection.JavaConverters._
 trait unionInstances {
 
   implicit def optionSchema[T](implicit elementSchema: AvroSchema[T]) = new AvroSchema[Option[T]] {
-    override def schema: SchemaResult = elementSchema.schema.flatMap { es =>
-      safe(Schema.createUnion(List(SchemaBuilder.builder.nullType, es).asJava))
+    override def schema: SchemaResult = {
+
+      elementSchema.schema.flatMap { es =>
+        es.getType match {
+          case Schema.Type.UNION =>
+            safe(Schema.createUnion(SchemaBuilder.builder.nullType +: es.getTypes.asScala: _*))
+          case _ => safe(Schema.createUnion(List(SchemaBuilder.builder.nullType, es).asJava))
+        }
+      }
     }
   }
 
   implicit def eitherSchema[L, R](implicit leftSchema: AvroSchema[L], rightSchema: AvroSchema[R]) = new AvroSchema[Either[L, R]] {
-    override def schema: SchemaResult = leftSchema.schema.map2(rightSchema.schema){ (l, r) => safe(Schema.createUnion(List(l, r).asJava)) }.flatten
+    override def schema: SchemaResult = {
+      leftSchema.schema.map2(rightSchema.schema){ (l, r) => {
+        (l.getType, r.getType) match {
+          case (Schema.Type.UNION, Schema.Type.UNION) => safe(Schema.createUnion((l.getTypes.asScala ++ r.getTypes.asScala): _*))
+          case (Schema.Type.UNION, _) => safe(Schema.createUnion((l.getTypes.asScala :+ r): _*))
+          case (_, Schema.Type.UNION) => safe(Schema.createUnion((r.getTypes.asScala :+ l): _*))
+          case _ => safe(Schema.createUnion(List(l, r).asJava))
+        }
+      } }.flatten
+    }
   }
 
   implicit def cnilSchema[H](implicit hSchema: AvroSchema[H]) = new AvroSchema[H :+: CNil] {

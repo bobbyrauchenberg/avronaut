@@ -5,6 +5,7 @@ import com.rauchenberg.cupcatAvro.decoder.DecodeTo
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 import org.apache.avro.generic.GenericData
 import unit.common.UnitSpecBase
+import SealedTraitInstances._
 
 class SealedTraitSpec extends UnitSpecBase {
 
@@ -19,6 +20,14 @@ class SealedTraitSpec extends UnitSpecBase {
         record.put("field", enum.field.toString)
         DecodeTo[SealedTraitEnum](record) should beRight(enum)
       }
+    }
+
+    "handle sealed trait enums with defaults" in {
+        val schema = AvroSchema[SealedTraitEnumWithDefault].schema
+
+        val record = new GenericData.Record(schema.value)
+
+        DecodeTo[SealedTraitEnumWithDefault](record) should beRight(SealedTraitEnumWithDefault())
     }
 
 
@@ -42,23 +51,22 @@ class SealedTraitSpec extends UnitSpecBase {
 
   }
 
-  case class SealedTraitEnum(field: CupcatEnum)
-
-  case class SealedTraitUnion(field: CupcatUnion, strField: String, field2: CupcatUnion, field3: CupcatUnion)
 
 }
 
-sealed trait CupcatEnum
+private[this] object SealedTraitInstances {
+  sealed trait CupcatEnum
+  case object Cuppers extends CupcatEnum
+  case object Snoutley extends CupcatEnum
 
-case object Cuppers extends CupcatEnum
+  sealed trait CupcatUnion
+  case object Cup extends CupcatUnion
+  case class Cat(field: String, name: String) extends CupcatUnion
+  case class Rendal(name: String) extends CupcatUnion
 
-case object Snoutley extends CupcatEnum
+  case class SealedTraitEnum(field: CupcatEnum)
+  case class SealedTraitUnion(field: CupcatUnion, strField: String, field2: CupcatUnion, field3: CupcatUnion)
 
-sealed trait CupcatUnion
-
-case object Cup extends CupcatUnion
-
-case class Cat(field: String, name: String) extends CupcatUnion
-
-case class Rendal(name: String) extends CupcatUnion
+  case class SealedTraitEnumWithDefault(field: CupcatEnum = Cuppers)
+}
 

@@ -25,13 +25,6 @@ class SealedTraitUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"Rendal","doc":"","fields":[]}],
           |"doc":"","default":{"name":"cupcat"}}]}""".stripMargin.replace("\n","")
 
-      /*
-          {"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.schema.SealedTraitUnion","doc":"",
-          "fields":[{"name":"cupcat","type":[{"type":"record","name":"Cupcat","doc":"","fields":[]},
-          {"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string"}]},
-          {"type":"record","name":"Rendal","doc":"","fields":[]}],"doc":"","default":{"name":"cupcat"}}]})
-       */
-
       schemaAsString[UnionWithCaseClassDefault] should beRight(expected)
     }
     "handle mixed sealed trait unions with case object defaults" in {

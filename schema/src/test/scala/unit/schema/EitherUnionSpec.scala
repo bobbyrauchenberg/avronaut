@@ -35,8 +35,13 @@ class EitherUnionSpec extends UnitSpecBase {
       schemaAsString[EitherUnionWithRightDefault] should beRight(expected)
     }
 
-    "error if a union contains a union" in {
-      schemaAsString[IllegalNestedUnion] should beLeft(Error("""Nested union: ["boolean",["int","string"]]"""))
+    "flatten a nested structure of types that map to unions" in {
+      val expected =
+        """
+          |{"type":"record","name":"IllegalNestedUnion","namespace":"unit.schema.EitherUnionSpec","doc":"",
+          |"fields":[{"name":"cupcat","type":["int","string","boolean"]}]}""".stripMargin.replace("\n", "")
+
+      schemaAsString[IllegalNestedUnion] should beRight(expected)
     }
 
     "error if a union contains a duplicate" in {
