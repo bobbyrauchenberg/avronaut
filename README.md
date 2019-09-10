@@ -19,7 +19,7 @@ Currently Supports:
 
 ## Schema 
 
-Create an Avro schema for a record
+Create an Avro schema for a record (returned inside an `Either`)
 
 ```scala
 case class MyRecordType(name: String, age: Int)
