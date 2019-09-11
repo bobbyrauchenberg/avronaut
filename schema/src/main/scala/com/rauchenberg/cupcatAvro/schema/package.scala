@@ -1,11 +1,12 @@
 package com.rauchenberg.cupcatAvro
 
 import com.rauchenberg.cupcatAvro.common._
+import com.rauchenberg.cupcatAvro.schema.instances.schemaInstances
 import org.apache.avro.{Schema, SchemaBuilder}
 
 import scala.collection.JavaConverters._
 
-package object schema {
+package object schema extends schemaInstances {
 
   type SchemaResult = Result[Schema]
 
