@@ -35,21 +35,23 @@ object SchemaHelper {
         union
     }
 
-  def makeSchemaField[T](field: Field[T]): Result[Schema.Field] =
-    field match {
-      case Field(name, doc, Some(default: Map[_, _]), schema) => schemaField(name, schema, doc, default.asJava)
-      case Field(name, doc, Some(default: Seq[_]), schema) => schemaField(name, schema, doc, default.asJava)
-      case Field(name, doc, Some(Some(p: Product)), schema) => schemaField(name, schema, doc, toJavaMap(p))
-      case Field(name, doc, Some(Some(default)), schema) => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(None), schema) => schemaField(name, schema, doc, JsonProperties.NULL_VALUE)
-      case Field(name, doc, Some(Left(default)), schema) => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(Right(default)), schema) => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(Inl(default)), schema) => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(Inr(default)), schema) => makeSchemaField(Field(name, doc, default.some, schema))
-      case Field(name, doc, Some(p: Product), schema) if(isEnum(p, schema)) => schemaField(name, schema, doc, p.toString)
-      case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toJavaMap(p))
-      case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
-      case Field(name, doc, None, schema) => schemaField(name, schema, doc)
+  def makeSchemaField[T](field: Field[T]): Result[Schema.Field] = {
+    import field.{name, schema, doc}
+    field.default match {
+      case Some(default: Map[_, _])              => schemaField(name, schema, doc, default.asJava)
+      case Some(default: Seq[_])                 => schemaField(name, schema, doc, default.asJava)
+      case Some(Some(p: Product))                => schemaField(name, schema, doc, toJavaMap(p))
+      case Some(Some(default))                   => schemaField(name, schema, doc, default)
+      case Some(None)                            => schemaField(name, schema, doc, JsonProperties.NULL_VALUE)
+      case Some(Left(default))                   => schemaField(name, schema, doc, default)
+      case Some(Right(default))                  => schemaField(name, schema, doc, default)
+      case Some(Inl(default))                    => schemaField(name, schema, doc, default)
+      case Some(Inr(default))                    => makeSchemaField(Field(name, doc, default.some, schema))
+      case Some(p: Product) if isEnum(p, schema) => schemaField(name, schema, doc, p.toString)
+      case Some(p: Product)                      => schemaField(name, schema, doc, toJavaMap(p))
+      case Some(default)                         => schemaField(name, schema, doc, default)
+      case None                                  => schemaField(name, schema, doc)
+    }
   }
 
   def isEnum(p: Product, schema: Schema) = p.productArity == 0 && schema.getType == Schema.Type.ENUM
