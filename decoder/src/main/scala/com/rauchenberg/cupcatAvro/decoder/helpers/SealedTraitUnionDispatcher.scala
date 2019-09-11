@@ -1,7 +1,7 @@
 package com.rauchenberg.cupcatAvro.decoder.helpers
 
 import cats.implicits._
-import com.rauchenberg.cupcatAvro.common.{Error, safe}
+import com.rauchenberg.cupcatAvro.common.{AvroError, Error, Result, safe}
 import com.rauchenberg.cupcatAvro.decoder.Decoder.Typeclass
 import com.rauchenberg.cupcatAvro.decoder.helpers.ReflectionHelpers.toCaseObject
 import magnolia.SealedTrait
@@ -28,7 +28,7 @@ object SealedTraitUnionDispatcher {
 
     val matchFullName : Schema => Boolean = _.getFullName == schemaFullName
 
-    val findSubSchema = union.schema.getTypes.asScala.find(matchFullName).headOption.toRight(
+    val findSubSchema = union.schema.getTypes.asScala.find(matchFullName).toRight(
       Error(s"$unionErrorMsg, couldn't find a matching subschema")
     )
 
@@ -54,7 +54,7 @@ object SealedTraitUnionDispatcher {
     ).flatten
 
   private def findSubtypeToDispatch[T](typeToMatch: String, ctx: SealedTrait[Typeclass, T], errorPrefix: String) =
-    ctx.subtypes.filter(_.typeName.full == typeToMatch).headOption.toRight(
+    ctx.subtypes.find(_.typeName.full == typeToMatch).toRight(
       Error(s"$errorPrefix, couldn't find subtype matching $typeToMatch")
     )
 

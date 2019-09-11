@@ -2,7 +2,7 @@ import Dependencies._
 
 configureDependencies()
 
-lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema)
+lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema, encoder)
 
 lazy val root = Project(id = "cupcat-avro", base = file("."))
   .aggregate(aggregatedProjects: _*)
