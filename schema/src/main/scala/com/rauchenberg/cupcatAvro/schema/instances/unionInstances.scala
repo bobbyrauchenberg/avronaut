@@ -43,7 +43,9 @@ trait unionInstances {
   implicit def coproductSchema[H, T <: Coproduct](implicit hSchema: AvroSchema[H], tSchema: AvroSchema[T]) = new AvroSchema[H :+: T] {
     override def schema: SchemaResult =
       tSchema.schema.map2(hSchema.schema){ (l, r) =>
-        safe(Schema.createUnion((l.getTypes.asScala.toList :+ r).asJava))
+        if(r.getType == Schema.Type.UNION)
+          safe(Schema.createUnion((l.getTypes.asScala.toList ++ r.getTypes.asScala).asJava))
+        else safe(Schema.createUnion((l.getTypes.asScala.toList :+ r).asJava))
       }.flatten
   }
 
