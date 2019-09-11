@@ -5,7 +5,7 @@ scalafmtOnCompile in ThisBuild := true
 
 configureDependencies()
 
-lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema)
+lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema, encoder)
 
 lazy val root = Project(id = "avronaut", base = file("."))
   .aggregate(aggregatedProjects: _*)
