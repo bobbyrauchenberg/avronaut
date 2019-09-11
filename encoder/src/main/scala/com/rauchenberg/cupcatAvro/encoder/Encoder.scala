@@ -1,7 +1,8 @@
 package com.rauchenberg.cupcatAvro.encoder
 
 import cats.implicits._
-import com.rauchenberg.cupcatAvro.common.{Error, Result}
+import com.rauchenberg.cupcatAvro.common._
+import com.rauchenberg.cupcatAvro.common.AvroError._
 import magnolia.{CaseClass, Magnolia}
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
@@ -24,21 +25,18 @@ object Encoder {
 
   def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
     override def encode(value: T, schema: Schema): Result[GenericRecord] = {
-      val encoded =
-        for {
+      val (errors, encoded) =
+        (for {
           field <- schema.getFields.asScala
           param <- ctx.parameters.find(_.label == field.name)
-        } yield param.typeclass.encode(param.dereference(value), field.schema)
+        } yield param.typeclass.encode(param.dereference(value), field.schema)).toList.separate
 
-      encoded.toList match {
-        case Nil =>
-          Error(s"Invalid schema: $schema, for value: $value").asLeft
-        case enc =>
-          enc.sequence.map { results =>
-            val record = new GenericData.Record(schema)
-            results.zipWithIndex.foreach { case (r, i) => record.put(i, r) }
-            record
-          }
+      if (errors.isEmpty && encoded.nonEmpty) {
+        val record = new GenericData.Record(schema)
+        encoded.zipWithIndex.foreach { case (r, i) => record.put(i, r) }
+        record.asRight
+      } else {
+        AggregatedError(Error(encoderErrorMsg(schema, value.toString)) +: errors).asLeft
       }
     }
   }
