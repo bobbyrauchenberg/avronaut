@@ -2,7 +2,7 @@ package com.rauchenberg.cupcatAvro.schema.helpers
 
 import cats.syntax.option._
 import com.rauchenberg.cupcatAvro.common._
-import com.rauchenberg.cupcatAvro.schema.{schemaField, _}
+import com.rauchenberg.cupcatAvro.schema._
 import org.apache.avro.{JsonProperties, Schema}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods.parse
@@ -19,11 +19,11 @@ object SchemaHelper {
 
   def moveDefaultToHead[T](schema: Schema, default: T): SchemaResult =
     default match {
-      case Some(v) => moveDefaultToHead(schema, v)
-      case Inl(v) => moveDefaultToHead(schema, v)
-      case Inr(v) => moveDefaultToHead(schema, v)
+      case Some(v)  => moveDefaultToHead(schema, v)
+      case Inl(v)   => moveDefaultToHead(schema, v)
+      case Inr(v)   => moveDefaultToHead(schema, v)
       case Right(v) => moveDefaultToHead(schema, v)
-      case Left(v) => moveDefaultToHead(schema, v)
+      case Left(v)  => moveDefaultToHead(schema, v)
       case _ =>
         val (first, rest) = schema.getTypes.asScala.partition { t =>
           t.getName.toLowerCase == formatClassName(default.getClass.getSimpleName)
@@ -50,7 +50,7 @@ object SchemaHelper {
       case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toJavaMap(p))
       case Field(name, doc, Some(default), schema) => schemaField(name, schema, doc, default)
       case Field(name, doc, None, schema) => schemaField(name, schema, doc)
-    }
+  }
 
   def isEnum(p: Product, schema: Schema) = p.productArity == 0 && schema.getType == Schema.Type.ENUM
 
@@ -64,6 +64,5 @@ object SchemaHelper {
   }
 
   private def toJavaMap[T](t: T) = parse(write(t)).extract[Map[String, Any]].asJava
-
 
 }

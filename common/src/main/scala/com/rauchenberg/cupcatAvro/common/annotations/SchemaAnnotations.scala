@@ -13,7 +13,7 @@ object SchemaAnnotations {
   case class SchemaMetadata(values: Map[AnnotationKeys, String]) extends StaticAnnotation
 
   def getAnnotations(annotations: Seq[Any]): Option[SchemaMetadata] =
-    annotations.toList.filter(_.isInstanceOf[SchemaMetadata]).headOption.map(_.asInstanceOf[SchemaMetadata])
+    annotations.toList.find(_.isInstanceOf[SchemaMetadata]).map(_.asInstanceOf[SchemaMetadata])
 
   def getNameAndNamespace(annotations: Option[SchemaMetadata], defaultName: String, defaultNamespace: String): (String, String) = {
 
