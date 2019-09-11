@@ -1,8 +1,8 @@
 package com.rauchenberg.cupcatAvro.schema.instances
 
+import com.rauchenberg.cupcatAvro.common._
 import com.rauchenberg.cupcatAvro.schema.{AvroSchema, SchemaResult}
 import org.apache.avro.SchemaBuilder
-import com.rauchenberg.cupcatAvro.common._
 
 object primitiveInstances extends primitiveInstances
 
