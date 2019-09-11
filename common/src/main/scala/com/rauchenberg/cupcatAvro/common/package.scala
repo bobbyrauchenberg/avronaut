@@ -7,7 +7,7 @@ import shapeless.Coproduct
 
 package object common {
 
-  type Result[T] = Either[Error, T]
+  type Result[T] = Either[AvroError, T]
 
   def safe[T](f: => T): Result[T] =
     Either.catchNonFatal(f).leftMap { e =>
