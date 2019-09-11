@@ -21,6 +21,12 @@ lazy val decoder = newModule("decoder").dependsOn(
   schema % "test->compile"
 )
 
+lazy val encoder = newModule("encoder").dependsOn(
+  common % "compile->compile",
+  schema % "compile->compile",
+  schema % "test->compile"
+)
+
 def newModule(name: String): Project =
   Project(id = name, base = file(name))
     .settings(AvroCupcatBuild.buildSettings)
