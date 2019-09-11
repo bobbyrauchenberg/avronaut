@@ -1,7 +1,7 @@
 package com.rauchenberg.cupcatAvro.decoder.helpers
 
 import cats.implicits._
-import com.rauchenberg.cupcatAvro.common.{AvroError, Error, Result, safe}
+import com.rauchenberg.cupcatAvro.common.{Error, safe}
 import com.rauchenberg.cupcatAvro.decoder.Decoder.Typeclass
 import com.rauchenberg.cupcatAvro.decoder.helpers.ReflectionHelpers.toCaseObject
 import magnolia.SealedTrait
