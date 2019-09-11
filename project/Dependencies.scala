@@ -32,5 +32,5 @@ object Dependencies {
   def configureDependencies(extraDeps: Seq[ModuleID] = Seq.empty): Seq[Def.Setting[Seq[ModuleID]]] = Seq(
     libraryDependencies ++= sharedDeps ++ extraDeps
   )
-
+      
 }
