@@ -36,7 +36,7 @@ object Encoder {
         encoded.zipWithIndex.foreach { case (r, i) => record.put(i, r) }
         record.asRight
       } else {
-        AggregatedError(Error(encoderErrorMsg(schema, value.toString)) +: errors).asLeft
+        AggregatedError(errors :+ Error(encoderErrorMsg(schema, value.toString))).asLeft
       }
     }
   }

@@ -59,7 +59,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         val outerErrorMsg = s"Invalid schema: $badSchema, for value: $data"
         val innerErrorMsg = s"""Invalid schema: "long", for value: ${data.string}"""
         Encoder[TestRecord].encode(data, badSchema) shouldBe
-          AggregatedError(List(Error(outerErrorMsg), Error(innerErrorMsg))).asLeft
+          AggregatedError(List(Error(innerErrorMsg), Error(outerErrorMsg))).asLeft
       }
     }
 
