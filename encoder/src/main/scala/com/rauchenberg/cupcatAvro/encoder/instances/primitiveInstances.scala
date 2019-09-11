@@ -25,4 +25,39 @@ trait primitiveInstances {
     }
   }
 
+  implicit val intEncoder = new Encoder[Int] {
+    override def encode(value: Int, schema: Schema): Result[Int] = {
+      if (schema.getType != INT) Error(encoderErrorMsg(schema, value.toString)).asLeft
+      else value.asRight
+    }
+  }
+
+  implicit val longEncoder = new Encoder[Long] {
+    override def encode(value: Long, schema: Schema): Result[Long] = {
+      if (schema.getType != LONG) Error(encoderErrorMsg(schema, value.toString)).asLeft
+      else value.asRight
+    }
+  }
+
+  implicit val floatEncoder = new Encoder[Float] {
+    override def encode(value: Float, schema: Schema): Result[Float] = {
+      if (schema.getType != FLOAT) Error(encoderErrorMsg(schema, value.toString)).asLeft
+      else value.asRight
+    }
+  }
+
+  implicit val doubleEncoder = new Encoder[Double] {
+    override def encode(value: Double, schema: Schema): Result[Double] = {
+      if (schema.getType != DOUBLE) Error(encoderErrorMsg(schema, value.toString)).asLeft
+      else value.asRight
+    }
+  }
+
+  implicit val bytesEncoder = new Encoder[Array[Byte]] {
+    override def encode(value: Array[Byte], schema: Schema): Result[Array[Byte]] = {
+      if (schema.getType != BYTES) Error(encoderErrorMsg(schema, value.toString)).asLeft
+      else value.asRight
+    }
+  }
+
 }
