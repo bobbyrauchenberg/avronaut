@@ -1,8 +1,8 @@
 package com.rauchenberg.cupcatAvro.encoder
 
 import cats.implicits._
+import com.rauchenberg.cupcatAvro.common.Error.encoderErrorFor
 import com.rauchenberg.cupcatAvro.common._
-import com.rauchenberg.cupcatAvro.common.AvroError._
 import magnolia.{CaseClass, Magnolia}
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecord}
@@ -25,19 +25,17 @@ object Encoder {
 
   def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
     override def encode(value: T, schema: Schema): Result[GenericRecord] = {
-      val (errors, encoded) =
-        (for {
-          field <- schema.getFields.asScala
-          param <- ctx.parameters.find(_.label == field.name)
-        } yield param.typeclass.encode(param.dereference(value), field.schema)).toList.separate
-
-      if (errors.isEmpty && encoded.nonEmpty) {
-        val record = new GenericData.Record(schema)
-        encoded.zipWithIndex.foreach { case (r, i) => record.put(i, r) }
-        record.asRight
-      } else {
-        AggregatedError(Error(encoderErrorMsg(schema, value.toString)) +: errors).asLeft
-      }
+      ((for {
+        field <- schema.getFields.asScala
+        param <- ctx.parameters.find(_.label == field.name)
+      } yield param.typeclass.encode(param.dereference(value), field.schema)).toList match {
+          case Nil => Error(s"No fields found in schema: $schema").asLeft
+          case enc => enc.sequence.flatMap { encoded =>
+            val record = new GenericData.Record(schema)
+            encoded.zipWithIndex.foreach { case (r, i) => record.put(i, r) }
+            record.asRight
+          }
+        }).leftMap(_ => encoderErrorFor(schema, value.toString))
     }
   }
 

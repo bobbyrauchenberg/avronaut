@@ -2,7 +2,7 @@ package unit.encoder
 
 import cats.syntax.either._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.cupcatAvro.common.{AggregatedError, Error}
+import com.rauchenberg.cupcatAvro.common.Error
 import com.rauchenberg.cupcatAvro.encoder.Encoder
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 import org.apache.avro.generic.GenericData
@@ -42,35 +42,23 @@ class SimpleRecordSpec extends UnitSpecBase {
     }
 
     "return an error when an invalid schema is given" in {
-      forAll { data: NestedRecord =>
+      forAll { data: TestRecord =>
         case class Broken(somethingElse: String)
         val badSchema = AvroSchema[Broken].schema.value
 
         val expectedErrorMsg = s"Invalid schema: $badSchema, for value: $data"
-        Encoder[NestedRecord].encode(data, badSchema) shouldBe AggregatedError(List(Error(expectedErrorMsg))).asLeft
+        Encoder[TestRecord].encode(data, badSchema) shouldBe Error(expectedErrorMsg).asLeft
       }
     }
 
-    "return an error with an incorrectly typed field" in {
-      forAll { data: TestRecord =>
-        case class Broken(string: Long)
+    "return an error when an invalid schema is given for a nested record" in {
+      forAll { data: NestedRecord =>
+        case class Broken(string: Long, boolean: Int, inner: BrokenInner)
+        case class BrokenInner(value: Long)
         val badSchema = AvroSchema[Broken].schema.value
 
-        val outerErrorMsg = s"Invalid schema: $badSchema, for value: $data"
-        val innerErrorMsg = s"""Invalid schema: "long", for value: ${data.string}"""
-        Encoder[TestRecord].encode(data, badSchema) shouldBe
-          AggregatedError(List(Error(outerErrorMsg), Error(innerErrorMsg))).asLeft
-      }
-    }
-
-    "collect all encoding errors from using an invalid schema" in {
-      forAll { data: NestedRecord =>
-        case class Broken(string: Long, boolean: Int, inner: NestedRecord)
-
-        Encoder[NestedRecord].encode(data, AvroSchema[Broken].schema.value).leftMap { error =>
-          error shouldBe a [AggregatedError]
-          error.asInstanceOf[AggregatedError].errors.length shouldBe 4
-        }
+        val expectedErrorMsg = s"Invalid schema: $badSchema, for value: $data"
+        Encoder[NestedRecord].encode(data, badSchema) shouldBe Error(expectedErrorMsg).asLeft
       }
     }
   }
