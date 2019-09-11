@@ -2,6 +2,7 @@ package unit.encoder
 
 import cats.syntax.either._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
+import com.rauchenberg.cupcatAvro.common.Error
 import com.rauchenberg.cupcatAvro.encoder.Encoder
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 import org.apache.avro.generic.GenericData
@@ -17,7 +18,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         expectedRecord.put("string", data.string)
         expectedRecord.put("boolean", data.boolean)
 
-        Encoder[TestRecord].encode(data) shouldBe expectedRecord.asRight
+        Encoder[TestRecord].encode(data, schema) shouldBe expectedRecord.asRight
       }
     }
 
@@ -31,7 +32,17 @@ class SimpleRecordSpec extends UnitSpecBase {
         expectedRecord.put("boolean", data.boolean)
         expectedRecord.put("inner", innerRecord)
 
-        Encoder[NestedRecord].encode(data) shouldBe expectedRecord.asRight
+        Encoder[NestedRecord].encode(data, schema) shouldBe expectedRecord.asRight
+      }
+    }
+
+    "return an error when an invalid schema is given" in {
+      forAll { data: NestedRecord =>
+        case class Broken(somethingElse: String)
+        val badSchema = AvroSchema[Broken].schema.value
+
+        val expectedErrorMsg = s"Invalid schema: $badSchema, for value: $data"
+        Encoder[NestedRecord].encode(data, badSchema) shouldBe Error(expectedErrorMsg).asLeft
       }
     }
   }
