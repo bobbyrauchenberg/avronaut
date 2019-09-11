@@ -17,6 +17,11 @@ class SimpleRecordSpec extends UnitSpecBase {
         val expectedRecord = new GenericData.Record(schema)
         expectedRecord.put("string", data.string)
         expectedRecord.put("boolean", data.boolean)
+        expectedRecord.put("int", data.int)
+        expectedRecord.put("long", data.long)
+        expectedRecord.put("float", data.float)
+        expectedRecord.put("double", data.double)
+        expectedRecord.put("bytes", data.bytes)
 
         Encoder[TestRecord].encode(data, schema) shouldBe expectedRecord.asRight
       }
@@ -59,18 +64,18 @@ class SimpleRecordSpec extends UnitSpecBase {
     }
 
     "collect all encoding errors from using an invalid schema" in {
-      forAll { data: TestRecord =>
-        case class Broken(string: Long, boolean: Int)
+      forAll { data: NestedRecord =>
+        case class Broken(string: Long, boolean: Int, inner: TestRecord)
 
-        Encoder[TestRecord].encode(data, AvroSchema[Broken].schema.value).leftMap { error =>
+        Encoder[NestedRecord].encode(data, AvroSchema[Broken].schema.value).leftMap { error =>
           error shouldBe a [AggregatedError]
-          error.asInstanceOf[AggregatedError].errors.length shouldBe 3
+          error.asInstanceOf[AggregatedError].errors.length shouldBe 4
         }
       }
     }
   }
 
-  case class TestRecord(string: String, boolean: Boolean)
+  case class TestRecord(string: String, boolean: Boolean, int: Int, long: Long, float: Float, double: Double, bytes: Array[Byte])
   case class NestedRecord(string: String, boolean: Boolean, inner: Inner)
   case class Inner(value: String)
 }
