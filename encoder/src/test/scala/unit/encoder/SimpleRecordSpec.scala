@@ -65,7 +65,7 @@ class SimpleRecordSpec extends UnitSpecBase {
 
     "collect all encoding errors from using an invalid schema" in {
       forAll { data: NestedRecord =>
-        case class Broken(string: Long, boolean: Int, inner: TestRecord)
+        case class Broken(string: Long, boolean: Int, inner: NestedRecord)
 
         Encoder[NestedRecord].encode(data, AvroSchema[Broken].schema.value).leftMap { error =>
           error shouldBe a [AggregatedError]
