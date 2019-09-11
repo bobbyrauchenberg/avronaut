@@ -40,7 +40,7 @@ object SealedTraitUnionDispatcher {
 
     for {
       subSchema <- findSubSchema
-      subType <- findSubtypeToDispatch(schemaFullName, union.ctx)
+      subType <- findSubtypeToDispatch(schemaFullName, union.ctx, unionErrorMsg)
       subRecord <- createRecordToDecode(subSchema)
       decodedT <- subType.typeclass.decodeFrom(union.fieldName, subRecord).map(_.asInstanceOf[T])
     } yield decodedT
@@ -48,14 +48,14 @@ object SealedTraitUnionDispatcher {
 
   def dispatchUnionEnum[T](union: UnionEnum[T]) =
     safe(
-      findSubtypeToDispatch(union.record.get(union.fieldName).asInstanceOf[Schema].getFullName, union.ctx)
+      findSubtypeToDispatch(union.record.get(union.fieldName).asInstanceOf[Schema].getFullName, union.ctx, enumErrorMsg)
         .map(st => toCaseObject[T](st.typeName.full))
         .leftMap(_ => Error(s"$enumErrorMsg ${union.fieldName}"))
     ).flatten
 
-  private def findSubtypeToDispatch[T](typeToMatch: String, ctx: SealedTrait[Typeclass, T]) =
+  private def findSubtypeToDispatch[T](typeToMatch: String, ctx: SealedTrait[Typeclass, T], errorPrefix: String) =
     ctx.subtypes.filter(_.typeName.full == typeToMatch).headOption.toRight(
-      Error(s"$unionErrorMsg, couldn't find subtype matching $typeToMatch")
+      Error(s"$errorPrefix, couldn't find subtype matching $typeToMatch")
     )
 
 
