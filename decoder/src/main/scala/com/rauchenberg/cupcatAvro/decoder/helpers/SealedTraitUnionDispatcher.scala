@@ -16,10 +16,10 @@ case class UnionRecord[T](genericRecord: GenericData.Record,
                           fieldName: String,
                           schema: Schema,
                           ctx: SealedTrait[Typeclass, T])
-    extends SealedTraitUnion
+  extends SealedTraitUnion
 
 case class UnionEnum[T](fieldName: String, record: GenericRecord, ctx: SealedTrait[Typeclass, T])
-    extends SealedTraitUnion
+  extends SealedTraitUnion
 
 object SealedTraitUnionDispatcher {
 
