@@ -25,12 +25,9 @@ trait unionInstances {
   implicit def eitherSchema[L, R](implicit leftSchema: AvroSchema[L], rightSchema: AvroSchema[R]) = new AvroSchema[Either[L, R]] {
     override def schema: SchemaResult = {
       leftSchema.schema.map2(rightSchema.schema){ (l, r) => {
-        (l.getType, r.getType) match {
-          case (Schema.Type.UNION, Schema.Type.UNION) => safe(Schema.createUnion((l.getTypes.asScala ++ r.getTypes.asScala): _*))
-          case (Schema.Type.UNION, _) => safe(Schema.createUnion((l.getTypes.asScala :+ r): _*))
-          case (_, Schema.Type.UNION) => safe(Schema.createUnion((r.getTypes.asScala :+ l): _*))
-          case _ => safe(Schema.createUnion(List(l, r).asJava))
-        }
+        val lTypes = if(isUnion(l.getType)) l.getTypes.asScala else List(l)
+        val rTypes = if(isUnion(r.getType)) r.getTypes.asScala else List(r)
+        safe(Schema.createUnion((lTypes ++ rTypes): _*))
       } }.flatten
     }
   }
@@ -48,5 +45,7 @@ trait unionInstances {
         else safe(Schema.createUnion((l.getTypes.asScala.toList :+ r).asJava))
       }.flatten
   }
+
+  private def isUnion(schemaType: Schema.Type) = schemaType == Schema.Type.UNION
 
 }

@@ -38,10 +38,10 @@ class EitherUnionSpec extends UnitSpecBase {
     "flatten a nested structure of types that map to unions" in {
       val expected =
         """
-          |{"type":"record","name":"IllegalNestedUnion","namespace":"unit.schema.EitherUnionSpec","doc":"",
-          |"fields":[{"name":"cupcat","type":["int","string","boolean"]}]}""".stripMargin.replace("\n", "")
+          |{"type":"record","name":"NestedUnion","namespace":"unit.schema.EitherUnionSpec",
+          |"doc":"","fields":[{"name":"cupcat","type":["boolean","int","string"]}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[IllegalNestedUnion] should beRight(expected)
+      schemaAsString[NestedUnion] should beRight(expected)
     }
 
     "error if a union contains a duplicate" in {
@@ -52,7 +52,7 @@ class EitherUnionSpec extends UnitSpecBase {
   case class EitherUnion(cupcat: Either[Boolean, String])
   case class EitherUnionWithLeftDefault(cupcat: Either[Boolean, String] = true.asLeft)
   case class EitherUnionWithRightDefault(cupcat: Either[Boolean, String] = "cupcat".asRight)
-  case class IllegalNestedUnion(cupcat: Either[Boolean, Either[Int, String]])
+  case class NestedUnion(cupcat: Either[Boolean, Either[Int, String]])
   case class IllegalDuplicateUnion(cupcat: Either[Boolean, Either[String, String]])
 
 }
