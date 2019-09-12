@@ -1,5 +1,8 @@
 import Dependencies._
 
+scalafmtVersion in ThisBuild := "1.2.0"
+scalafmtOnCompile in ThisBuild := true
+
 configureDependencies()
 
 lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema)
@@ -21,4 +24,3 @@ lazy val decoder = newModule("decoder").dependsOn(
 def newModule(name: String): Project =
   Project(id = name, base = file(name))
     .settings(AvroCupcatBuild.buildSettings)
-
