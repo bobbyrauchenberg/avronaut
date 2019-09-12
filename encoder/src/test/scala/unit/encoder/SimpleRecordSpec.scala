@@ -4,6 +4,7 @@ import cats.syntax.either._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
 import com.rauchenberg.cupcatAvro.common.Error
 import com.rauchenberg.cupcatAvro.encoder.Encoder
+import com.rauchenberg.cupcatAvro.encoder.EncoderPimps._
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 import org.apache.avro.generic.GenericData
 import unit.common.UnitSpecBase
@@ -23,7 +24,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         expectedRecord.put("double", data.double)
         expectedRecord.put("bytes", data.bytes)
 
-        Encoder[TestRecord].encode(data, schema) shouldBe expectedRecord.asRight
+        Encoder[TestRecord].encode(data, schema).toGenRecord shouldBe expectedRecord.asRight
       }
     }
 
@@ -37,7 +38,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         expectedRecord.put("boolean", data.boolean)
         expectedRecord.put("inner", innerRecord)
 
-        Encoder[NestedRecord].encode(data, schema) shouldBe expectedRecord.asRight
+        Encoder[NestedRecord].encode(data, schema).toGenRecord shouldBe expectedRecord.asRight
       }
     }
 
@@ -47,7 +48,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         val badSchema = AvroSchema[Broken].schema.value
 
         val expectedErrorMsg = s"Invalid schema: $badSchema, for value: $data"
-        Encoder[TestRecord].encode(data, badSchema) shouldBe Error(expectedErrorMsg).asLeft
+        Encoder[TestRecord].encode(data, badSchema).toGenRecord shouldBe Error(expectedErrorMsg).asLeft
       }
     }
 
@@ -58,7 +59,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         val badSchema = AvroSchema[Broken].schema.value
 
         val expectedErrorMsg = s"Invalid schema: $badSchema, for value: $data"
-        Encoder[NestedRecord].encode(data, badSchema) shouldBe Error(expectedErrorMsg).asLeft
+        Encoder[NestedRecord].encode(data, badSchema).toGenRecord shouldBe Error(expectedErrorMsg).asLeft
       }
     }
   }
