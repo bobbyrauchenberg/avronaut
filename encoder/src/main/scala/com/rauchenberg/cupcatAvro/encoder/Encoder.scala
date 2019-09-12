@@ -31,11 +31,11 @@ object Encoder {
   def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] =
     new Typeclass[T] {
       override def encode(value: T, schema: Schema): Result[Encoded] = {
-        ((for {
-            field <- schema.getFields.asScala
-            param <- ctx.parameters.find(_.label == field.name)
-          } yield param.typeclass.encode(param.dereference(value), field.schema))
-          ).toList.sequence.map(l => Elements(l, schema))
+        (for {
+          field <- schema.getFields.asScala
+          param <- ctx.parameters.find(_.label == field.name)
+        } yield
+          param.typeclass.encode(param.dereference(value), field.schema)).toList.sequence.map(l => Elements(l, schema))
       }.leftMap(_ => encoderErrorFor(schema, value.toString))
     }
 }

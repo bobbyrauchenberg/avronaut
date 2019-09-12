@@ -36,6 +36,9 @@ class SimpleRecordSpec extends UnitSpecBase {
         val expectedRecord = new GenericData.Record(schema)
         val innerRecord    = new GenericData.Record(AvroSchema[Inner].schema.value)
         innerRecord.put("value", data.inner.value)
+        innerRecord.put("value2", data.inner.value2)
+        innerRecord.put("value3", data.inner.value3)
+
         expectedRecord.put("string", data.string)
         expectedRecord.put("boolean", data.boolean)
         expectedRecord.put("inner", innerRecord)
@@ -68,5 +71,5 @@ class SimpleRecordSpec extends UnitSpecBase {
                         double: Double,
                         bytes: Array[Byte])
   case class NestedRecord(string: String, boolean: Boolean, inner: Inner)
-  case class Inner(value: String)
+  case class Inner(value: String, value2: Boolean, value3: Int)
 }

@@ -1,8 +1,8 @@
 package com.rauchenberg.cupcatAvro.encoder
 
+import cats.syntax.either._
 import com.rauchenberg.cupcatAvro.common.{Error, Result}
 import org.apache.avro.generic.GenericData
-import cats.syntax.either._
 
 object EncoderSyntax {
 
@@ -11,9 +11,8 @@ object EncoderSyntax {
     def toGenRecord: Either[Error, GenericData.Record] = r match {
       case Right(Elements(elements, schema)) => {
         val record = new GenericData.Record(schema)
-        val parsed = elements.flatMap(v => parseAST(v, Nil))
-        parsed.zipWithIndex.foreach { case (r, i) => record.put(i, r) }
-        r.map(_ => record)
+        elements.zipWithIndex.foreach { case (v, i) => parseAST(v, record, i) }
+        record.asRight
       }
       case Left(error) => error.asLeft
       case _ =>
@@ -21,14 +20,18 @@ object EncoderSyntax {
     }
   }
 
-  private def parseAST(e: Encoded, acc: List[Any]): List[Any] = e match {
-    case Primitive(p) => acc :+ p
-    case Record(g)    => acc :+ g
-    case Elements(e, schema) =>
-      val record = new GenericData.Record(schema)
-      e.flatMap(v => parseAST(v, acc)).zipWithIndex.foreach {
-        case (r, i) => record.put(i, r)
-      }
-      acc :+ record
-  }
+  private def parseAST(e: Encoded, acc: GenericData.Record, cnt: Int): GenericData.Record =
+    e match {
+      case Primitive(p) =>
+        acc.put(cnt, p)
+        acc
+      case Record(g) =>
+        acc.put(cnt, g)
+        acc
+      case Elements(e, schema) =>
+        val record = new GenericData.Record(schema)
+        e.zipWithIndex.foreach { case (enc, i) => parseAST(enc, record, i) }
+        acc.put(cnt, record)
+        acc
+    }
 }
