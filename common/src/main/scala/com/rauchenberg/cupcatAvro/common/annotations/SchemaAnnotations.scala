@@ -13,7 +13,9 @@ object SchemaAnnotations {
   case class SchemaMetadata(values: Map[AnnotationKeys, String]) extends StaticAnnotation
 
   def getAnnotations(annotations: Seq[Any]): Option[SchemaMetadata] =
-    annotations.toList.find(_.isInstanceOf[SchemaMetadata]).map(_.asInstanceOf[SchemaMetadata])
+    annotations.toList
+      .find(_.isInstanceOf[SchemaMetadata])
+      .map(_.asInstanceOf[SchemaMetadata])
 
   def getNameAndNamespace(annotations: Option[SchemaMetadata],
                           defaultName: String,
@@ -31,7 +33,8 @@ object SchemaAnnotations {
   private def getNamespace(annotations: Option[SchemaMetadata], defaultNamespace: String) =
     annotations.flatMap(_.values.get(Namespace)).getOrElse(defaultNamespace)
 
-  private def getDoc(annotations: Option[SchemaMetadata]): Option[String] = annotations.flatMap(_.values.get(Doc))
+  private def getDoc(annotations: Option[SchemaMetadata]): Option[String] =
+    annotations.flatMap(_.values.get(Doc))
 
   implicit class AnnotationValue(val annotations: Option[SchemaMetadata]) extends AnyVal {
     def doc                        = getDoc(annotations)
