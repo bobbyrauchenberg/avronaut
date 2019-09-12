@@ -30,7 +30,7 @@ class OptionSpec extends UnitSpecBase {
       assertHasDefault[UnionWithDefault](UnionWithDefault())
     }
 
-    "decode an option with a caseclass default" in new TestContext{
+    "decode an option with a caseclass default" in new TestContext {
       assertHasDefault[UnionWithCaseClassDefault](UnionWithCaseClassDefault())
     }
 
@@ -38,9 +38,8 @@ class OptionSpec extends UnitSpecBase {
       assertHasDefault[UnionWithNoneAsDefault](UnionWithNoneAsDefault(None))
     }
 
-
     trait TestContext {
-      def assertHasDefault[T : AvroSchema : Decoder](expected: T)  = {
+      def assertHasDefault[T : AvroSchema : Decoder](expected: T) = {
         val eitherSchema = AvroSchema[T].schema
         eitherSchema.isRight shouldBe true
 
@@ -66,4 +65,3 @@ class OptionSpec extends UnitSpecBase {
   case class UnionWithCaseClassDefault(field: Option[DefaultValue] = Option(DefaultValue("cup", "cat")))
 
 }
-

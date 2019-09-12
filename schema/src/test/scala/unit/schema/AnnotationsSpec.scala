@@ -12,19 +12,20 @@ class AnnotationsSpec extends UnitSpecBase {
     "amend the field name if name annotation is present" in new TestContext {
       runAssert[FieldNameAnnotation](
         s"""{"type":"record","name":"FieldNameAnnotation","namespace":"unit.schema.AnnotationsSpec",
-           |"doc":"","fields":[{"name":"cuppers","type":"string"}]}""".stripMargin.replace("\n",""))
+           |"doc":"","fields":[{"name":"cuppers","type":"string"}]}""".stripMargin.replace("\n", ""))
     }
 
     "add documentation if present" in new TestContext {
       runAssert[FieldDocAnnotation](
         s"""{"type":"record","name":"FieldDocAnnotation","namespace":"unit.schema.AnnotationsSpec",
-           |"doc":"","fields":[{"name":"cupcat","type":"string","doc":\"Field now deprecated"}]}""".stripMargin.replace("\n",""))
+           |"doc":"","fields":[{"name":"cupcat","type":"string","doc":\"Field now deprecated"}]}""".stripMargin
+          .replace("\n", ""))
     }
 
     "add global namespace if present" in new TestContext {
       runAssert[NamespaceAnnotation](
         s"""{"type":"record","name":"NamespaceAnnotation","namespace":"com.cupcat","doc":"",
-           |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n","")
+           |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n", "")
       )
     }
 
@@ -37,15 +38,14 @@ class AnnotationsSpec extends UnitSpecBase {
     "document a top level record " in new TestContext {
       runAssert[TopLevelDoc](
         s"""{"type":"record","name":"TopLevelDoc","namespace":"unit.schema.AnnotationsSpec","doc":"Record is now deprecated",
-           |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n","")
+           |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n", "")
       )
     }
 
     "apply annotations to an enum" in new TestContext {
-      runAssert[AnnotatedEnum](
-        """{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
+      runAssert[AnnotatedEnum]("""{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
           |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat",
-          |"symbols":["AnnotatedCup","AnnotatedCat"]}}]}""".stripMargin.replace("\n",""))
+          |"symbols":["AnnotatedCup","AnnotatedCat"]}}]}""".stripMargin.replace("\n", ""))
     }
   }
 
@@ -54,7 +54,7 @@ class AnnotationsSpec extends UnitSpecBase {
   }
 
   case class FieldNameAnnotation(@SchemaMetadata(Map(Name -> "cuppers")) cupcat: String)
-  case class FieldDocAnnotation(@SchemaMetadata(Map(Doc -> "Field now deprecated")) cupcat: String)
+  case class FieldDocAnnotation(@SchemaMetadata(Map(Doc   -> "Field now deprecated")) cupcat: String)
   @SchemaMetadata(Map(Namespace -> "com.cupcat"))
   case class NamespaceAnnotation(cupcat: String)
   @SchemaMetadata(Map(Name -> "cup.Cat", Namespace -> "com.cupcat"))

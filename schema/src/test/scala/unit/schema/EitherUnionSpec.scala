@@ -12,7 +12,7 @@ class EitherUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EitherUnion","namespace":"unit.schema.EitherUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"]}]}""".stripMargin.replace("\n","")
+          |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"]}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[EitherUnion] should beRight(expected)
     }
@@ -21,7 +21,8 @@ class EitherUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EitherUnionWithLeftDefault","namespace":"unit.schema.EitherUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"],"doc":"","default":true}]}""".stripMargin.replace("\n","")
+          |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"],"doc":"","default":true}]}""".stripMargin
+          .replace("\n", "")
 
       schemaAsString[EitherUnionWithLeftDefault] should beRight(expected)
     }
@@ -30,7 +31,8 @@ class EitherUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EitherUnionWithRightDefault","namespace":"unit.schema.EitherUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["string","boolean"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n","")
+          |"doc":"","fields":[{"name":"cupcat","type":["string","boolean"],"doc":"","default":"cupcat"}]}""".stripMargin
+          .replace("\n", "")
 
       schemaAsString[EitherUnionWithRightDefault] should beRight(expected)
     }

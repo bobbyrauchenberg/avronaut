@@ -1,6 +1,5 @@
 package unit.decoder
 
-
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
 import com.rauchenberg.cupcatAvro.decoder.{DecodeTo}
 import com.rauchenberg.cupcatAvro.schema.AvroSchema

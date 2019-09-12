@@ -10,14 +10,14 @@ class MapSpec extends UnitSpecBase {
       val expected =
         """{"type":"record","name":"RecordWithMap","namespace":"unit.schema.MapSpec",
           |"doc":"","fields":[{"name":"cupcat",
-          |"type":{"type":"map","values":"string"}}]}""".stripMargin.replace("\n","")
+          |"type":{"type":"map","values":"string"}}]}""".stripMargin.replace("\n", "")
       schemaAsString[RecordWithMap] should beRight(expected)
     }
     "build a record with a Map with a default" in {
       val expected =
         """{"type":"record","name":"RecordWithDefaultMap","namespace":"unit.schema.MapSpec","doc":"",
           |"fields":[{"name":"cupcat","type":{"type":"map","values":"string"},
-          |"doc":"","default":{"cup":"cat"}}]}""".stripMargin.replace("\n","")
+          |"doc":"","default":{"cup":"cat"}}]}""".stripMargin.replace("\n", "")
       schemaAsString[RecordWithDefaultMap] should beRight(expected)
     }
   }

@@ -8,14 +8,14 @@ import org.scalatest.Matchers
 
 object RunAssert extends Matchers with EitherMatchers with EitherValues {
 
-  def runAssert[T, U: Decoder : AvroSchema](fieldValue: T, expected: U) = {
+  def runAssert[T, U : Decoder : AvroSchema](fieldValue: T, expected: U) = {
 
-      val schema = AvroSchema[U].schema
+    val schema = AvroSchema[U].schema
 
-      val record = new GenericData.Record(schema.value)
-      record.put("field", fieldValue)
+    val record = new GenericData.Record(schema.value)
+    record.put("field", fieldValue)
 
-      DecodeTo[U](record) should beRight(expected)
+    DecodeTo[U](record) should beRight(expected)
   }
 
 }

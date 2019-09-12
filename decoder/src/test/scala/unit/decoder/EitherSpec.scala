@@ -7,7 +7,7 @@ import unit.decoder.utils.RunAssert._
 class EitherSpec extends UnitSpecBase {
 
   "decoder" should {
-    "decode a union of A and B into a Left[A]" in  {
+    "decode a union of A and B into a Left[A]" in {
       forAll { v: String =>
         runAssert(v, Union(v.asRight))
       }
@@ -23,7 +23,6 @@ class EitherSpec extends UnitSpecBase {
       }
     }
   }
-
 
   case class Union(field: Either[Boolean, String])
   case class UnionWithStringFirst(field: Either[String, Boolean])

@@ -23,24 +23,23 @@ object AvroSchema {
 
   def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
 
-    val annotations = getAnnotations(ctx.annotations)
+    val annotations       = getAnnotations(ctx.annotations)
     val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
-    val toSchema = schemaRecord(name, annotations.doc, namespace, _: List[Schema.Field])
+    val toSchema          = schemaRecord(name, annotations.doc, namespace, _: List[Schema.Field])
 
-    override def schema: SchemaResult = {
+    override def schema: SchemaResult =
       ctx.parameters.toList.traverse { param =>
         for {
-          schema <- param.typeclass.schema
-          field <- toField(param, schema)
+          schema      <- param.typeclass.schema
+          field       <- toField(param, schema)
           schemaField <- makeSchemaField(field)
         } yield schemaField
       }.flatMap(toSchema)
-    }
   }
 
   def dispatch[T](ctx: SealedTrait[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
 
-    val anno = getAnnotations(ctx.annotations)
+    val anno              = getAnnotations(ctx.annotations)
     val (name, namespace) = getNameAndNamespace(anno, ctx.typeName.short, ctx.typeName.owner)
 
     val subtypes = ctx.subtypes.map(_.cast.asInstanceOf[Subtype[Typeclass, T]]).toList
@@ -52,7 +51,7 @@ object AvroSchema {
         else schemaUnion(schemas)
 
       for {
-        schemas <- subtypes.traverse(_.typeclass.schema)
+        schemas     <- subtypes.traverse(_.typeclass.schema)
         enumOrUnion <- toEnumOrUnion(schemas)
       } yield enumOrUnion
     }
@@ -60,9 +59,9 @@ object AvroSchema {
 
   private def toField[T](param: Param[Typeclass, T], schema: Schema): Result[Field[T]] = {
     val annotations = getAnnotations(param.annotations)
-    val name = annotations.name(param.label)
-    val default = param.default.asInstanceOf[Option[T]]
-    val doc = annotations.doc
+    val name        = annotations.name(param.label)
+    val default     = param.default.asInstanceOf[Option[T]]
+    val doc         = annotations.doc
 
     val toField = Field(name, doc, _: Option[T], schema)
 
@@ -73,6 +72,4 @@ object AvroSchema {
     }
   }
 
-
 }
-

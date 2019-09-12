@@ -18,8 +18,7 @@ trait unionInstances {
       else someDecoder.decodeFrom(fieldName, record).map(Option.apply)
   }
 
-  implicit def eitherDecoder[L, R](implicit leftDecoder: Decoder[L], ttL: TypeTag[L],
-                                   rightDecoder: Decoder[R]) =
+  implicit def eitherDecoder[L, R](implicit leftDecoder: Decoder[L], ttL: TypeTag[L], rightDecoder: Decoder[R]) =
     new Decoder[Either[L, R]] {
       override def decodeFrom(fieldName: String, record: GenericRecord): Result[Either[L, R]] = {
 
@@ -30,12 +29,11 @@ trait unionInstances {
         if (isOfType[L]("scala.Predef.String"))
           decodeRight match {
             case Right(v) => v.asRight.asRight
-            case _ => decodeLeft.map(_.asLeft)
-          }
-        else
+            case _        => decodeLeft.map(_.asLeft)
+          } else
           decodeLeft match {
             case Right(v) => v.asLeft.asRight
-            case _ => decodeRight.map(_.asRight)
+            case _        => decodeRight.map(_.asRight)
           }
       }
 
@@ -46,20 +44,15 @@ trait unionInstances {
       Error(s"could not decode coproduct for fieldName: $fieldName").asLeft
   }
 
-  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H], tDecoder: Decoder[T]) = {
+  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H], tDecoder: Decoder[T]) =
     new Decoder[H :+: T] {
-      override def decodeFrom(fieldName: String, record: GenericRecord): Result[H :+: T] = {
+      override def decodeFrom(fieldName: String, record: GenericRecord): Result[H :+: T] =
         hDecoder.decodeFrom(fieldName, record) match {
           case Right(v) =>
             v.toCP[H :+: T].asRight
           case _ =>
             tDecoder.decodeFrom(fieldName, record).map(Inr[H, T](_))
         }
-      }
     }
 
-  }
-
-
 }
-

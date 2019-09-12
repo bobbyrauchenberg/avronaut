@@ -1,7 +1,7 @@
 package unit.schema
 
 import com.rauchenberg.cupcatAvro.common._
-import common.{UnitSpecBase, schemaAsString}
+import common.{schemaAsString, UnitSpecBase}
 import shapeless._
 
 class CoproductUnionSpec extends UnitSpecBase {
@@ -52,8 +52,8 @@ class CoproductUnionSpec extends UnitSpecBase {
 
   }
 
-  type CP = String :+: Boolean :+: Int :+: CNil
-  type IllegalNestedCP = String :+: (Boolean :+: Int :+: CNil) :+: Double :+: CNil
+  type CP                 = String :+: Boolean :+: Int :+: CNil
+  type IllegalNestedCP    = String :+: (Boolean :+: Int :+: CNil) :+: Double :+: CNil
   type IllegalDuplicateCP = String :+: String :+: CNil
 
   type NestedCP = String :+: Either[Int, Long] :+: Boolean :+: CNil
@@ -66,4 +66,3 @@ class CoproductUnionSpec extends UnitSpecBase {
 
   case class Nested(cupcat: NestedCP)
 }
-

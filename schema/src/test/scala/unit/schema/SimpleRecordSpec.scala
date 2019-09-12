@@ -43,7 +43,7 @@ class SimpleRecordSpec extends UnitSpecBase {
     def simpleSchema(typeName: String, valueType: String) =
       s"""{"type":"record","name":"$typeName",
          |"namespace":"unit.schema.SimpleRecordSpec","doc":"",
-         |"fields":[{"name":"value","type":"$valueType"}]}""".stripMargin.replace("\n","")
+         |"fields":[{"name":"value","type":"$valueType"}]}""".stripMargin.replace("\n", "")
   }
 
   case class SimpleNull(value: Null)
@@ -57,5 +57,3 @@ class SimpleRecordSpec extends UnitSpecBase {
   case class SimpleByte(value: Array[Byte])
 
 }
-
-

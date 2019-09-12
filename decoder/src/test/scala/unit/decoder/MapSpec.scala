@@ -22,4 +22,3 @@ class MapSpec extends UnitSpecBase {
   case class RecordWithMap(field: Map[String, String])
   case class RecordWithDefaultMap(field: Map[String, String] = Map("cup" -> "cat"))
 }
-

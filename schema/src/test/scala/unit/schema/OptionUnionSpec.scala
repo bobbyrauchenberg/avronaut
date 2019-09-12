@@ -10,7 +10,7 @@ class OptionUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"Union","namespace":"unit.schema.OptionUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["null","string"]}]}""".stripMargin.replace("\n","")
+          |"doc":"","fields":[{"name":"cupcat","type":["null","string"]}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[Union] should beRight(expected)
     }
@@ -19,7 +19,8 @@ class OptionUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"UnionWithStringDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
-          |"fields":[{"name":"cupcat","type":["string","null"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n","")
+          |"fields":[{"name":"cupcat","type":["string","null"],"doc":"","default":"cupcat"}]}""".stripMargin
+          .replace("\n", "")
 
       schemaAsString[UnionWithStringDefault] should beRight(expected)
     }
@@ -28,7 +29,7 @@ class OptionUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"UnionWithIntDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
-          |"fields":[{"name":"cupcat","type":["int","null"],"doc":"","default":123}]}""".stripMargin.replace("\n","")
+          |"fields":[{"name":"cupcat","type":["int","null"],"doc":"","default":123}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[UnionWithIntDefault] should beRight(expected)
     }
@@ -37,7 +38,8 @@ class OptionUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"UnionWithByteArrayDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
-          |"fields":[{"name":"cupcat","type":["bytes","null"],"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n","")
+          |"fields":[{"name":"cupcat","type":["bytes","null"],"doc":"","default":"cupcat"}]}""".stripMargin
+          .replace("\n", "")
 
       schemaAsString[UnionWithByteArrayDefault] should beRight(expected)
     }
@@ -46,7 +48,8 @@ class OptionUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"UnionWithDefaultNone","namespace":"unit.schema.OptionUnionSpec","doc":"",
-          |"fields":[{"name":"cupcat","type":["null","string"],"doc":"","default":null}]}""".stripMargin.replace("\n","")
+          |"fields":[{"name":"cupcat","type":["null","string"],"doc":"","default":null}]}""".stripMargin.replace("\n",
+                                                                                                                 "")
 
       schemaAsString[UnionWithDefaultNone] should beRight(expected)
     }
@@ -57,7 +60,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
           |"fields":[{"name":"cupcat","type":{"type":"record","name":"Default","doc":"",
           |"fields":[{"name":"cupcat","type":"string"}]},"doc":"",
-          |"default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n","")
+          |"default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[UnionWithCaseClassDefault] should beRight(expected)
     }
@@ -67,7 +70,7 @@ class OptionUnionSpec extends UnitSpecBase {
         """{"type":"record","name":"UnionWithOptionalCaseClassDefault","namespace":"unit.schema.OptionUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":[{"type":"record","name":"Default","doc":"",
           |"fields":[{"name":"cupcat","type":"string"}]},"null"],
-          |"doc":"","default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n","")
+          |"doc":"","default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[UnionWithOptionalCaseClassDefault] should beRight(expected)
     }
@@ -81,10 +84,9 @@ class OptionUnionSpec extends UnitSpecBase {
       schemaAsString[NestedUnion] should beRight(expected)
     }
 
-
   }
 
-  case class Union(cupcat : Option[String])
+  case class Union(cupcat: Option[String])
   case class UnionWithStringDefault(cupcat: Option[String] = "cupcat".some)
   case class UnionWithIntDefault(cupcat: Option[Int] = 123.some)
   case class UnionWithByteArrayDefault(cupcat: Option[Array[Byte]] = "cupcat".getBytes.some)

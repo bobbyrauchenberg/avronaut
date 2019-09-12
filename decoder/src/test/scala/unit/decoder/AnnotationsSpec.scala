@@ -30,7 +30,7 @@ class AnnotationsSpec extends UnitSpecBase {
   }
 
   case class NameAnnotation(@SchemaMetadata(Map(Name -> "cupcat")) field: String)
-  case class AnnotatedEnum(@SchemaMetadata(Map(Name -> "cupcat")) field: Annotated)
+  case class AnnotatedEnum(@SchemaMetadata(Map(Name  -> "cupcat")) field: Annotated)
 }
 
 sealed trait Annotated

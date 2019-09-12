@@ -19,7 +19,7 @@ class SimpleRecordDefaultsSpec extends UnitSpecBase {
     }
 
     "have a default for a basic int record" in new TestContext {
-        runAssert[IntWithDefault, Int]("IntWithDefault", "int", 5)
+      runAssert[IntWithDefault, Int]("IntWithDefault", "int", 5)
     }
 
     "have a default for a basic long record" in new TestContext {
@@ -43,12 +43,12 @@ class SimpleRecordDefaultsSpec extends UnitSpecBase {
   case class MyRecordType(name: String)
   trait TestContext {
 
-    def runAssert[S : AvroSchema,  T](typeName: String, valueType: String, default: T) =
+    def runAssert[S : AvroSchema, T](typeName: String, valueType: String, default: T) =
       schemaAsString[S] should beRight(simpleSchema(typeName, valueType, default))
 
     def simpleSchema[T](typeName: String, valueType: String, default: T) =
       s"""{"type":"record","name":"$typeName","namespace":"unit.schema.SimpleRecordDefaultsSpec","doc":"",
-         |"fields":[{"name":"value","type":"$valueType","doc":"","default":$default}]}""".stripMargin.replace("\n","")
+         |"fields":[{"name":"value","type":"$valueType","doc":"","default":$default}]}""".stripMargin.replace("\n", "")
   }
 
   case class BoolWithDefault(value: Boolean = true)
@@ -59,4 +59,3 @@ class SimpleRecordDefaultsSpec extends UnitSpecBase {
   case class DoubleWithDefault(value: Double = 5D)
   case class ByteWithDefault(value: Array[Byte] = "cupcat".getBytes)
 }
-

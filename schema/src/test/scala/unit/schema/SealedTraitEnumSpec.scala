@@ -13,7 +13,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
         """
           |{"type":"record","name":"EnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
           |"fields":[{"name":"cupcat","type":{"type":"enum","name":"SimpleEnum",
-          |"symbols":["Cupcat","Rendal"]}}]}""".stripMargin.replace("\n","")
+          |"symbols":["Cupcat","Rendal"]}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[EnumCC] should beRight(expected)
     }
@@ -21,7 +21,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
       val expected =
         """{"type":"record","name":"AnnotatedEnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
           |"fields":[{"name":"cupcat","type":{"type":"enum","name":"CupcatEnum",
-          |"symbols":["AnnotatedCupcat","AnnotatedRendal"]}}]}""".stripMargin.replace("\n","")
+          |"symbols":["AnnotatedCupcat","AnnotatedRendal"]}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[AnnotatedEnumCC] should beRight(expected)
     }
@@ -29,8 +29,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
 
 }
 
-private [this] object SealedTraitEnum {
-
+private[this] object SealedTraitEnum {
 
   sealed trait SimpleEnum
   case object Cupcat extends SimpleEnum

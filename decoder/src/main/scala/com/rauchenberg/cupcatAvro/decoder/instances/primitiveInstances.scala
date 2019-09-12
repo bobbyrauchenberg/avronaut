@@ -44,5 +44,4 @@ trait primitiveInstances {
       safe(record.get(fieldName).asInstanceOf[Array[Byte]])
   }
 
-
 }

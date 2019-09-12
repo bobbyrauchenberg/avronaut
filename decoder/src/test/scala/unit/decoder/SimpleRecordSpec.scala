@@ -54,4 +54,3 @@ class SimpleRecordSpec extends UnitSpecBase {
   case class NestedRecord(field: IntRecord)
 
 }
-

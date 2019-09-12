@@ -17,8 +17,7 @@ object UserDefinedInstance {
 case class OverrideInt(value: Int)
 object OverrideInt {
   implicit val sb = new AvroSchema[Int] {
-    override def schema: SchemaResult = {
+    override def schema: SchemaResult =
       safe(SchemaBuilder.builder.stringType)
-    }
   }
 }
