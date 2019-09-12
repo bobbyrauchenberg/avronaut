@@ -8,9 +8,9 @@ import org.apache.avro.Schema.Type
 
 object utils {
 
-  def encodePrimitive[T](value: T, schema: Schema, expectedType: Type): Result[T] = {
-    if (schema.getType != expectedType) encoderErrorFor(schema, value.toString).asLeft
+  def encodePrimitive[T](value: T, schema: Schema, expectedType: Type): Result[T] =
+    if (schema.getType != expectedType)
+      encoderErrorFor(schema, value.toString).asLeft
     else value.asRight
-  }
 
 }
