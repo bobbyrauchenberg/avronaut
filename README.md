@@ -5,7 +5,7 @@
 
 Scala Avro library inspired by Avro4s
 
-Currently just builds schemas, and does case class decoding, encoding is coming soon
+Currently just builds schemas, and does case class decoding, and very basic encoding (more coming soon)
 
 Currently Supports: 
 * Scala primitives which map to Avro primitives
