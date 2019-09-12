@@ -4,7 +4,7 @@ import cats.syntax.either._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
 import com.rauchenberg.cupcatAvro.common.Error
 import com.rauchenberg.cupcatAvro.encoder.Encoder
-import com.rauchenberg.cupcatAvro.encoder.EncoderPimps._
+import com.rauchenberg.cupcatAvro.encoder.EncoderSyntax._
 import com.rauchenberg.cupcatAvro.schema.AvroSchema
 import org.apache.avro.generic.GenericData
 import unit.common.UnitSpecBase

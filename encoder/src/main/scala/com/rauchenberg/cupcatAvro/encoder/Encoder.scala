@@ -38,34 +38,4 @@ object Encoder {
           ).toList.sequence.map(l => Elements(l, schema))
       }.leftMap(_ => encoderErrorFor(schema, value.toString))
     }
-
-}
-
-object EncoderPimps {
-  implicit class PimpEncoded(r: Result[Encoded]) {
-
-    def recur(e: Encoded, acc: List[Any]): List[Any] = e match {
-      case Primitive(p) => acc :+ p
-      case Record(g)    => acc :+ g
-      case Elements(e, schema) =>
-        val record = new GenericData.Record(schema)
-        e.flatMap(v => recur(v, acc)).zipWithIndex.foreach {
-          case (r, i) => record.put(i, r)
-        }
-        acc :+ record
-    }
-
-    def toGenRecord: Either[Error, GenericData.Record] = r match {
-      case Right(Elements(elements, schema)) => {
-        val record = new GenericData.Record(schema)
-        val parsed = elements.flatMap(v => recur(v, Nil))
-        parsed.zipWithIndex.foreach { case (r, i) => record.put(i, r) }
-        r.map(_ => record)
-      }
-      case Left(error) => error.asLeft
-      case _ =>
-        Error("you can only convert Elements to a GenericData.Record").asLeft
-    }
-  }
-
 }
