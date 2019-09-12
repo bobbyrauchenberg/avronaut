@@ -11,8 +11,7 @@ object EncoderSyntax {
     def toGenRecord: Either[Error, GenericData.Record] = r match {
       case Right(Elements(elements, schema)) => {
         val record = new GenericData.Record(schema)
-        elements.zipWithIndex.foreach { case (v, i) => parseAST(v, record, i) }
-        record.asRight
+        kestrel(record)(rec => elements.zipWithIndex.foreach { case (v, i) => parseAST(v, rec, i) }).asRight
       }
       case Left(error) => error.asLeft
       case _ =>
@@ -20,18 +19,20 @@ object EncoderSyntax {
     }
   }
 
-  private def parseAST(e: Encoded, acc: GenericData.Record, cnt: Int): GenericData.Record =
+  private def kestrel[T](x: T)(f: T => Unit) = { f(x); x }
+
+  private def parseAST(e: Encoded, genRecord: GenericData.Record, cnt: Int): GenericData.Record = {
+    val updateRecord = kestrel(genRecord) _
     e match {
-      case Primitive(p) =>
-        acc.put(cnt, p)
-        acc
-      case Record(g) =>
-        acc.put(cnt, g)
-        acc
+      case Primitive(v) =>
+        updateRecord(_.put(cnt, v))
+      case Record(v) =>
+        updateRecord(_.put(cnt, v))
       case Elements(e, schema) =>
         val record = new GenericData.Record(schema)
         e.zipWithIndex.foreach { case (enc, i) => parseAST(enc, record, i) }
-        acc.put(cnt, record)
-        acc
+        updateRecord(_.put(cnt, record))
     }
+  }
+
 }
