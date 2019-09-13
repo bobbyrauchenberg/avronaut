@@ -2,7 +2,7 @@ package unit.schema
 
 import common._
 import org.scalacheck.{Arbitrary, Gen}
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
+import com.rauchenberg.avronaut.schema.AvroSchema
 
 class SimpleRecordDefaultsSpec extends UnitSpecBase {
 

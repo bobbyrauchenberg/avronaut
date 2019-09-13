@@ -1,6 +1,6 @@
 package unit.schema
 
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
+import com.rauchenberg.avronaut.schema.AvroSchema
 import common._
 
 class UserDefinedInstanceSpec extends UnitSpecBase {

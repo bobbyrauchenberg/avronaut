@@ -23,4 +23,3 @@ Right({
 })
 ```
 
-For this to compile there needs to be an implicit instance of `com.rauchenberg.cupcatAvro.schema.AvroSchema` in scope for each type contained in the case class. 

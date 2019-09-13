@@ -37,6 +37,10 @@ class SimpleRecordSpec extends UnitSpecBase {
     "be built for a basic bytes record" in new TestContext {
       schemaAsString[SimpleByte] should beRight(simpleSchema("SimpleByte", "bytes"))
     }
+
+    "blah" in new TestContext {
+      schemaAsString[SimpleBool]
+    }
   }
 
   trait TestContext {

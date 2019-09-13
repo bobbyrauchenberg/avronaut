@@ -3,6 +3,12 @@
 
 # Avronaut
 
-Scala Avro library inspired by Avro4s
+Scala Avro library
 
 Currently in active development
+
+## Schema 
+[Schema Docs](schema/README.md)
+
+## Decoder
+[Decoder Docs](decoder/README.md)
