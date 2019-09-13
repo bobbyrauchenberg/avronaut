@@ -1,9 +1,8 @@
 package unit.schema
 
-import common._
-import common.UnitSpecBase
+import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{Name, Namespace, SchemaMetadata}
+import common.{UnitSpecBase, _}
 import SealedTraitEnum._
-import com.rauchenberg.cupcatAvro.common.annotations.SchemaAnnotations.{Name, SchemaMetadata}
 
 class SealedTraitEnumSpec extends UnitSpecBase {
 
@@ -25,6 +24,20 @@ class SealedTraitEnumSpec extends UnitSpecBase {
 
       schemaAsString[AnnotatedEnumCC] should beRight(expected)
     }
+    "handle nested enums" in {
+
+      val expected =
+        """
+          |{"type":"record","name":"MultipleEnumRecord","namespace":"unit.schema.SealedTraitEnum","doc":"",
+          |"fields":[{"name":"s","type":"string"},{"name":"er","type":{"type":"enum","name":"Cup","symbols":["B","C"]}},
+          |{"name":"enumRecord","type":{"type":"record","name":"EnumRecord","doc":"","fields":[{"name":"enumField",
+          |"type":{"type":"enum","name":"Cup","namespace":"unit.schema.SealedTraitEnum.Cup2",
+          |"symbols":["B","C"]}}]}}]}""".stripMargin.replace("\n", "")
+
+      schemaAsString[MultipleEnumRecord] should beRight(expected)
+
+    }
+
   }
 
 }
@@ -41,4 +54,11 @@ private[this] object SealedTraitEnum {
   case object AnnotatedCupcat extends AnnotatedEnum
   case object AnnotatedRendal extends AnnotatedEnum
   case class AnnotatedEnumCC(cupcat: AnnotatedEnum)
+
+  sealed trait Cup
+  case object B extends Cup
+  case object C extends Cup
+
+  case class EnumRecord(@SchemaMetadata(Map(Namespace -> "unit.schema.SealedTraitEnum.Cup2")) enumField: Cup)
+  case class MultipleEnumRecord(s: String, er: Cup, enumRecord: EnumRecord)
 }

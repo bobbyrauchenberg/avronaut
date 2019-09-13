@@ -1,9 +1,9 @@
 package unit.schema
 
 import common._
-import com.rauchenberg.cupcatAvro.common.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}
+import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}
 import common.UnitSpecBase
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
+import com.rauchenberg.avronaut.schema.AvroSchema
 
 class AnnotationsSpec extends UnitSpecBase {
 

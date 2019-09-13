@@ -1,4 +1,4 @@
-import com.rauchenberg.cupcatAvro.schema.AvroSchema
+import com.rauchenberg.avronaut.schema.AvroSchema
 
 package object common {
 

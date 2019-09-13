@@ -2,8 +2,8 @@ package unit.schema
 
 import java.util.UUID
 
-import com.rauchenberg.cupcatAvro.common.safe
-import com.rauchenberg.cupcatAvro.schema.{AvroSchema, SchemaResult}
+import com.rauchenberg.avronaut.common.safe
+import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaResult}
 import org.apache.avro.SchemaBuilder
 
 case class UserDefinedInstance(value: Boolean, u: UUID)

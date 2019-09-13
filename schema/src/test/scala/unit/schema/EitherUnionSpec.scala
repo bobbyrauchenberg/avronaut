@@ -1,6 +1,6 @@
 package unit.schema
 
-import com.rauchenberg.cupcatAvro.common._
+import com.rauchenberg.avronaut.common._
 import cats.syntax.either._
 import common.{UnitSpecBase, _}
 
