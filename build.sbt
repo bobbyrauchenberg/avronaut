@@ -7,7 +7,7 @@ configureDependencies()
 
 lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema, encoder)
 
-lazy val root = Project(id = "cupcat-avro", base = file("."))
+lazy val root = Project(id = "avronaut", base = file("."))
   .aggregate(aggregatedProjects: _*)
 
 lazy val common = newModule("common")
@@ -29,4 +29,4 @@ lazy val encoder = newModule("encoder").dependsOn(
 
 def newModule(name: String): Project =
   Project(id = name, base = file(name))
-    .settings(AvroCupcatBuild.buildSettings)
+    .settings(AvronautBuild.buildSettings)

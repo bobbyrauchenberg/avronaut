@@ -2,10 +2,10 @@ import sbt.Keys._
 import sbt._
 
 
-object AvroCupcatBuild {
+object AvronautBuild {
 
   lazy val buildSettings = Seq(
-    organization := "com.rauchenberg.cupcat",
+    organization := "com.rauchenberg.avronaut",
     scalaVersion := "2.12.9"
   )
 

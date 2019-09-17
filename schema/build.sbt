@@ -1,5 +1,5 @@
 import Dependencies._
 
-AvroCupcatBuild.projectSettings
+AvronautBuild.projectSettings
 
 configureDependencies()
