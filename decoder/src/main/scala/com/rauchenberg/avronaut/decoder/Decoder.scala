@@ -1,5 +1,8 @@
 package com.rauchenberg.avronaut.decoder
 
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.util.UUID
+
 import cats.implicits._
 import com.rauchenberg.avronaut.common.{
   AvroArray,
@@ -13,7 +16,9 @@ import com.rauchenberg.avronaut.common.{
   AvroLong,
   AvroNull,
   AvroString,
+  AvroTimestampMillis,
   AvroType,
+  AvroUUID,
   AvroUnion,
   Error,
   Result
@@ -37,15 +42,15 @@ object Decoder {
   def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
     override def apply(avroType: AvroType): Result[A] =
       ctx.parameters.toList.traverse { param =>
-        def dispatch(at: AvroType) = param.typeclass.apply(at)
+        def runDecoder(at: AvroType) = param.typeclass.apply(at)
 
         val fieldName   = s"${ctx.typeName.full}.${param.label}"
-        val nextRecords = avroType.findAllByKey[A](fieldName)
+        val nextRecords = avroType.findAllByKey[A](fieldName) // should this be at?
 
         val decodeResult = nextRecords.headOption match {
-          case Some(AvroField(_, v)) => dispatch(v)
-          case Some(other)           => dispatch(other)
-          case None                  => Error(s"ran out of records finding: $fieldName").asLeft
+          case Some(AvroField(_, v)) => runDecoder(v)
+          case Some(other)           => runDecoder(other)
+          case None                  => Error(s"ran out of records finding: $fieldName in $avroType").asLeft
         }
         (decodeResult, param.default) match {
           case (Left(_), Some(default)) => default.asRight
@@ -70,16 +75,16 @@ object Decoder {
   }
 
   implicit val stringDecoder = new Decoder[String] {
-    override def apply(at: AvroType): Result[String] =
-      at match {
+    override def apply(avroType: AvroType): Result[String] =
+      avroType match {
         case AvroString(v) => v.asRight
         case other         => Error(s"expected a string, got $other").asLeft
       }
   }
 
   implicit val booleanDecoder = new Decoder[Boolean] {
-    override def apply(at: AvroType): Result[Boolean] =
-      at match {
+    override def apply(avroType: AvroType): Result[Boolean] =
+      avroType match {
         case AvroBoolean(v) => v.asRight
         case _              => Error("expected a bool").asLeft
       }
@@ -87,59 +92,74 @@ object Decoder {
   }
 
   implicit val intDecoder = new Decoder[Int] {
-    override def apply(at: AvroType): Result[Int] =
-      at match {
+    override def apply(avroType: AvroType): Result[Int] =
+      avroType match {
         case AvroInt(v) => v.asRight
-        case _          => Error("expected an int").asLeft
+        case _          => Error(s"int decoder expected an int, got $avroType").asLeft
       }
   }
 
   implicit val longDecoder = new Decoder[Long] {
-    override def apply(at: AvroType): Result[Long] =
-      at match {
+    override def apply(avroType: AvroType): Result[Long] =
+      avroType match {
         case AvroLong(v) => v.asRight
         case _           => Error("expected a long").asLeft
       }
   }
 
   implicit val floatDecoder = new Decoder[Float] {
-    override def apply(at: AvroType): Result[Float] =
-      at match {
+    override def apply(avroType: AvroType): Result[Float] =
+      avroType match {
         case AvroFloat(v) => v.asRight
         case _            => Error("expected a float").asLeft
       }
   }
 
   implicit val doubleDecoder = new Decoder[Double] {
-    override def apply(at: AvroType): Result[Double] =
-      at match {
+    override def apply(avroType: AvroType): Result[Double] =
+      avroType match {
         case AvroDouble(v) => v.asRight
-        case _             => Error("expected a double").asLeft
+        case _             => Error(s"double decoder expected a double, got $avroType").asLeft
       }
   }
 
   implicit val bytesDecoder = new Decoder[Array[Byte]] {
-    override def apply(at: AvroType): Result[Array[Byte]] =
-      at match {
+    override def apply(avroType: AvroType): Result[Array[Byte]] =
+      avroType match {
         case AvroBytes(v) => v.asRight
-        case _            => Error("expected an Array[Byte]").asLeft
+        case _            => Error("bytes decoder expected an Array[Byte]").asLeft
       }
   }
 
   implicit def listDecoder[T](implicit elementDecoder: Decoder[T]) = new Decoder[List[T]] {
-    override def apply(at: AvroType): Result[List[T]] = at match {
+    override def apply(avroType: AvroType): Result[List[T]] = avroType match {
       case AvroArray(_, v) =>
         v.traverse(elementDecoder.apply(_))
-      case other => Error(s"expected to get a list, got $other").asLeft
+      case other => Error(s"list decoder expected to get a list, got $other").asLeft
     }
   }
 
   implicit def seqDecoder[T](implicit elementDecoder: Decoder[T]) = new Decoder[Seq[T]] {
-    override def apply(at: AvroType): Result[Seq[T]] = listDecoder[T].apply(at)
+    override def apply(avroType: AvroType): Result[Seq[T]] = listDecoder[T].apply(avroType)
   }
 
   implicit def vectorDecoder[T](implicit elementDecoder: Decoder[T]) = new Decoder[Vector[T]] {
-    override def apply(at: AvroType): Result[Vector[T]] = listDecoder[T].apply(at).map(_.toVector)
+    override def apply(avroType: AvroType): Result[Vector[T]] = listDecoder[T].apply(avroType).map(_.toVector)
+  }
+
+  implicit def offsetDateTimeDecoder = new Decoder[OffsetDateTime] {
+    override def apply(avroType: AvroType): Result[OffsetDateTime] = avroType match {
+      case AvroTimestampMillis(_, AvroLong(value)) =>
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC).asRight
+      case _ => Error(s"OffsetDateTime decoder expected an AvroLong, got $avroType").asLeft
+    }
+  }
+
+  implicit def uuidDecoder = new Decoder[UUID] {
+    override def apply(avroType: AvroType): Result[UUID] = avroType match {
+      case AvroUUID(_, v) => v.asRight
+      case _              => Error(s"UUID decoder expected an AvroUUID, got $avroType").asLeft
+    }
   }
 
   implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]) = new Decoder[Option[A]] {
@@ -159,6 +179,5 @@ object Decoder {
         case other                                  => runDecoders(other)
       }
     }
-
   }
 }

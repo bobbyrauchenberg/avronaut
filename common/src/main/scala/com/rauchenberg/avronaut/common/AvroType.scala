@@ -1,6 +1,9 @@
 package com.rauchenberg.avronaut.common
 
+import java.util.UUID
+
 import cats.syntax.either._
+
 import scala.collection.mutable.ListBuffer
 
 sealed abstract class AvroType extends Product with Serializable { self =>
@@ -11,12 +14,14 @@ sealed abstract class AvroType extends Product with Serializable { self =>
       case a @ AvroRecord(avfn, values) =>
         if (avfn == key) hh += a
         values.foreach(loop(_))
-      case a @ AvroField(fieldName, _) => if (fieldName == key) hh += a
-      case a @ AvroUnion(fieldName, _) => if (fieldName == key) hh += a
-      case a @ AvroArray(fieldName, _) => if (fieldName == key) hh += a
-      case a @ AvroEnum(fieldName, _)  => if (fieldName == key) hh += a
-      case a @ ParseFail(fieldName, _) => if (fieldName == key) hh += a
-      case _                           => // do nothing
+      case a @ AvroField(fieldName, _)           => if (fieldName == key) hh += a
+      case a @ AvroUnion(fieldName, _)           => if (fieldName == key) hh += a
+      case a @ AvroArray(fieldName, _)           => if (fieldName == key) hh += a
+      case a @ AvroEnum(fieldName, _)            => if (fieldName == key) hh += a
+      case a @ AvroUUID(fieldName, _)            => if (fieldName == key) hh += a
+      case a @ AvroTimestampMillis(fieldName, _) => if (fieldName == key) hh += a
+      case a @ ParseFail(fieldName, _)           => if (fieldName == key) hh += a
+      case _                                     => // do nothing
     }
     loop(this)
     hh.toList
@@ -28,20 +33,22 @@ sealed abstract class AvroType extends Product with Serializable { self =>
   }
 
 }
-final case object AvroNull                                            extends AvroType
-final case class AvroInt(value: Int)                                  extends AvroType
-final case class AvroLong(value: Long)                                extends AvroType
-final case class AvroFloat(value: Float)                              extends AvroType
-final case class AvroDouble(value: Double)                            extends AvroType
-final case class AvroBoolean(value: Boolean)                          extends AvroType
-final case class AvroString(value: String)                            extends AvroType
-final case class AvroRecord(fieldName: String, value: List[AvroType]) extends AvroType
-final case class AvroEnum[T](fieldName: String, value: T)             extends AvroType
-final case class AvroUnion(fieldName: String, value: AvroType)        extends AvroType
-final case class AvroArray(fieldName: String, value: List[AvroType])  extends AvroType
-final case class AvroBytes(value: Array[Byte])                        extends AvroType
-final case class AvroField(fieldName: String, value: AvroType)        extends AvroType
-final case class ParseFail(fieldName: String, msg: String)            extends AvroType
+final case object AvroNull                                               extends AvroType
+final case class AvroInt(value: Int)                                     extends AvroType
+final case class AvroLong(value: Long)                                   extends AvroType
+final case class AvroFloat(value: Float)                                 extends AvroType
+final case class AvroDouble(value: Double)                               extends AvroType
+final case class AvroBoolean(value: Boolean)                             extends AvroType
+final case class AvroString(value: String)                               extends AvroType
+final case class AvroRecord(fieldName: String, value: List[AvroType])    extends AvroType
+final case class AvroEnum[A](fieldName: String, value: A)                extends AvroType
+final case class AvroUnion(fieldName: String, value: AvroType)           extends AvroType
+final case class AvroArray(fieldName: String, value: List[AvroType])     extends AvroType
+final case class AvroBytes(value: Array[Byte])                           extends AvroType
+final case class AvroField(fieldName: String, value: AvroType)           extends AvroType
+final case class AvroUUID(fieldName: String, value: UUID)                extends AvroType
+final case class ParseFail(fieldName: String, msg: String)               extends AvroType
+final case class AvroTimestampMillis(fieldName: String, value: AvroLong) extends AvroType
 
 object AvroType {
   final val True  = AvroBoolean(true)
@@ -55,18 +62,16 @@ object AvroType {
   final def fromDouble(value: Double): AvroType     = AvroDouble(value)
   final def fromBytes(value: Array[Byte]): AvroType = AvroBytes(value)
 
-  final def toAvroString[T](value: T) =
-    if (value.isInstanceOf[String])
-      safe(AvroString(value.toString))
-    else
-      Error(s"tried to create a string from $value").asLeft
-  final def toAvroInt[T](value: T)    = safe(AvroInt(value.toString.toInt))
-  final def toAvroLong[T](value: T)   = safe(AvroLong(value.toString.toLong))
-  final def toAvroFloat[T](value: T)  = safe(AvroFloat(value.toString.toFloat))
-  final def toAvroDouble[T](value: T) = safe(AvroDouble(value.toString.toDouble))
-  final def toAvroBool[T](value: T)   = safe(AvroBoolean(value.toString.toBoolean))
-  final def toAvroBytes[T](value: T)  = safe(AvroBytes(value.toString.getBytes))
-  final def toAvroNull[T](value: T) =
+  final def toAvroString[A](value: A) =
+    if (value.isInstanceOf[String]) safe(AvroString(value.toString))
+    else Error(s"tried to create a string from $value").asLeft
+  final def toAvroInt[A](value: A)    = safe(AvroInt(value.toString.toInt))
+  final def toAvroLong[A](value: A)   = safe(AvroLong(value.toString.toLong))
+  final def toAvroFloat[A](value: A)  = safe(AvroFloat(value.toString.toFloat))
+  final def toAvroDouble[A](value: A) = safe(AvroDouble(value.toString.toDouble))
+  final def toAvroBool[A](value: A)   = safe(AvroBoolean(value.toString.toBoolean))
+  final def toAvroBytes[A](value: A)  = safe(AvroBytes(value.toString.getBytes))
+  final def toAvroNull[A](value: A) =
     if (value == null || value == None) AvroNull.asRight
     else Error(s"$value is not null").asLeft
   final def toAvroRecord(fieldName: String, value: List[AvroType])   = safe(AvroRecord(fieldName, value))
@@ -75,4 +80,8 @@ object AvroType {
   final def toAvroArray(fieldName: String, value: Vector[AvroType])  = safe(AvroArray(fieldName, value.toList))
   final def toAvroUnion(fieldName: String, value: AvroType)          = safe(AvroUnion(fieldName, value))
 
+  final def toAvroUUID[A](fieldName: String, value: A) =
+    safe(java.util.UUID.fromString(value.toString)).map(AvroUUID(fieldName, _))
+
+  final def toAvroTimestamp[A](fieldName: String, value: A) = toAvroLong(value).map(AvroTimestampMillis(fieldName, _))
 }

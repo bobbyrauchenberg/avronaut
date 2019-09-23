@@ -46,7 +46,13 @@ object Parser {
                   .fold(_ => ParseFail(fieldName, s"non-list when parsing array for $errorValues").asRight, _.asRight)
               case Schema.Type.ENUM =>
                 AvroEnum(fieldName, value).asRight
-              case _ => avroToAST(field.schema.getType, value).map(AvroField(fieldName, _))
+              case _ =>
+                Option(field.schema.getLogicalType).fold[Result[AvroType]] {
+                  avroToAST(field.schema.getType, value).map(AvroField(fieldName, _))
+                } { lt =>
+                  logicalAvroToAST(lt.getName, fieldName, value)
+                }
+
             })
         }
         .sequence
@@ -64,7 +70,14 @@ object Parser {
         dispatch(parseRecord(schema.getElementType, fieldName, _))
       case Schema.Type.UNION =>
         dispatch(parseUnion(genRec, fieldName, schema.getElementType, _).flatMap(toAvroUnion(fieldName, _)))
-      case _ => dispatch(avroToAST(schema.getElementType.getType, _))
+      case _ =>
+        dispatch { value =>
+          Option(schema.getLogicalType).fold {
+            avroToAST(schema.getElementType.getType, value)
+          } { lt =>
+            logicalAvroToAST(lt.getName, fieldName, value)
+          }
+        }
     }
 
   }
@@ -107,7 +120,12 @@ object Parser {
           case Schema.Type.ARRAY =>
             if (value.isInstanceOf[SeqWrapper[_]]) parseArray(genericRecord, fieldName, h, value)
             else ParseFail(fieldName, failureMsg).asRight
-          case _ => avroToAST(schemaType, value)
+          case _ =>
+            Option(schema.getLogicalType).fold[Result[AvroType]] {
+              avroToAST(schemaType, value)
+            } { lt =>
+              logicalAvroToAST(lt.getName, fieldName, value)
+            }
         }) match {
           case Right(ParseFail(_, _)) => loop(t)
           case Right(v)               => v.asRight
@@ -129,6 +147,14 @@ object Parser {
     case Schema.Type.NULL    => toAvroNull(value)
     case _                   => Error("boom").asLeft
   }
+
+  def logicalAvroToAST[A](logicalTypeName: String, fieldName: String, value: A): Result[AvroType] =
+    logicalTypeName match {
+      case "uuid" =>
+        toAvroUUID(fieldName, value)
+      case "timestamp-millis" => toAvroTimestamp(fieldName, value)
+      case _                  => Error("logical type not supported").asLeft
+    }
 
   private def indexedFieldsFor(s: Schema) = s.getFields.asScala.toVector.zipWithIndex
 

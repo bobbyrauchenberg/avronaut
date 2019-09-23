@@ -1,6 +1,7 @@
 package com.rauchenberg.avronaut.schema
 
 import java.time.OffsetDateTime
+import java.util.UUID
 
 import cats.implicits._
 
@@ -181,6 +182,10 @@ object AvroSchema {
           }
           .flatten
     }
+
+  implicit val uuidSchema = new Typeclass[UUID] {
+    override def schema: SchemaResult = safe(LogicalTypes.uuid().addToSchema(SchemaBuilder.builder.stringType))
+  }
 
   implicit val dateTimeSchema = new AvroSchema[OffsetDateTime] {
     override def schema: SchemaResult = safe(LogicalTypes.timestampMillis().addToSchema(SchemaBuilder.builder.longType))
