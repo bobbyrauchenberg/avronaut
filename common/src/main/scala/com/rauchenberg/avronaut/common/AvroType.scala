@@ -64,7 +64,7 @@ object AvroType {
 
   final def toAvroString[A](value: A) =
     if (value.isInstanceOf[String]) safe(AvroString(value.toString))
-    else Error(s"tried to create a string from $value").asLeft
+    else Error(s"tried to create a string from '$value'").asLeft
   final def toAvroInt[A](value: A)    = safe(AvroInt(value.toString.toInt))
   final def toAvroLong[A](value: A)   = safe(AvroLong(value.toString.toLong))
   final def toAvroFloat[A](value: A)  = safe(AvroFloat(value.toString.toFloat))

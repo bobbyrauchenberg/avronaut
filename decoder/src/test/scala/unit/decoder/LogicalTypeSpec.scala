@@ -1,6 +1,6 @@
 package unit.decoder
 
-import java.time.OffsetDateTime
+import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
@@ -42,6 +42,21 @@ class LogicalTypeSpec extends UnitSpecBase {
         Parser.decode[ReaderRecordWithDateTime](readerSchema, record) should beRight(expected)
       }
     }
+
+    "decode Instant" in {
+      forAll { writerRecord: WriterRecordWithInstant =>
+        val schema       = AvroSchema[WriterRecordWithInstant].schema.value
+        val readerSchema = AvroSchema[ReaderRecordWithInstant].schema.value
+
+        val record = new GenericData.Record(schema)
+        record.put(0, writerRecord.writerField1)
+        record.put(1, writerRecord.writerField2)
+        record.put(2, writerRecord.field.toEpochMilli)
+
+        val expected = ReaderRecordWithInstant(writerRecord.field)
+        Parser.decode[ReaderRecordWithInstant](readerSchema, record) should beRight(expected)
+      }
+    }
   }
 
   case class WriterRecordWithUUID(writerField1: Int, field: UUID, writerField2: String)
@@ -49,6 +64,9 @@ class LogicalTypeSpec extends UnitSpecBase {
 
   case class WriterRecordWithDateTime(writerField1: Int, writerField2: String, field: OffsetDateTime)
   case class ReaderRecordWithDateTime(field: OffsetDateTime)
+
+  case class WriterRecordWithInstant(writerField1: Int, writerField2: String, field: Instant)
+  case class ReaderRecordWithInstant(field: Instant)
 
   case class RecordWithDateTime(field: OffsetDateTime)
 

@@ -1,6 +1,7 @@
 package unit
 
-import java.time.{Duration, OffsetDateTime, ZoneOffset}
+import java.time.temporal.ChronoUnit
+import java.time.{Duration, Instant, OffsetDateTime, ZoneOffset}
 
 import com.fortysevendeg.scalacheck.datetime.jdk8.ArbitraryJdk8
 import com.fortysevendeg.scalacheck.datetime.jdk8.GenJdk8._
@@ -16,4 +17,7 @@ object TimeArbitraries {
 
   implicit val arbDuration: Arbitrary[Duration] =
     Arbitrary(ArbitraryJdk8.genDuration)
+
+  implicit val arbPositiveInstant: Arbitrary[Instant] = Arbitrary(
+    genZonedDateTime.map(_.truncatedTo(ChronoUnit.MILLIS).toInstant).suchThat(_.toEpochMilli > 0))
 }

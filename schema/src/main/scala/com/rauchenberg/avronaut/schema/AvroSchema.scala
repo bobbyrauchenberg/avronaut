@@ -1,6 +1,6 @@
 package com.rauchenberg.avronaut.schema
 
-import java.time.OffsetDateTime
+import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
 
 import cats.implicits._
@@ -188,6 +188,10 @@ object AvroSchema {
   }
 
   implicit val dateTimeSchema = new AvroSchema[OffsetDateTime] {
+    override def schema: SchemaResult = safe(LogicalTypes.timestampMillis().addToSchema(SchemaBuilder.builder.longType))
+  }
+
+  implicit val instantSchema = new AvroSchema[Instant] {
     override def schema: SchemaResult = safe(LogicalTypes.timestampMillis().addToSchema(SchemaBuilder.builder.longType))
   }
 

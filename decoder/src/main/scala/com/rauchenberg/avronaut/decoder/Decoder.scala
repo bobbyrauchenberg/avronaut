@@ -5,6 +5,7 @@ import java.util.UUID
 
 import cats.implicits._
 import com.rauchenberg.avronaut.common.{
+  safe,
   AvroArray,
   AvroBoolean,
   AvroBytes,
@@ -23,6 +24,7 @@ import com.rauchenberg.avronaut.common.{
   Error,
   Result
 }
+import com.rauchenberg.avronaut.decoder.helpers.ReflectionHelpers
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 
 trait Decoder[A] {
@@ -44,13 +46,16 @@ object Decoder {
       ctx.parameters.toList.traverse { param =>
         def runDecoder(at: AvroType) = param.typeclass.apply(at)
 
+        def errorFor(fieldName: String) =
+          Error(s"ran out of records traversing ${ctx.typeName.full}, searching for $fieldName in $avroType").asLeft
+
         val fieldName   = s"${ctx.typeName.full}.${param.label}"
         val nextRecords = avroType.findAllByKey[A](fieldName) // should this be at?
 
         val decodeResult = nextRecords.headOption match {
           case Some(AvroField(_, v)) => runDecoder(v)
           case Some(other)           => runDecoder(other)
-          case None                  => Error(s"ran out of records finding: $fieldName in $avroType").asLeft
+          case None                  => errorFor(fieldName)
         }
         (decodeResult, param.default) match {
           case (Left(_), Some(default)) => default.asRight
@@ -63,12 +68,9 @@ object Decoder {
     override def apply(avroType: AvroType): Result[T] =
       avroType match {
         case AvroEnum(_, value) =>
-          val classNameToFind = value.getClass.getSimpleName
-          val toFind =
-            (if (classNameToFind.endsWith("$")) classNameToFind.dropRight(1) else classNameToFind).toLowerCase
-          val find = ctx.subtypes.find(_.typeName.short.toLowerCase == toFind)
-          find
-            .map(_ => value.asInstanceOf[T].asRight[Error])
+          ctx.subtypes
+            .find(_.typeName.short == value)
+            .map(st => safe(ReflectionHelpers.toCaseObject[T](st.typeName.full)))
             .getOrElse(Error(s"couldn't find enum value $value in $avroType").asLeft[T])
         case _ => Error("not an enum").asLeft
       }
@@ -150,8 +152,15 @@ object Decoder {
   implicit def offsetDateTimeDecoder = new Decoder[OffsetDateTime] {
     override def apply(avroType: AvroType): Result[OffsetDateTime] = avroType match {
       case AvroTimestampMillis(_, AvroLong(value)) =>
-        OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC).asRight
+        safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
       case _ => Error(s"OffsetDateTime decoder expected an AvroLong, got $avroType").asLeft
+    }
+  }
+
+  implicit def instantDecoder = new Decoder[Instant] {
+    override def apply(avroType: AvroType): Result[Instant] = avroType match {
+      case AvroTimestampMillis(_, AvroLong(value)) => safe(Instant.ofEpochMilli(value))
+      case _                                       => Error(s"OffsetDateTime decoder expected an AvroLong, got $avroType").asLeft
     }
   }
 
