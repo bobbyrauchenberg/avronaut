@@ -15,6 +15,7 @@ import com.rauchenberg.avronaut.common.{
   AvroFloat,
   AvroInt,
   AvroLong,
+  AvroMap,
   AvroNull,
   AvroString,
   AvroTimestampMillis,
@@ -56,6 +57,7 @@ object Decoder {
           case Some(AvroField(_, v)) => runDecoder(v)
           case Some(other)           => runDecoder(other)
           case None                  => errorFor(fieldName)
+          case _                     => Error("couldn't find a valid was to run the decoder").asLeft
         }
         (decodeResult, param.default) match {
           case (Left(_), Some(default)) => default.asRight
@@ -64,14 +66,14 @@ object Decoder {
       }.map(ctx.rawConstruct(_))
   }
 
-  def dispatch[T](ctx: SealedTrait[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
-    override def apply(avroType: AvroType): Result[T] =
+  def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
+    override def apply(avroType: AvroType): Result[A] =
       avroType match {
         case AvroEnum(_, value) =>
           ctx.subtypes
             .find(_.typeName.short == value)
-            .map(st => safe(ReflectionHelpers.toCaseObject[T](st.typeName.full)))
-            .getOrElse(Error(s"couldn't find enum value $value in $avroType").asLeft[T])
+            .map(st => safe(ReflectionHelpers.toCaseObject[A](st.typeName.full)))
+            .getOrElse(Error(s"couldn't find enum value $value in $avroType").asLeft[A])
         case _ => Error("not an enum").asLeft
       }
   }
@@ -133,20 +135,31 @@ object Decoder {
       }
   }
 
-  implicit def listDecoder[T](implicit elementDecoder: Decoder[T]) = new Decoder[List[T]] {
-    override def apply(avroType: AvroType): Result[List[T]] = avroType match {
+  implicit def listDecoder[A](implicit elementDecoder: Decoder[A]) = new Decoder[List[A]] {
+    override def apply(avroType: AvroType): Result[List[A]] = avroType match {
       case AvroArray(_, v) =>
         v.traverse(elementDecoder.apply(_))
       case other => Error(s"list decoder expected to get a list, got $other").asLeft
     }
   }
 
-  implicit def seqDecoder[T](implicit elementDecoder: Decoder[T]) = new Decoder[Seq[T]] {
-    override def apply(avroType: AvroType): Result[Seq[T]] = listDecoder[T].apply(avroType)
+  implicit def seqDecoder[A](implicit elementDecoder: Decoder[A]) = new Decoder[Seq[A]] {
+    override def apply(avroType: AvroType): Result[Seq[A]] = listDecoder[A].apply(avroType)
   }
 
-  implicit def vectorDecoder[T](implicit elementDecoder: Decoder[T]) = new Decoder[Vector[T]] {
-    override def apply(avroType: AvroType): Result[Vector[T]] = listDecoder[T].apply(avroType).map(_.toVector)
+  implicit def vectorDecoder[A](implicit elementDecoder: Decoder[A]) = new Decoder[Vector[A]] {
+    override def apply(avroType: AvroType): Result[Vector[A]] = listDecoder[A].apply(avroType).map(_.toVector)
+  }
+
+  implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]) = new Typeclass[Map[String, A]] {
+
+    override def apply(avroType: AvroType): Result[Map[String, A]] = avroType match {
+      case AvroMap(_, l) =>
+        l.traverse { entry =>
+          elementDecoder(entry.value).map(entry.key -> _)
+        }.map(_.toMap[String, A])
+      case _ => Error(s"expected an AvroMap, got $avroType").asLeft
+    }
   }
 
   implicit def offsetDateTimeDecoder = new Decoder[OffsetDateTime] {

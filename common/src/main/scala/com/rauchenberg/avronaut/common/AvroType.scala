@@ -20,6 +20,7 @@ sealed abstract class AvroType extends Product with Serializable { self =>
       case a @ AvroEnum(fieldName, _)            => if (fieldName == key) hh += a
       case a @ AvroUUID(fieldName, _)            => if (fieldName == key) hh += a
       case a @ AvroTimestampMillis(fieldName, _) => if (fieldName == key) hh += a
+      case a @ AvroMap(fieldName, _)             => if (fieldName == key) hh += a
       case a @ ParseFail(fieldName, _)           => if (fieldName == key) hh += a
       case _                                     => // do nothing
     }
@@ -44,6 +45,8 @@ final case class AvroRecord(fieldName: String, value: List[AvroType])    extends
 final case class AvroEnum[A](fieldName: String, value: A)                extends AvroType
 final case class AvroUnion(fieldName: String, value: AvroType)           extends AvroType
 final case class AvroArray(fieldName: String, value: List[AvroType])     extends AvroType
+final case class AvroMapEntry(key: String, value: AvroType)              extends AvroType
+final case class AvroMap(fieldName: String, value: List[AvroMapEntry])   extends AvroType
 final case class AvroBytes(value: Array[Byte])                           extends AvroType
 final case class AvroField(fieldName: String, value: AvroType)           extends AvroType
 final case class AvroUUID(fieldName: String, value: UUID)                extends AvroType
