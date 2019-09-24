@@ -82,6 +82,7 @@ object AvroType {
   final def toAvroArray(fieldName: String, value: List[AvroType])    = safe(AvroArray(fieldName, value))
   final def toAvroArray(fieldName: String, value: Vector[AvroType])  = safe(AvroArray(fieldName, value.toList))
   final def toAvroUnion(fieldName: String, value: AvroType)          = safe(AvroUnion(fieldName, value))
+  final def toAvroEnum[A](fieldName: String, value: A)               = safe(AvroEnum(fieldName, value))
 
   final def toAvroUUID[A](fieldName: String, value: A) =
     safe(java.util.UUID.fromString(value.toString)).map(AvroUUID(fieldName, _))

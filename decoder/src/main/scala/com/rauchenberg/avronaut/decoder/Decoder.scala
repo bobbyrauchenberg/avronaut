@@ -23,6 +23,7 @@ import com.rauchenberg.avronaut.common.{
   AvroUUID,
   AvroUnion,
   Error,
+  ParseFail,
   Result
 }
 import com.rauchenberg.avronaut.decoder.helpers.ReflectionHelpers
@@ -54,6 +55,7 @@ object Decoder {
         val nextRecords = avroType.findAllByKey[A](fieldName) // should this be at?
 
         val decodeResult = nextRecords.headOption match {
+          case Some(ParseFail(_, _)) => Error("got a ParseFail, will try for a default").asLeft
           case Some(AvroField(_, v)) => runDecoder(v)
           case Some(other)           => runDecoder(other)
           case None                  => errorFor(fieldName)
@@ -71,9 +73,9 @@ object Decoder {
       avroType match {
         case AvroEnum(_, value) =>
           ctx.subtypes
-            .find(_.typeName.short == value)
+            .find(_.typeName.short == value.toString)
             .map(st => safe(ReflectionHelpers.toCaseObject[A](st.typeName.full)))
-            .getOrElse(Error(s"couldn't find enum value $value in $avroType").asLeft[A])
+            .getOrElse(Error(s"wasn't able to find or to instantiate enum value $value in $avroType").asLeft[A])
         case _ => Error("not an enum").asLeft
       }
   }

@@ -150,6 +150,27 @@ class EitherUnionSpec extends UnitSpecBase {
       Parser.decode[UnionWithDefaultCaseClass](outerSchema, recordBuilder.build()) should beRight(expected)
     }
 
+    "decode a union of null and enum" in {
+      import EitherUnionSpec._
+      forAll { record: WriterRecordWithEnum =>
+        val writerSchema = AvroSchema[WriterRecordWithEnum].schema.value
+        val readerSchema = AvroSchema[ReaderRecordWithEnum].schema.value
+
+        val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema))
+
+        record.field1 match {
+          case Left(enum)     => builder.set("field1", enum.toString)
+          case Right(boolean) => builder.set("field1", boolean)
+        }
+        builder.set("writerField", record.writerField)
+        builder.set("field2", record.field2)
+
+        val expected = ReaderRecordWithEnum(record.field2, record.field1)
+
+        Parser.decode[ReaderRecordWithEnum](readerSchema, builder.build()) should beRight(expected)
+      }
+    }
+
   }
 
   case class Union(field: Either[Boolean, Int])
@@ -164,4 +185,14 @@ class EitherUnionSpec extends UnitSpecBase {
   case class UnionWithOptionalEither(field: Option[Either[Cupcat, Rendal]])
   case class UnionWithEitherOfOption(field: Either[Option[Cupcat], Either[Rendal, String]])
   case class UnionWithEitherOfList(field: Either[Option[List[Cupcat]], Either[Rendal, String]])
+}
+
+private[this] object EitherUnionSpec {
+
+  sealed trait A
+  case object B extends A
+  case object C extends A
+
+  case class WriterRecordWithEnum(field1: Either[A, Boolean], writerField: String, field2: Boolean)
+  case class ReaderRecordWithEnum(field2: Boolean, field1: Either[A, Boolean])
 }

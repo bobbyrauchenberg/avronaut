@@ -10,6 +10,8 @@ import scala.collection.JavaConverters._
 
 class ArraySpec extends UnitSpecBase {
 
+  import ArraySpec._
+
   "decoder" should {
     "decode a record with a list" in {
       forAll { record: RecordWithList =>
@@ -174,24 +176,84 @@ class ArraySpec extends UnitSpecBase {
       }
     }
 
+    "decode a list of map" in {
+      forAll { record: WriterRecordWithListOfMap =>
+        val writerSchema = AvroSchema[WriterRecordWithListOfMap].schema.value
+        val readerSchema = AvroSchema[ReaderRecordWithListOfMap].schema.value
+
+        val javaList = record.field1.map(_.asJava).asJava
+
+        val genericRecord = new GenericData.Record(writerSchema)
+        val recordBuilder = new GenericRecordBuilder(genericRecord)
+
+        recordBuilder.set("writerField", record.writerField)
+        recordBuilder.set("field1", javaList)
+
+        val expected = ReaderRecordWithListOfMap(record.field1)
+        Parser.decode[ReaderRecordWithListOfMap](readerSchema, recordBuilder.build()) should beRight(expected)
+      }
+    }
+
+    "decode a list of enum" in {
+      forAll { record: WriterRecordWithListOfEnum =>
+        val writerSchema = AvroSchema[WriterRecordWithListOfEnum].schema.value
+        val readerSchema = AvroSchema[ReaderRecordWithListOfEnum].schema.value
+
+        val javaList = record.field1.map(_.toString).asJava
+
+        val genericRecord = new GenericData.Record(writerSchema)
+        val recordBuilder = new GenericRecordBuilder(genericRecord)
+
+        recordBuilder.set("writerField", record.writerField)
+        recordBuilder.set("field1", javaList)
+
+        val expected = ReaderRecordWithListOfEnum(record.field1)
+        Parser.decode[ReaderRecordWithListOfEnum](readerSchema, recordBuilder.build()) should beRight(expected)
+      }
+    }
+
   }
 
   case class RecordWithList(field: List[String])
+
   case class RecordWithSeq(field: Seq[String])
+
   case class RecordWithVector(field: Vector[String])
+
   case class RecordWithListDefault(field: List[String] = List("cup", "cat"))
+
   case class RecordWithSeqDefault(field: Seq[String] = Seq("cup", "cat"))
+
   case class RecordWithVectorDefault(field: Vector[String] = Vector("cup", "cat"))
 
   case class InnerNested(field1: String, field2: Int)
+
   case class Nested(field1: String, field2: InnerNested, field3: Int)
 
   case class RecordWithListOfSimpleCaseClass(field: List[InnerNested])
 
   case class RecordWithListOfCaseClass(field: List[Nested])
+
   case class RecordWithSeqOfCaseClass(field: Seq[Nested])
+
   case class RecordWithVectorOfCaseClass(field: Vector[Nested])
 
   case class RecordWithListOfOptionalCaseClass(field: List[Option[Nested]])
+
+  case class WriterRecordWithListOfMap(writerField: String, field1: List[Map[String, Boolean]])
+
+  case class ReaderRecordWithListOfMap(field1: List[Map[String, Boolean]])
+
+}
+
+private[this] object ArraySpec {
+
+  sealed trait A
+  case object B extends A
+  case object C extends A
+
+  case class WriterRecordWithListOfEnum(field1: List[A], writerField: Int)
+
+  case class ReaderRecordWithListOfEnum(field1: List[A])
 
 }
