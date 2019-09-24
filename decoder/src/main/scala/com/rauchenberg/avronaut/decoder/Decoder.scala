@@ -28,6 +28,7 @@ import com.rauchenberg.avronaut.common.{
 }
 import com.rauchenberg.avronaut.decoder.helpers.ReflectionHelpers
 import magnolia.{CaseClass, Magnolia, SealedTrait}
+import shapeless.{:+:, CNil, Coproduct, Inr}
 
 trait Decoder[A] {
 
@@ -59,7 +60,7 @@ object Decoder {
           case Some(AvroField(_, v)) => runDecoder(v)
           case Some(other)           => runDecoder(other)
           case None                  => errorFor(fieldName)
-          case _                     => Error("couldn't find a valid was to run the decoder").asLeft
+          case _                     => Error("couldn't find an AvroType to decode, will try for a default").asLeft
         }
         (decodeResult, param.default) match {
           case (Left(_), Some(default)) => default.asRight
@@ -180,9 +181,9 @@ object Decoder {
   }
 
   implicit def uuidDecoder = new Decoder[UUID] {
-    override def apply(avroType: AvroType): Result[UUID] = avroType match {
+    override def apply(at: AvroType): Result[UUID] = at match {
       case AvroUUID(_, v) => v.asRight
-      case _              => Error(s"UUID decoder expected an AvroUUID, got $avroType").asLeft
+      case _              => Error(s"UUID decoder expected an AvroUUID, got $at").asLeft
     }
   }
 
@@ -204,4 +205,20 @@ object Decoder {
       }
     }
   }
+
+  implicit object CNilDecoderValue extends Decoder[CNil] {
+    override def apply(at: AvroType): Result[CNil] = Error("decoded CNil").asLeft
+  }
+
+  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H], tDecoder: Decoder[T]) =
+    new Decoder[H :+: T] {
+      override def apply(at: AvroType): Result[H :+: T] = at match {
+        case AvroUnion(_, value) =>
+          hDecoder(value) match {
+            case r @ Right(_) => r.map(h => Coproduct[H :+: T](h))
+            case _            => tDecoder(at).map(Inr(_))
+          }
+        case _ => tDecoder(at).map(Inr(_))
+      }
+    }
 }

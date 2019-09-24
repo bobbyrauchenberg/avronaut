@@ -64,12 +64,12 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "decode a union with a list of records" in {
-      forAll { record: Option[List[String]] =>
+      forAll { writerRecord: Option[List[String]] =>
         val schema = AvroSchema[RecordWithOptionalListCaseClass].schema.value
 
         val builder = new GenericRecordBuilder(new GenericData.Record(schema))
 
-        val r = RecordWithOptionalListCaseClass(record)
+        val r = RecordWithOptionalListCaseClass(writerRecord)
 
         r.field match {
           case Some(list) => builder.set("field", list.asJava)
@@ -83,20 +83,20 @@ class OptionUnionSpec extends UnitSpecBase {
     import OptionUnionSpec._
 
     "decode a union of null and enum" in {
-      forAll { record: WriterRecordWithEnum =>
+      forAll { writerRecord: WriterRecordWithEnum =>
         val writerSchema = AvroSchema[WriterRecordWithEnum].schema.value
         val readerSchema = AvroSchema[ReaderRecordWithEnum].schema.value
 
         val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema))
 
-        record.field1 match {
+        writerRecord.field1 match {
           case None       => builder.set("field1", null)
           case Some(enum) => builder.set("field1", enum.toString)
         }
-        builder.set("writerField", record.writerField)
-        builder.set("field2", record.field2)
+        builder.set("writerField", writerRecord.writerField)
+        builder.set("field2", writerRecord.field2)
 
-        val expected = ReaderRecordWithEnum(record.field2, record.field1)
+        val expected = ReaderRecordWithEnum(writerRecord.field2, writerRecord.field1)
 
         Parser.decode[ReaderRecordWithEnum](readerSchema, builder.build()) should beRight(expected)
       }

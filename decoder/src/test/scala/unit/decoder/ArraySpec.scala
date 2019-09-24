@@ -177,37 +177,37 @@ class ArraySpec extends UnitSpecBase {
     }
 
     "decode a list of map" in {
-      forAll { record: WriterRecordWithListOfMap =>
+      forAll { writerRecord: WriterRecordWithListOfMap =>
         val writerSchema = AvroSchema[WriterRecordWithListOfMap].schema.value
         val readerSchema = AvroSchema[ReaderRecordWithListOfMap].schema.value
 
-        val javaList = record.field1.map(_.asJava).asJava
+        val javaList = writerRecord.field1.map(_.asJava).asJava
 
-        val genericRecord = new GenericData.Record(writerSchema)
-        val recordBuilder = new GenericRecordBuilder(genericRecord)
+        val record        = new GenericData.Record(writerSchema)
+        val recordBuilder = new GenericRecordBuilder(record)
 
-        recordBuilder.set("writerField", record.writerField)
+        recordBuilder.set("writerField", writerRecord.writerField)
         recordBuilder.set("field1", javaList)
 
-        val expected = ReaderRecordWithListOfMap(record.field1)
+        val expected = ReaderRecordWithListOfMap(writerRecord.field1)
         Parser.decode[ReaderRecordWithListOfMap](readerSchema, recordBuilder.build()) should beRight(expected)
       }
     }
 
     "decode a list of enum" in {
-      forAll { record: WriterRecordWithListOfEnum =>
+      forAll { writerRecord: WriterRecordWithListOfEnum =>
         val writerSchema = AvroSchema[WriterRecordWithListOfEnum].schema.value
         val readerSchema = AvroSchema[ReaderRecordWithListOfEnum].schema.value
 
-        val javaList = record.field1.map(_.toString).asJava
+        val javaList = writerRecord.field1.map(_.toString).asJava
 
-        val genericRecord = new GenericData.Record(writerSchema)
-        val recordBuilder = new GenericRecordBuilder(genericRecord)
+        val record        = new GenericData.Record(writerSchema)
+        val recordBuilder = new GenericRecordBuilder(record)
 
-        recordBuilder.set("writerField", record.writerField)
+        recordBuilder.set("writerField", writerRecord.writerField)
         recordBuilder.set("field1", javaList)
 
-        val expected = ReaderRecordWithListOfEnum(record.field1)
+        val expected = ReaderRecordWithListOfEnum(writerRecord.field1)
         Parser.decode[ReaderRecordWithListOfEnum](readerSchema, recordBuilder.build()) should beRight(expected)
       }
     }
