@@ -12,16 +12,14 @@ class MapSpec extends UnitSpecBase {
     "decode a record with a map" in {
 
       forAll { record: RecordWithMap =>
-        whenever(!record.field.isEmpty) {
-          val schema = AvroSchema[RecordWithMap].schema
+        val schema = AvroSchema[RecordWithMap].schema
 
-          val genericRecord = new GenericData.Record(schema.value)
+        val genericRecord = new GenericData.Record(schema.value)
 
-          val recordBuilder = new GenericRecordBuilder(genericRecord)
-          recordBuilder.set("field", record.field.asJava)
+        val recordBuilder = new GenericRecordBuilder(genericRecord)
+        recordBuilder.set("field", record.field.asJava)
 
-          Parser.decode[RecordWithMap](schema.value, recordBuilder.build()) should beRight(record)
-        }
+        Parser.decode[RecordWithMap](schema.value, recordBuilder.build()) should beRight(record)
       }
     }
   }
