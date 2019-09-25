@@ -1,6 +1,5 @@
 package com.rauchenberg.avronaut.common
 
-import java.util.UUID
 import cats.syntax.either._
 
 import scala.collection.mutable.ListBuffer
@@ -48,7 +47,7 @@ final case class AvroMapEntry(key: String, value: AvroType)              extends
 final case class AvroMap(fieldName: String, value: List[AvroMapEntry])   extends AvroType
 final case class AvroBytes(value: Array[Byte])                           extends AvroType
 final case class AvroField(fieldName: String, value: AvroType)           extends AvroType
-final case class AvroUUID(fieldName: String, value: UUID)                extends AvroType
+final case class AvroUUID(fieldName: String, value: AvroType)            extends AvroType
 final case class ParseFail(fieldName: String, msg: String)               extends AvroType
 final case class AvroTimestampMillis(fieldName: String, value: AvroType) extends AvroType
 
@@ -100,8 +99,7 @@ object AvroType {
   final def toAvroUnion(fieldName: String, value: AvroType)          = safe(AvroUnion(fieldName, value))
   final def toAvroEnum[A](fieldName: String, value: A)               = safe(AvroEnum(fieldName, value))
 
-  final def toAvroUUID[A](fieldName: String, value: A) =
-    safe(java.util.UUID.fromString(value.toString)).map(AvroUUID(fieldName, _))
+  final def toAvroUUID[A](fieldName: String, value: A) = toAvroString(value).map(AvroUUID(fieldName, _))
 
   final def toAvroTimestamp[A](fieldName: String, value: A) = toAvroLong(value).map(AvroTimestampMillis(fieldName, _))
 }

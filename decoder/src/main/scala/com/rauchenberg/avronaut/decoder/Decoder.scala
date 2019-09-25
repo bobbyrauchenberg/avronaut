@@ -182,8 +182,8 @@ object Decoder {
 
   implicit def uuidDecoder = new Decoder[UUID] {
     override def apply(at: AvroType): Result[UUID] = at match {
-      case AvroUUID(_, v) => v.asRight
-      case _              => Error(s"UUID decoder expected an AvroUUID, got $at").asLeft
+      case AvroUUID(_, AvroString(value)) => safe(java.util.UUID.fromString(value))
+      case _                              => Error(s"UUID decoder expected an AvroUUID, got $at").asLeft
     }
   }
 

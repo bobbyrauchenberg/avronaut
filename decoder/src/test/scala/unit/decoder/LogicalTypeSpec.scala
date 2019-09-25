@@ -20,7 +20,7 @@ class LogicalTypeSpec extends UnitSpecBase {
 
         val record = new GenericData.Record(schema)
         record.put(0, writerRecord.writerField1)
-        record.put(1, writerRecord.field)
+        record.put(1, writerRecord.field.toString)
         record.put(2, writerRecord.writerField2)
 
         val expected = ReaderRecordWithUUID(writerRecord.field)
