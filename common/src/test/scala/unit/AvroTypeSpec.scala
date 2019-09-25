@@ -13,6 +13,7 @@ class AvroTypeSpec extends UnitSpecBase {
            1,
            1.0f,
            1.0d,
+           "cupcat".getBytes,
            NotAString("cupcat"),
            List("cupcat"),
            Option("cupcat"),
@@ -24,6 +25,13 @@ class AvroTypeSpec extends UnitSpecBase {
       forAll { a: Any =>
         whenever(!a.isInstanceOf[String]) {
           AvroType.toAvroString(a) should beLeft(Error(s"'$a' is not a String"))
+        }
+      }
+    }
+    "check it gets bytes" in {
+      forAll { a: Any =>
+        whenever(!a.isInstanceOf[Array[Byte]]) {
+          AvroType.toAvroBytes(a) should beLeft(Error(s"'$a' is not Bytes"))
         }
       }
     }

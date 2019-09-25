@@ -11,6 +11,6 @@ trait UnitSpecBase
     with EitherMatchers
     with EitherValues {
 
-  implicit val propertyCheckConf = PropertyCheckConfiguration(minSuccessful = 100, sizeRange = 30)
+  implicit val propertyCheckConf = PropertyCheckConfiguration(minSuccessful = 500, sizeRange = 30)
 
 }

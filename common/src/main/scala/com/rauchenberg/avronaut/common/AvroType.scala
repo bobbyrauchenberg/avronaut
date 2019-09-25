@@ -84,7 +84,10 @@ object AvroType {
     case _                    => Error(s"'$value' is not a Boolean").asLeft
   }
 
-  final def toAvroBytes[A](value: A) = safe(AvroBytes(value.toString.getBytes))
+  final def toAvroBytes[A](value: A) = value match {
+    case v: Array[Byte] => safe(AvroBytes(v))
+    case _              => Error(s"'$value' is not Bytes").asLeft
+  }
 
   final def toAvroNull[A](value: A) =
     if (value == null) AvroNull.asRight
