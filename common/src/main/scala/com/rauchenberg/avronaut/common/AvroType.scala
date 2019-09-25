@@ -1,7 +1,6 @@
 package com.rauchenberg.avronaut.common
 
 import java.util.UUID
-
 import cats.syntax.either._
 
 import scala.collection.mutable.ListBuffer
@@ -51,32 +50,46 @@ final case class AvroBytes(value: Array[Byte])                           extends
 final case class AvroField(fieldName: String, value: AvroType)           extends AvroType
 final case class AvroUUID(fieldName: String, value: UUID)                extends AvroType
 final case class ParseFail(fieldName: String, msg: String)               extends AvroType
-final case class AvroTimestampMillis(fieldName: String, value: AvroLong) extends AvroType
+final case class AvroTimestampMillis(fieldName: String, value: AvroType) extends AvroType
 
 object AvroType {
-  final val True  = AvroBoolean(true)
-  final val False = AvroBoolean(false)
 
-  final def fromBoolean(value: Boolean): AvroType   = if (value) True else False
-  final def fromString(value: String): AvroType     = AvroString(value)
-  final def fromInt(value: Int): AvroType           = AvroInt(value)
-  final def fromLong(value: Long): AvroType         = AvroLong(value)
-  final def fromFloat(value: Float): AvroType       = AvroFloat(value)
-  final def fromDouble(value: Double): AvroType     = AvroDouble(value)
-  final def fromBytes(value: Array[Byte]): AvroType = AvroBytes(value)
+  final def toAvroString[A](value: A): Result[AvroType] = value match {
+    case v: java.lang.String => safe(AvroString(v))
+    case _                   => Error(s"'$value' is not a String").asLeft
+  }
 
-  final def toAvroString[A](value: A) =
-    if (value.isInstanceOf[String]) safe(AvroString(value.toString))
-    else Error(s"tried to create a string from '$value'").asLeft
-  final def toAvroInt[A](value: A)    = safe(AvroInt(value.toString.toInt))
-  final def toAvroLong[A](value: A)   = safe(AvroLong(value.toString.toLong))
-  final def toAvroFloat[A](value: A)  = safe(AvroFloat(value.toString.toFloat))
-  final def toAvroDouble[A](value: A) = safe(AvroDouble(value.toString.toDouble))
-  final def toAvroBool[A](value: A)   = safe(AvroBoolean(value.toString.toBoolean))
-  final def toAvroBytes[A](value: A)  = safe(AvroBytes(value.toString.getBytes))
+  final def toAvroInt[A](value: A): Result[AvroType] = value match {
+    case v: java.lang.Integer => safe(AvroInt(v))
+    case _                    => Error(s"'$value' is not an Int").asLeft
+  }
+
+  final def toAvroLong[A](value: A): Result[AvroType] = value match {
+    case v: java.lang.Long => safe(AvroLong(v))
+    case _                 => Error(s"'$value' is not a Long").asLeft
+  }
+
+  final def toAvroFloat[A](value: A): Result[AvroType] = value match {
+    case v: java.lang.Float => safe(AvroFloat(v))
+    case _                  => Error(s"'$value' is not a Float").asLeft
+  }
+
+  final def toAvroDouble[A](value: A): Result[AvroType] = value match {
+    case v: java.lang.Double => safe(AvroDouble(v))
+    case _                   => Error(s"'$value' is not a Double").asLeft
+  }
+
+  final def toAvroBool[A](value: A): Result[AvroType] = value match {
+    case v: java.lang.Boolean => safe(AvroBoolean(v))
+    case _                    => Error(s"'$value' is not a Boolean").asLeft
+  }
+
+  final def toAvroBytes[A](value: A) = safe(AvroBytes(value.toString.getBytes))
+
   final def toAvroNull[A](value: A) =
-    if (value == null || value == None) AvroNull.asRight
+    if (value == null) AvroNull.asRight
     else Error(s"$value is not null").asLeft
+
   final def toAvroRecord(fieldName: String, value: List[AvroType])   = safe(AvroRecord(fieldName, value))
   final def toAvroRecord(fieldName: String, value: Vector[AvroType]) = safe(AvroRecord(fieldName, value.toList))
   final def toAvroArray(fieldName: String, value: List[AvroType])    = safe(AvroArray(fieldName, value))

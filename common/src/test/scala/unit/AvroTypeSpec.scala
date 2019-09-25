@@ -23,7 +23,7 @@ class AvroTypeSpec extends UnitSpecBase {
     "not blindly convert anything to a string" in {
       forAll { a: Any =>
         whenever(!a.isInstanceOf[String]) {
-          AvroType.toAvroString(a) should beLeft(Error(s"tried to create a string from $a"))
+          AvroType.toAvroString(a) should beLeft(Error(s"'$a' is not a String"))
         }
       }
     }

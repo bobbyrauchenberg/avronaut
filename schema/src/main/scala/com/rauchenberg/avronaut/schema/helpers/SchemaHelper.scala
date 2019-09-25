@@ -76,11 +76,11 @@ object SchemaHelper {
       .map {
         case (k, v) =>
           k -> (v match {
-            case x: Int    => new java.lang.Integer(x)
-            case x: BigInt => new java.lang.Double(x.doubleValue)
-            case x: Float  => new java.lang.Float(x)
-            case x: Double => new java.lang.Double(x)
-            case x: Long   => new java.lang.Long(x)
+            case x: Int    => java.lang.Integer.valueOf(x)
+            case x: BigInt => java.lang.Double.valueOf(x.doubleValue)
+            case x: Float  => java.lang.Float.valueOf(x)
+            case x: Double => java.lang.Double.valueOf(x)
+            case x: Long   => java.lang.Long.valueOf(x)
             case x: String => new java.lang.String(x)
             case other     => other
           })
