@@ -13,7 +13,6 @@ class AvroTypeSpec extends UnitSpecBase {
            1,
            1.0f,
            1.0d,
-           "1",
            "cupcat".getBytes,
            NotAString("cupcat"),
            List("cupcat"),
