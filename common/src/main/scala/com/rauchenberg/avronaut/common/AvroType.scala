@@ -2,29 +2,7 @@ package com.rauchenberg.avronaut.common
 
 import cats.syntax.either._
 
-import scala.collection.mutable.ListBuffer
-
 sealed abstract class AvroType extends Product with Serializable { self =>
-
-  def findAllByKey[A](key: String): List[AvroType] = {
-    val hh: ListBuffer[AvroType] = ListBuffer.empty[AvroType]
-    def loop(avroType: AvroType): Unit = avroType match {
-      case a @ AvroRecord(avfn, values) =>
-        if (avfn == key) hh += a
-        values.foreach(loop(_))
-      case a @ AvroField(fieldName, _)           => if (fieldName == key) hh += a
-      case a @ AvroUnion(fieldName, _)           => if (fieldName == key) hh += a
-      case a @ AvroArray(fieldName, _)           => if (fieldName == key) hh += a
-      case a @ AvroEnum(fieldName, _)            => if (fieldName == key) hh += a
-      case a @ AvroUUID(fieldName, _)            => if (fieldName == key) hh += a
-      case a @ AvroTimestampMillis(fieldName, _) => if (fieldName == key) hh += a
-      case a @ AvroMap(fieldName, _)             => if (fieldName == key) hh += a
-      case a @ ParseFail(fieldName, _)           => if (fieldName == key) hh += a
-      case _                                     => // do nothing
-    }
-    loop(this)
-    hh.toList
-  }
 
   def isNull = this match {
     case AvroNull => true
@@ -32,24 +10,24 @@ sealed abstract class AvroType extends Product with Serializable { self =>
   }
 
 }
-final case object AvroNull                                               extends AvroType
-final case class AvroInt(value: Int)                                     extends AvroType
-final case class AvroLong(value: Long)                                   extends AvroType
-final case class AvroFloat(value: Float)                                 extends AvroType
-final case class AvroDouble(value: Double)                               extends AvroType
-final case class AvroBoolean(value: Boolean)                             extends AvroType
-final case class AvroString(value: String)                               extends AvroType
-final case class AvroRecord(fieldName: String, value: List[AvroType])    extends AvroType
-final case class AvroEnum[A](fieldName: String, value: A)                extends AvroType
-final case class AvroUnion(fieldName: String, value: AvroType)           extends AvroType
-final case class AvroArray(fieldName: String, value: List[AvroType])     extends AvroType
-final case class AvroMapEntry(key: String, value: AvroType)              extends AvroType
-final case class AvroMap(fieldName: String, value: List[AvroMapEntry])   extends AvroType
-final case class AvroBytes(value: Array[Byte])                           extends AvroType
-final case class AvroField(fieldName: String, value: AvroType)           extends AvroType
-final case class AvroUUID(fieldName: String, value: AvroType)            extends AvroType
-final case class ParseFail(fieldName: String, msg: String)               extends AvroType
-final case class AvroTimestampMillis(fieldName: String, value: AvroType) extends AvroType
+final case object AvroNull                                  extends AvroType
+final case class AvroInt(value: Int)                        extends AvroType
+final case class AvroLong(value: Long)                      extends AvroType
+final case class AvroFloat(value: Float)                    extends AvroType
+final case class AvroDouble(value: Double)                  extends AvroType
+final case class AvroBoolean(value: Boolean)                extends AvroType
+final case class AvroString(value: String)                  extends AvroType
+final case class AvroRecord(value: List[AvroType])          extends AvroType
+final case class AvroEnum[A](value: A)                      extends AvroType
+final case class AvroUnion(value: AvroType)                 extends AvroType
+final case class AvroArray(value: List[AvroType])           extends AvroType
+final case class AvroMapEntry(key: String, value: AvroType) extends AvroType
+final case class AvroMap(value: List[AvroMapEntry])         extends AvroType
+final case class AvroBytes(value: Array[Byte])              extends AvroType
+final case class AvroField(value: AvroType)                 extends AvroType
+final case class AvroUUID(value: AvroType)                  extends AvroType
+final case class AvroTimestampMillis(value: AvroType)       extends AvroType
+final case class AvroFail(msg: String)                      extends AvroType
 
 object AvroType {
 
@@ -92,14 +70,14 @@ object AvroType {
     if (value == null) AvroNull.asRight
     else Error(s"$value is not null").asLeft
 
-  final def toAvroRecord(fieldName: String, value: List[AvroType])   = safe(AvroRecord(fieldName, value))
-  final def toAvroRecord(fieldName: String, value: Vector[AvroType]) = safe(AvroRecord(fieldName, value.toList))
-  final def toAvroArray(fieldName: String, value: List[AvroType])    = safe(AvroArray(fieldName, value))
-  final def toAvroArray(fieldName: String, value: Vector[AvroType])  = safe(AvroArray(fieldName, value.toList))
-  final def toAvroUnion(fieldName: String, value: AvroType)          = safe(AvroUnion(fieldName, value))
-  final def toAvroEnum[A](fieldName: String, value: A)               = safe(AvroEnum(fieldName, value))
+  final def toAvroRecord(value: List[AvroType])   = safe(AvroRecord(value))
+  final def toAvroRecord(value: Vector[AvroType]) = safe(AvroRecord(value.toList))
+  final def toAvroArray(value: List[AvroType])    = safe(AvroArray(value))
+  final def toAvroArray(value: Vector[AvroType])  = safe(AvroArray(value.toList))
+  final def toAvroUnion(value: AvroType)          = safe(AvroUnion(value))
+  final def toAvroEnum[A](value: A)               = safe(AvroEnum(value))
 
-  final def toAvroUUID[A](fieldName: String, value: A) = toAvroString(value).map(AvroUUID(fieldName, _))
+  final def toAvroUUID[A](value: A) = toAvroString(value).map(AvroUUID(_))
 
-  final def toAvroTimestamp[A](fieldName: String, value: A) = toAvroLong(value).map(AvroTimestampMillis(fieldName, _))
+  final def toAvroTimestamp[A](value: A) = toAvroLong(value).map(AvroTimestampMillis(_))
 }

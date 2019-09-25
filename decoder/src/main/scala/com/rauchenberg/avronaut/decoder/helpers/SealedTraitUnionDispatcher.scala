@@ -1,9 +1,9 @@
-//package com.rauchenberg.cupcatAvro.decoder.helpers
+//package com.rauchenberg.avronaut.decoder.helpers
 //
 //import cats.implicits._
-//import com.rauchenberg.cupcatAvro.common.{safe, Error}
-//import com.rauchenberg.cupcatAvro.decoder.Decoder.Typeclass
-//import com.rauchenberg.cupcatAvro.decoder.helpers.ReflectionHelpers.toCaseObject
+//import com.rauchenberg.avronaut.common.{safe, Error}
+//import com.rauchenberg.avronaut.decoder.Decoder.Typeclass
+//import com.rauchenberg.avronaut.decoder.helpers.ReflectionHelpers.toCaseObject
 //import magnolia.SealedTrait
 //import org.apache.avro.Schema
 //import org.apache.avro.generic.{GenericData, GenericRecord}

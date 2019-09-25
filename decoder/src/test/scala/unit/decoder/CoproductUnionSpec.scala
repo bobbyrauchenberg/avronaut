@@ -1,11 +1,11 @@
 package unit.decoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import unit.decoder.utils.ShapelessArbitraries._
 import com.rauchenberg.avronaut.decoder.Parser
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import shapeless.{:+:, CNil, Inl, Inr}
+import unit.decoder.utils.ShapelessArbitraries._
 
 class CoproductUnionSpec extends UnitSpecBase {
 
