@@ -58,7 +58,9 @@ object Decoder {
           params.traverse(param => typeclassOrDefault(other, param.typeclass.apply, param.default))
       }).map(ctx.rawConstruct(_))
 
-    def typeclassOrDefault[B](value: DecodeOperation, f: DecodeOperation => Result[B], default: Option[B]) = {
+    def typeclassOrDefault[B](value: DecodeOperation,
+                              f: DecodeOperation => Result[B],
+                              default: Option[B]): Result[B] = {
       val res = f(value)
       (res, default) match {
         case (Left(_), Some(default)) => default.asRight
@@ -82,124 +84,85 @@ object Decoder {
       }
   }
 
-  def error[A](expected: String, actual: A) = Error(s"expected $expected, got $actual").asLeft
+  def error[A](expected: String, actual: A): Either[Error, Nothing] = Error(s"expected $expected, got $actual").asLeft
 
-  implicit val stringDecoder = new Decoder[String] {
-    override def apply(value: DecodeOperation): Result[String] =
-      value match {
-        case TypeDecode(AvroString(v)) => v.asRight
-        case _                         => error("string", value)
-      }
+  implicit val stringDecoder: Decoder[String] = {
+    case TypeDecode(AvroString(v)) => v.asRight
+    case value                     => error("string", value)
   }
 
-  implicit val booleanDecoder = new Decoder[Boolean] {
-    override def apply(value: DecodeOperation): Result[Boolean] =
-      value match {
-        case TypeDecode(AvroBoolean(v)) => v.asRight
-        case _                          => error("boolean", value)
-      }
+  implicit val booleanDecoder: Decoder[Boolean] = {
+    case TypeDecode(AvroBoolean(v)) => v.asRight
+    case value                      => error("boolean", value)
   }
 
-  implicit val intDecoder = new Decoder[Int] {
-    override def apply(value: DecodeOperation): Result[Int] =
-      value match {
-        case TypeDecode(AvroInt(v)) => v.asRight
-        case _                      => error("int", value)
-      }
+  implicit val intDecoder: Decoder[Int] = {
+    case TypeDecode(AvroInt(v)) => v.asRight
+    case value                  => error("int", value)
   }
 
-  implicit val longDecoder = new Decoder[Long] {
-    override def apply(value: DecodeOperation): Result[Long] =
-      value match {
-        case TypeDecode(AvroLong(v)) => v.asRight
-        case _                       => error("long", value)
-      }
+  implicit val longDecoder: Decoder[Long] = {
+    case TypeDecode(AvroLong(v)) => v.asRight
+    case value                   => error("long", value)
   }
 
-  implicit val floatDecoder = new Decoder[Float] {
-    override def apply(value: DecodeOperation): Result[Float] =
-      value match {
-        case TypeDecode(AvroFloat(v)) => v.asRight
-        case _                        => error("float", value)
-      }
+  implicit val floatDecoder: Decoder[Float] = {
+    case TypeDecode(AvroFloat(v)) => v.asRight
+    case value                    => error("float", value)
   }
 
-  implicit val doubleDecoder = new Decoder[Double] {
-    override def apply(value: DecodeOperation): Result[Double] =
-      value match {
-        case TypeDecode(AvroDouble(v)) => v.asRight
-        case _                         => error("double", value)
-      }
+  implicit val doubleDecoder: Decoder[Double] = {
+    case TypeDecode(AvroDouble(v)) => v.asRight
+    case value                     => error("double", value)
   }
 
-  implicit val bytesDecoder = new Decoder[Array[Byte]] {
-    override def apply(value: DecodeOperation): Result[Array[Byte]] =
-      value match {
-        case TypeDecode(AvroBytes(v)) => v.asRight
-        case _                        => error("Array[Byte]", value)
-      }
+  implicit val bytesDecoder: Decoder[Array[Byte]] = {
+    case TypeDecode(AvroBytes(v)) => v.asRight
+    case value                    => error("Array[Byte]", value)
   }
 
-  implicit def listDecoder[A](implicit elementDecoder: Decoder[A]) = new Decoder[List[A]] {
-    override def apply(value: DecodeOperation): Result[List[A]] = value match {
-      case TypeDecode(AvroArray(v)) =>
-        v.traverse(at => elementDecoder.apply(TypeDecode(at)))
-      case _ => error("list", value)
-    }
+  implicit def listDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[List[A]] = {
+    case TypeDecode(AvroArray(v)) =>
+      v.traverse(at => elementDecoder.apply(TypeDecode(at)))
+    case value => error("list", value)
   }
 
-  implicit def seqDecoder[A](implicit elementDecoder: Decoder[A]) = new Decoder[Seq[A]] {
-    override def apply(value: DecodeOperation): Result[Seq[A]] = listDecoder[A].apply(value)
+  implicit def seqDecoder[A : Decoder]: Decoder[Seq[A]] = listDecoder[A].apply(_)
+
+  implicit def vectorDecoder[A : Decoder]: Decoder[Vector[A]] = listDecoder[A].apply(_).map(_.toVector)
+
+  implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] = {
+    case TypeDecode(AvroMap(l)) =>
+      l.traverse { entry =>
+        elementDecoder(TypeDecode(entry.value)).map(entry.key -> _)
+      }.map(_.toMap[String, A])
+    case value => error("map", value)
   }
 
-  implicit def vectorDecoder[A](implicit elementDecoder: Decoder[A]) = new Decoder[Vector[A]] {
-    override def apply(value: DecodeOperation): Result[Vector[A]] = listDecoder[A].apply(value).map(_.toVector)
+  implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = {
+    case TypeDecode(AvroTimestampMillis(AvroLong(value))) =>
+      safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
+    case value => error("OffsetDateTime / Long", value)
   }
 
-  implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]) = new Typeclass[Map[String, A]] {
-
-    override def apply(value: DecodeOperation): Result[Map[String, A]] = value match {
-      case TypeDecode(AvroMap(l)) =>
-        l.traverse { entry =>
-          elementDecoder(TypeDecode(entry.value)).map(entry.key -> _)
-        }.map(_.toMap[String, A])
-      case _ => error("map", value)
-    }
+  implicit def instantDecoder: Decoder[Instant] = {
+    case TypeDecode(AvroTimestampMillis(AvroLong(value))) => safe(Instant.ofEpochMilli(value))
+    case value                                            => error("Instant / Long", value)
   }
 
-  implicit def offsetDateTimeDecoder = new Decoder[OffsetDateTime] {
-    override def apply(value: DecodeOperation): Result[OffsetDateTime] = value match {
-      case TypeDecode(AvroTimestampMillis(AvroLong(value))) =>
-        safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
-      case _ => error("OffsetDateTime / Long", value)
-    }
+  implicit def uuidDecoder: Decoder[UUID] = {
+    case TypeDecode(AvroUUID(AvroString(value))) => safe(java.util.UUID.fromString(value))
+    case value                                   => error("UUID / String", value)
   }
 
-  implicit def instantDecoder = new Decoder[Instant] {
-    override def apply(value: DecodeOperation): Result[Instant] = value match {
-      case TypeDecode(AvroTimestampMillis(AvroLong(value))) => safe(Instant.ofEpochMilli(value))
-      case _                                                => error("Instant / Long", value)
-    }
+  implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]): Decoder[Option[A]] = {
+    case TypeDecode(AvroUnion(AvroNull)) => None.asRight
+    case TypeDecode(AvroUnion(value))    => valueDecoder(TypeDecode(value)).map(Option(_))
+    case other                           => valueDecoder(other).map(Option(_))
   }
 
-  implicit def uuidDecoder = new Decoder[UUID] {
-    override def apply(value: DecodeOperation): Result[UUID] = value match {
-      case TypeDecode(AvroUUID(AvroString(value))) => safe(java.util.UUID.fromString(value))
-      case _                                       => error("UUID / String", value)
-    }
-  }
-
-  implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]) = new Decoder[Option[A]] {
-    override def apply(value: DecodeOperation): Result[Option[A]] =
-      value match {
-        case TypeDecode(AvroUnion(AvroNull)) => None.asRight
-        case TypeDecode(AvroUnion(value))    => valueDecoder(TypeDecode(value)).map(Option(_))
-        case other                           => valueDecoder(other).map(Option(_))
-      }
-  }
-
-  implicit def eitherDecoder[A, B](implicit lDecoder: Decoder[A], rDecoder: Decoder[B]) = new Decoder[Either[A, B]] {
-    override def apply(value: DecodeOperation): Result[Either[A, B]] = {
+  implicit def eitherDecoder[A, B](implicit lDecoder: Decoder[A], rDecoder: Decoder[B]): Decoder[Either[A, B]] =
+    value => {
       def runDecoders(value: DecodeOperation) =
         lDecoder(value).fold(_ => rDecoder(value).map(_.asRight), _.asLeft.asRight)
       value match {
@@ -208,22 +171,19 @@ object Decoder {
         case _                               => runDecoders(value)
       }
     }
-  }
 
   implicit object CNilDecoderValue extends Decoder[CNil] {
     override def apply(value: DecodeOperation): Result[CNil] = error("not to decode CNil", value)
   }
 
-  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H], tDecoder: Decoder[T]) =
-    new Decoder[H :+: T] {
-      override def apply(value: DecodeOperation): Result[H :+: T] = value match {
-        case TypeDecode(AvroUnion(v)) =>
-          hDecoder(TypeDecode(v)) match {
-            case r @ Right(_) => r.map(h => Coproduct[H :+: T](h))
-            case _            => tDecoder(value).map(Inr(_))
-          }
-        case _ => tDecoder(value).map(Inr(_))
+  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H],
+                                                   tDecoder: Decoder[T]): Decoder[H :+: T] = {
+    case value @ TypeDecode(AvroUnion(v)) =>
+      hDecoder(TypeDecode(v)) match {
+        case r @ Right(_) => r.map(h => Coproduct[H :+: T](h))
+        case _            => tDecoder(value).map(Inr(_))
       }
-    }
+    case value => tDecoder(value).map(Inr(_))
+  }
 
 }
