@@ -50,7 +50,7 @@ class AnnotationsSpec extends UnitSpecBase {
   }
 
   trait TestContext {
-    def runAssert[T : AvroSchema](expected: String) = schemaAsString[T] should beRight(expected)
+    def runAssert[A : AvroSchema](expected: String) = schemaAsString[A] should beRight(expected)
   }
 
   case class FieldNameAnnotation(@SchemaMetadata(Map(Name -> "cuppers")) cupcat: String)

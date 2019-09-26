@@ -5,21 +5,21 @@ import scala.reflect.runtime.universe._
 
 object ReflectionHelpers {
 
-  def toCaseObject[T](typeName: String): T = {
+  def toCaseObject[A](typeName: String): A = {
     val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
     val module        = runtimeMirror.staticModule(typeName)
     val companion     = runtimeMirror.reflectModule(module.asModule)
-    companion.instance.asInstanceOf[T]
+    companion.instance.asInstanceOf[A]
   }
 
-  def isOfType[T](name: String)(implicit tt: TypeTag[T]) =
+  def isOfType[A](name: String)(implicit tt: TypeTag[A]) =
     (tt.tpe match {
       case TypeRef(_, us, _) => us
     }).fullName == name
 
-  def isEnum[T : WeakTypeTag] = {
+  def isEnum[A : WeakTypeTag] = {
     val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
-    val tpe           = runtimeMirror.weakTypeOf[T]
+    val tpe           = runtimeMirror.weakTypeOf[A]
     tpe.typeSymbol.isClass && tpe.typeSymbol.asClass.knownDirectSubclasses.forall(_.isModuleClass)
   }
 }

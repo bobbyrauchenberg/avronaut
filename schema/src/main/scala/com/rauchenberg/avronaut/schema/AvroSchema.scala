@@ -14,19 +14,19 @@ import magnolia._
 import org.apache.avro.{LogicalTypes, Schema, SchemaBuilder}
 import shapeless.{:+:, CNil, Coproduct}
 
-trait AvroSchema[T] {
+trait AvroSchema[A] {
   def schema: SchemaResult
 }
 
 object AvroSchema {
 
-  def apply[T](implicit avroSchema: AvroSchema[T]) = avroSchema
+  def apply[A](implicit avroSchema: AvroSchema[A]) = avroSchema
 
-  type Typeclass[T] = AvroSchema[T]
+  type Typeclass[A] = AvroSchema[A]
 
-  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def gen[A]: Typeclass[A] = macro Magnolia.gen[A]
 
-  def combine[T](ctx: CaseClass[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
+  def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
     val annotations       = getAnnotations(ctx.annotations)
     val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
@@ -44,7 +44,7 @@ object AvroSchema {
 
   import reflect.runtime.universe._
 
-  def dispatch[T : WeakTypeTag](ctx: SealedTrait[Typeclass, T]): Typeclass[T] = new Typeclass[T] {
+  def dispatch[A : WeakTypeTag](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
     val anno              = getAnnotations(ctx.annotations)
     val (name, namespace) = getNameAndNamespace(anno, ctx.typeName.short, ctx.typeName.full)
@@ -59,14 +59,14 @@ object AvroSchema {
 
   }
 
-  private def toField[T](param: Param[Typeclass, T], ccName: String, schema: Schema): Result[Field[T]] = {
+  private def toField[A](param: Param[Typeclass, A], ccName: String, schema: Schema): Result[Field[A]] = {
     val annotations = getAnnotations(param.annotations)
     val name        = annotations.name(param.label)
     val namespace   = annotations.namespace(ccName)
-    val default     = param.default.asInstanceOf[Option[T]]
+    val default     = param.default.asInstanceOf[Option[A]]
     val doc         = annotations.doc
 
-    val toField = Field(name, doc, _: Option[T], schema)
+    val toField = Field(name, doc, _: Option[A], schema)
 
     schema.getType match {
       case Schema.Type.UNION =>
@@ -120,23 +120,23 @@ object AvroSchema {
     override def schema: SchemaResult = safe(SchemaBuilder.builder.nullType)
   }
 
-  implicit def mapSchema[T](implicit elementSchema: AvroSchema[T]) = new AvroSchema[Map[String, T]] {
+  implicit def mapSchema[A](implicit elementSchema: AvroSchema[A]) = new AvroSchema[Map[String, A]] {
     override def schema: SchemaResult = elementSchema.schema.flatMap(es => safe(Schema.createMap(es)))
   }
 
-  implicit def listSchema[T](implicit elementSchema: AvroSchema[T]) = new AvroSchema[List[T]] {
+  implicit def listSchema[A](implicit elementSchema: AvroSchema[A]) = new AvroSchema[List[A]] {
     override def schema: SchemaResult = elementSchema.schema.flatMap(es => safe(Schema.createArray(es)))
   }
 
-  implicit def seqSchema[T](implicit elementSchema: AvroSchema[T]) = new AvroSchema[Seq[T]] {
+  implicit def seqSchema[A](implicit elementSchema: AvroSchema[A]) = new AvroSchema[Seq[A]] {
     override def schema: SchemaResult = elementSchema.schema.flatMap(es => safe(Schema.createArray(es)))
   }
 
-  implicit def vectorSchema[T](implicit elementSchema: AvroSchema[T]) = new AvroSchema[Vector[T]] {
+  implicit def vectorSchema[A](implicit elementSchema: AvroSchema[A]) = new AvroSchema[Vector[A]] {
     override def schema: SchemaResult = elementSchema.schema.flatMap(es => safe(Schema.createArray(es)))
   }
 
-  implicit def optionSchema[T](implicit elementSchema: AvroSchema[T]) = new AvroSchema[Option[T]] {
+  implicit def optionSchema[A](implicit elementSchema: AvroSchema[A]) = new AvroSchema[Option[A]] {
     override def schema: SchemaResult =
       elementSchema.schema.flatMap { es =>
         es.getType match {

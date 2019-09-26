@@ -28,15 +28,15 @@ class ArraySpec extends UnitSpecBase {
   }
 
   trait TestContext {
-    def runAssert[T : AvroSchema](name: String) =
-      schemaAsString[T] should beRight(
+    def runAssert[A : AvroSchema](name: String) =
+      schemaAsString[A] should beRight(
         s"""
            |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec","doc":"",
            |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"}}]}
            |""".stripMargin.replace("\n", "")
       )
-    def runAssertWithDefault[T : AvroSchema](name: String) =
-      schemaAsString[T] should beRight(
+    def runAssertWithDefault[A : AvroSchema](name: String) =
+      schemaAsString[A] should beRight(
         s"""
            |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec","doc":"",
            |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"},"doc":"","default":["cup","cat"]}]}

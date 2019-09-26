@@ -6,168 +6,107 @@ import scala.collection.convert.Wrappers.{MapWrapper, SeqWrapper}
 import com.rauchenberg.avronaut.common.AvroType._
 import com.rauchenberg.avronaut.common._
 import org.apache.avro.{LogicalType, Schema}
-import org.apache.avro.Schema.Type.{
-  ARRAY,
-  BOOLEAN,
-  BYTES,
-  DOUBLE,
-  ENUM,
-  FLOAT,
-  INT,
-  LONG,
-  MAP,
-  NULL,
-  RECORD,
-  STRING,
-  UNION
-}
+import org.apache.avro.Schema.Type._
+
 import org.apache.avro.generic.GenericRecord
 
 import scala.annotation.tailrec
 
 object Parser {
 
-  def parse(toDecode: FullDecode) = {
-    val schema = toDecode.schema
+  def parse(toDecode: FieldDecode) = {
+    val field  = toDecode.schema
     val genRec = toDecode.genericRecord
 
-    fieldsFor(schema).traverse { field =>
-      val value       = genRec.get(field.name)
-      val errorValues = s"'$value', '${schema}'"
-      val schemaType  = field.schema.getType
-
-      schemaType match {
-        case RECORD =>
-          parseRecord(field.schema, value)
-        case UNION =>
-          parseUnion(field.schema, value).map(AvroUnion(_))
-        case ARRAY =>
-          parseArray(field.schema, value)
-            .fold(_ => AvroFail(s"couldn't parse array $errorValues").asRight, _.asRight)
-        case ENUM =>
-          AvroEnum(value).asRight
-        case MAP =>
-          parseMap(field.schema, value)
-        case _ =>
-          toAST(field.schema.getLogicalType, schemaType, value)
-      }
-    }
+    parseTypes(field.schema, genRec.get(field.name))
   }
 
-  def parseMap[A](schema: Schema, value: A): Result[AvroType] = {
-
-    val schemaType = schema.getValueType.getType
-    val valueType  = schema.getValueType
-
+  private def parseMap[A](schema: Schema, value: A): Result[AvroType] =
     safe(
       value
         .asInstanceOf[MapWrapper[String, A]]
         .asScala
-        .toMap[String, A]
         .toList
-        .traverse {
-          case (k, v) =>
-            (schemaType match {
-              case RECORD => parseRecord(valueType, v)
-              case ARRAY  => parseArray(valueType, v)
-              case UNION  => parseUnion(valueType, v)
-              case _      => toAST(schema.getLogicalType, schemaType, v)
-            }).map(AvroMapEntry(k, _))
-        }
+        .traverse { case (k, v) => parseTypes(schema.getValueType, v).map(AvroMapEntry(k, _)) }
         .map(AvroMap(_))).flatten
 
-  }
-
-  private def parseArray[A](schema: Schema, value: A): Result[AvroType] = {
-
-    val failureMsg = s"parseArray can't cast '$value' to SeqWrapper for '$schema'"
-
-    val elementType = schema.getElementType
-
-    safe(value.asInstanceOf[SeqWrapper[A]].asScala.toVector).fold(
-      _ => Error(failureMsg).asLeft,
-      _.traverse { value =>
-        schema.getElementType.getType match {
-          case RECORD =>
-            parseRecord(elementType, value)
-          case UNION =>
-            parseUnion(elementType, value).flatMap(toAvroUnion(_))
-          case MAP =>
-            parseMap(elementType, value)
-          case ENUM =>
-            toAvroEnum(value)
-          case _ =>
-            toAST(schema.getLogicalType, elementType.getType, value)
-        }
-      }.flatMap(toAvroArray(_))
+  private def parseArray[A](schema: Schema, value: A): Result[AvroType] =
+    safe(valueToList(value)).fold(
+      _ => Error(s"parseArray can't cast '$value' to SeqWrapper for '$schema'").asLeft,
+      _.traverse(parseTypes(schema.getElementType, _)).flatMap(toAvroArray(_))
     )
-
-  }
 
   private def parseUnion[A](schema: Schema, value: A): Result[AvroType] = {
 
-    val failureMsg = s"couldn't parse union for '$value', '$schema'"
+    val error = Error(s"couldn't parse union for '$value', '$schema'").asLeft[AvroType]
 
     @tailrec
     def loop(schemas: List[Schema]): Result[AvroType] = schemas match {
 
-      case Nil => AvroFail(failureMsg).asRight
+      case Nil => error
       case h :: t =>
         val schemaType = h.getType
-
         (schemaType match {
-          case NULL => toAvroNull(value)
-          case ARRAY =>
-            parseArray(h, value)
-          case ENUM =>
-            toAvroEnum(value)
+          case NULL  => toAvroNull(value)
+          case ARRAY => parseArray(h, value)
+          case ENUM  => toAvroEnum(value)
           case RECORD =>
-            typesFor(schema)
+            typesFrom(schema)
               .filter(_.getType == RECORD)
-              .foldLeft(Error("parsing union").asLeft[AvroType]) {
+              .foldLeft(error) {
+                case (r @ Right(_), _) => r
                 case (acc, recordSchema) =>
-                  if (acc.isRight) acc
-                  else {
-                    parseRecord(recordSchema, value) match {
-                      case r @ Right(AvroRecord(list)) if (list.find(_.isFailure).isEmpty) => r
-                      case _                                                               => acc
-                    }
+                  parseRecord(recordSchema, value) match {
+                    case r @ Right(AvroRecord(_)) => r
+                    case _                        => acc
                   }
               }
           case _ =>
             toAST(schema.getLogicalType, schemaType, value)
         }) match {
-          case Right(AvroFail(_)) => loop(t)
-          case Right(v)           => v.asRight
-          case _                  => loop(t)
+          case Right(v) => v.asRight
+          case _        => loop(t)
         }
     }
 
-    loop(enumToEndOfUnion(schema))
-  }
-
-  private def enumToEndOfUnion(schema: Schema) = {
-    val schemaTypes = typeListFor(schema)
-    schemaTypes.find(_.getType == ENUM).fold(schemaTypes) { enumSchema =>
-      schemaTypes.filterNot(_.getType == ENUM) :+ enumSchema
+    def enumToEndOfUnion(schema: Schema) = {
+      val schemaTypes = typesFrom(schema)
+      schemaTypes.find(_.getType == ENUM).fold(schemaTypes) { enumSchema =>
+        schemaTypes.filterNot(_.getType == ENUM) :+ enumSchema
+      }
     }
+
+    loop(enumToEndOfUnion(schema)).flatMap(toAvroUnion)
   }
 
-  private def parseRecord[A](schema: Schema, value: A): Result[AvroType] = {
-    val failureMsg = s"expected a GenericRecord for '$value', '$schema'"
+  private def parseRecord[A](schema: Schema, value: A): Result[AvroType] =
     value match {
-      case gr: GenericRecord => parse(FullDecode(schema, gr)).map(v => AvroRecord(v.toList))
-      case _                 => AvroFail(failureMsg).asRight
+      case gr: GenericRecord =>
+        fieldsFrom(schema).traverse(field => parse(FieldDecode(field, gr))).map(AvroRecord(_))
+      case _ => Error(s"expected a GenericRecord for '$value', '$schema'").asLeft
     }
-  }
 
   private def toAST[A](logicalType: LogicalType, schemaType: Schema.Type, value: A) =
-    Option(logicalType).fold[Result[AvroType]](avroToAST(schemaType, value)) { lt =>
-      logicalAvroToAST(lt.getName, value)
+    Option(logicalType).fold(
+      parsePrimitive(schemaType, value)
+    ) { lt =>
+      logicalTypeToPrimitive(lt.getName, value)
     }
 
-  private def avroToAST[A](field: Schema.Type, value: A) =
-    (field match {
+  private def parseTypes[A](schema: Schema, value: A) = {
+    val schemaType = schema.getType
+    schemaType match {
+      case RECORD => parseRecord(schema, value)
+      case UNION  => parseUnion(schema, value)
+      case ARRAY  => parseArray(schema, value)
+      case ENUM   => AvroEnum(value).asRight
+      case MAP    => parseMap(schema, value)
+      case _      => toAST(schema.getLogicalType, schemaType, value)
+    }
+  }
+
+  private def parsePrimitive[A](field: Schema.Type, value: A) =
+    field match {
       case STRING  => toAvroString(value)
       case INT     => toAvroInt(value)
       case LONG    => toAvroLong(value)
@@ -176,21 +115,20 @@ object Parser {
       case BOOLEAN => toAvroBool(value)
       case BYTES   => toAvroBytes(value)
       case NULL    => toAvroNull(value)
-      case _       => Error("boom").asLeft
-    }).fold(e => AvroFail(e.msg).asRight, _.asRight)
+      case _       => Error(s"couldn't map to AST '$value', '$field'").asLeft
+    }
 
-  private def logicalAvroToAST[A](logicalTypeName: String, value: A): Result[AvroType] =
-    (logicalTypeName match {
-      case "uuid" =>
-        toAvroUUID(value)
+  private def logicalTypeToPrimitive[A](logicalTypeName: String, value: A): Result[AvroType] =
+    logicalTypeName match {
+      case "uuid"             => toAvroUUID(value)
       case "timestamp-millis" => toAvroTimestamp(value)
       case _                  => Error(s"logical type $logicalTypeName currently not supported").asLeft
-    }).fold(e => AvroFail(e.msg).asRight, _.asRight)
+    }
 
-  private def typesFor(s: Schema) = s.getTypes.asScala.toVector
+  private def fieldsFrom(s: Schema) = s.getFields.asScala.toList
 
-  private def typeListFor(s: Schema) = s.getTypes.asScala.toList
+  private def typesFrom(s: Schema) = s.getTypes.asScala.toList
 
-  private def fieldsFor(s: Schema) = s.getFields.asScala.toVector
+  private def valueToList[A](value: A) = value.asInstanceOf[SeqWrapper[A]].asScala.toList
 
 }

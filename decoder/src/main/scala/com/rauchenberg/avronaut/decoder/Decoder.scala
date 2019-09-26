@@ -2,7 +2,8 @@ package com.rauchenberg.avronaut.decoder
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
-
+import cats.implicits._
+import collection.JavaConverters._
 import cats.implicits._
 import com.rauchenberg.avronaut.common.{ReflectionHelpers, _}
 import magnolia.{CaseClass, Magnolia, SealedTrait}
@@ -10,9 +11,10 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import shapeless.{:+:, CNil, Coproduct, Inr}
 
-sealed trait DecodeOperation
-case class FullDecode(schema: Schema, genericRecord: GenericRecord) extends DecodeOperation
-case class TypeDecode(value: AvroType)                              extends DecodeOperation
+private[this] sealed trait DecodeOperation
+private[this] final case class FullDecode(schema: Schema, genericRecord: GenericRecord)        extends DecodeOperation
+private[this] final case class FieldDecode(schema: Schema.Field, genericRecord: GenericRecord) extends DecodeOperation
+private[this] final case class TypeDecode(value: AvroType)                                     extends DecodeOperation
 
 trait Decoder[A] {
 
@@ -21,8 +23,6 @@ trait Decoder[A] {
 }
 
 object Decoder {
-
-  def apply[A](implicit decoder: Decoder[A]) = decoder
 
   type Typeclass[A] = Decoder[A]
 
@@ -33,24 +33,40 @@ object Decoder {
 
   def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
-    override def apply(cursor: DecodeOperation): Result[A] =
-      (cursor match {
-        case FullDecode(schema, record)    => Parser.parse(FullDecode(schema, record)).map(v => AvroRecord(v.toList))
-        case TypeDecode(a @ AvroRecord(_)) => a.asRight
-        case _                             => Error("expected either a FullDecode or a FieldDecode").asLeft
-      }).flatMap {
-        _.value.zip(ctx.parameters).traverse {
-          case (at, param) =>
-            val typeclassResult = at match {
-              case AvroFail(_) => Error("got an error, need to try default").asLeft[A]
-              case other       => param.typeclass(TypeDecode(other))
-            }
-            (typeclassResult, param.default) match {
-              case (Left(_), Some(default)) => default.asRight
-              case _                        => typeclassResult
-            }
-        }
-      }.map(ctx.rawConstruct(_))
+    val params = ctx.parameters.toList
+
+    override def apply(operation: DecodeOperation): Result[A] =
+      (operation match {
+        case FullDecode(schema, genericRecord) =>
+          params.zip(fieldsFrom(schema)).traverse {
+            case (param, field) =>
+              val res = Parser
+                .parse(FieldDecode(field, genericRecord))
+                .map(TypeDecode(_))
+                .flatMap(v => param.typeclass.apply(v))
+              (res, param.default) match {
+                case (Left(_), Some(default)) => default.asRight
+                case _                        => res
+              }
+          }
+        case TypeDecode(AvroRecord(fields)) =>
+          params.zip(fields).traverse {
+            case (param, avroType) =>
+              typeclassOrDefault(TypeDecode(avroType), param.typeclass.apply, param.default)
+          }
+        case other =>
+          params.traverse(param => typeclassOrDefault(other, param.typeclass.apply, param.default))
+      }).map(ctx.rawConstruct(_))
+
+    def typeclassOrDefault[B](value: DecodeOperation, f: DecodeOperation => Result[B], default: Option[B]) = {
+      val res = f(value)
+      (res, default) match {
+        case (Left(_), Some(default)) => default.asRight
+        case _                        => res
+      }
+    }
+
+    private def fieldsFrom(s: Schema) = s.getFields.asScala.toList
 
   }
 
@@ -82,7 +98,6 @@ object Decoder {
         case TypeDecode(AvroBoolean(v)) => v.asRight
         case _                          => error("boolean", value)
       }
-
   }
 
   implicit val intDecoder = new Decoder[Int] {

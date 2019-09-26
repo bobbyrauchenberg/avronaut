@@ -13,11 +13,11 @@ import scala.collection.JavaConverters._
 
 object SchemaHelper {
 
-  case class Field[T](name: String, doc: Option[String], default: Option[T], schema: Schema)
+  case class Field[A](name: String, doc: Option[String], default: Option[A], schema: Schema)
 
   implicit val formats = DefaultFormats
 
-  def moveDefaultToHead[T](schema: Schema, default: T): SchemaResult =
+  def moveDefaultToHead[A](schema: Schema, default: A): SchemaResult =
     default match {
       case Some(v)  => moveDefaultToHead(schema, v)
       case Inl(v)   => moveDefaultToHead(schema, v)
@@ -35,7 +35,7 @@ object SchemaHelper {
         union
     }
 
-  def makeSchemaField[T](field: Field[T]): Result[Schema.Field] =
+  def makeSchemaField[A](field: Field[A]): Result[Schema.Field] =
     field match {
       case Field(name, doc, Some(default: Map[_, _]), schema) =>
         schemaField(name, schema, doc, default.asJava)
@@ -67,7 +67,7 @@ object SchemaHelper {
     }
   }
 
-  private def toJavaMap[T](t: T): java.util.Map[String, Any] =
+  private def toJavaMap[A](t: A): java.util.Map[String, Any] =
     parse(write(t))
       .extract[Map[String, Any]]
       .map {

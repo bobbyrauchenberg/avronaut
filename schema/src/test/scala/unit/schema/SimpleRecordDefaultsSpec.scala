@@ -43,10 +43,10 @@ class SimpleRecordDefaultsSpec extends UnitSpecBase {
   case class MyRecordType(name: String)
   trait TestContext {
 
-    def runAssert[S : AvroSchema, T](typeName: String, valueType: String, default: T) =
-      schemaAsString[S] should beRight(simpleSchema(typeName, valueType, default))
+    def runAssert[A : AvroSchema, B](typeName: String, valueType: String, default: B) =
+      schemaAsString[A] should beRight(simpleSchema(typeName, valueType, default))
 
-    def simpleSchema[T](typeName: String, valueType: String, default: T) =
+    def simpleSchema[A](typeName: String, valueType: String, default: A) =
       s"""{"type":"record","name":"$typeName","namespace":"unit.schema.SimpleRecordDefaultsSpec","doc":"",
          |"fields":[{"name":"value","type":"$valueType","doc":"","default":$default}]}""".stripMargin.replace("\n", "")
   }

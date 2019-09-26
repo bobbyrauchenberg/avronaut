@@ -9,13 +9,13 @@ package object schema {
 
   type SchemaResult = Result[Schema]
 
-  def schemaField[T](name: String, schema: Schema, doc: Option[String]) =
+  def schemaField[A](name: String, schema: Schema, doc: Option[String]) =
     safe(doc.fold(new Schema.Field(name, schema))(new Schema.Field(name, schema, _)))
 
-  def schemaField[T](name: String, schema: Schema, doc: Option[String], default: T) =
+  def schemaField[A](name: String, schema: Schema, doc: Option[String], default: A) =
     safe(new Schema.Field(name, schema, doc.getOrElse(""), default))
 
-  def schemaRecord[T](name: String, doc: Option[String], namespace: String, fields: List[Schema.Field]) =
+  def schemaRecord[A](name: String, doc: Option[String], namespace: String, fields: List[Schema.Field]) =
     safe(Schema.createRecord(name, doc.getOrElse(""), namespace, false, fields.asJava))
 
   def schemaEnum(name: String, namespace: String, doc: Option[String], symbols: List[String]) =
