@@ -4,7 +4,7 @@ import cats.syntax.either._
 
 import collection.JavaConverters._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Parser
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import unit.decoder.utils.RunAssert._
@@ -20,8 +20,8 @@ class EitherUnionSpec extends UnitSpecBase {
     }
 
     "decode a union of case classes" in {
-      forAll { (u: UnionWithCaseClass, toIgnore: Cupcat) =>
-        val outerSchema  = AvroSchema[UnionWithCaseClass].schema.value
+      forAll { (u: WriterUnionWithCaseClass, toIgnore: Cupcat) =>
+        val outerSchema  = AvroSchema[WriterUnionWithCaseClass].schema.value
         val cupcatSchema = AvroSchema[Cupcat].schema.value
         val rendalSchema = AvroSchema[Rendal].schema.value
 
@@ -43,7 +43,7 @@ class EitherUnionSpec extends UnitSpecBase {
             recordBuilder.set("field", cupcatRecord)
         }
         recordBuilder.set("fieldReaderIgnores", toIgnore)
-        Parser.decode[ReaderUnionWithCaseClass](readerSchema, recordBuilder.build()) should beRight(
+        Decoder.decode[ReaderUnionWithCaseClass](readerSchema, recordBuilder.build()) should beRight(
           ReaderUnionWithCaseClass(u.field))
       }
     }
@@ -71,7 +71,7 @@ class EitherUnionSpec extends UnitSpecBase {
           case None => outerRecord.put(0, null)
         }
 
-        Parser.decode[UnionWithOptionalEither](outerSchema, recordBuilder.build()) should beRight(u)
+        Decoder.decode[UnionWithOptionalEither](outerSchema, recordBuilder.build()) should beRight(u)
 
       }
     }
@@ -101,7 +101,7 @@ class EitherUnionSpec extends UnitSpecBase {
           case Left(None) =>
             outerRecord.put(0, null)
         }
-        Parser.decode[UnionWithEitherOfOption](outerSchema, recordBuilder.build()) should beRight(u)
+        Decoder.decode[UnionWithEitherOfOption](outerSchema, recordBuilder.build()) should beRight(u)
       }
     }
 
@@ -136,7 +136,7 @@ class EitherUnionSpec extends UnitSpecBase {
             outerRecord.put(0, null)
         }
 
-        Parser.decode[UnionWithEitherOfList](outerSchema, recordBuilder.build()) should beRight(u)
+        Decoder.decode[UnionWithEitherOfList](outerSchema, recordBuilder.build()) should beRight(u)
       }
     }
 
@@ -147,7 +147,7 @@ class EitherUnionSpec extends UnitSpecBase {
       recordBuilder.set("field", "232")
 
       val expected = UnionWithDefaultCaseClass()
-      Parser.decode[UnionWithDefaultCaseClass](outerSchema, recordBuilder.build()) should beRight(expected)
+      Decoder.decode[UnionWithDefaultCaseClass](outerSchema, recordBuilder.build()) should beRight(expected)
     }
 
     "decode a union of null and enum" in {
@@ -167,7 +167,7 @@ class EitherUnionSpec extends UnitSpecBase {
 
         val expected = ReaderRecordWithEnum(record.field2, record.field1)
 
-        Parser.decode[ReaderRecordWithEnum](readerSchema, builder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithEnum](readerSchema, builder.build()) should beRight(expected)
       }
     }
 
@@ -177,7 +177,7 @@ class EitherUnionSpec extends UnitSpecBase {
 
   case class Cupcat(field1: Boolean, field2: Float)
   case class Rendal(field1: Boolean, field2: String)
-  case class UnionWithCaseClass(fieldReaderIgnores: Cupcat, field: Either[Cupcat, Rendal])
+  case class WriterUnionWithCaseClass(fieldReaderIgnores: Cupcat, field: Either[Cupcat, Rendal])
   case class ReaderUnionWithCaseClass(field: Either[Cupcat, Rendal])
 
   case class UnionWithDefaultCaseClass(field: Either[Cupcat, Rendal] = Cupcat(true, 123.8f).asLeft)

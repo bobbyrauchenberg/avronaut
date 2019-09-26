@@ -1,7 +1,7 @@
 package unit.decoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Parser
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.GenericData
 import unit.decoder.utils.RunAssert._
@@ -19,7 +19,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         record.put(1, recordWithMultipleFields.field2)
         record.put(2, recordWithMultipleFields.field3)
 
-        Parser.decode[ReaderStringRecord](readerSchema, record) should beRight(
+        Decoder.decode[ReaderStringRecord](readerSchema, record) should beRight(
           ReaderStringRecord(recordWithMultipleFields.field2))
       }
     }
@@ -39,7 +39,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         record.put(1, recordWithMultipleFields.field2)
         record.put(2, recordWithMultipleFields.field3)
 
-        Parser.decode[ReaderBooleanRecord](readerSchema, record) should beRight(
+        Decoder.decode[ReaderBooleanRecord](readerSchema, record) should beRight(
           ReaderBooleanRecord(recordWithMultipleFields.field1))
       }
     }
@@ -81,12 +81,33 @@ class SimpleRecordSpec extends UnitSpecBase {
         outRec.put(1, inRec)
         outRec.put(2, outer.duplicateFieldName)
 
-        Parser.decode[Outer](schema.schema.value, outRec) should beRight(outer)
+        Decoder.decode[Outer](schema.schema.value, outRec) should beRight(outer)
       }
 
     }
 
-    "use a different reader schema to the writer schema" in {}
+    "handle defaults" in {
+      val writerSchema = AvroSchema[WriterRecordWithDefault].schema.value
+      val readerSchema = AvroSchema[ReaderRecordWithDefault].schema.value
+
+      val genericRecord = new GenericData.Record(writerSchema)
+
+      Decoder.decode[ReaderRecordWithDefault](readerSchema, genericRecord) should beRight(ReaderRecordWithDefault())
+    }
+
+    "handle nested case class defaults" in {
+      forAll { i: Int =>
+        val writerSchema = AvroSchema[WriterRecordWithNestedDefault].schema.value
+        val readerSchema = AvroSchema[ReaderRecordWithNestedDefault].schema.value
+
+        val genericRecord = new GenericData.Record(writerSchema)
+        genericRecord.put("field3", i)
+
+        Decoder.decode[ReaderRecordWithNestedDefault](readerSchema, genericRecord) should beRight(
+          ReaderRecordWithNestedDefault(field3 = i))
+      }
+
+    }
 
   }
 
@@ -104,7 +125,15 @@ class SimpleRecordSpec extends UnitSpecBase {
   case class BytesRecord(field: Array[Byte])
   case class NestedRecord(field: IntRecord)
 
-  case class Inner(innerField1: String, innerField2: Int, duplicateFieldName: String)
+  case class Inner(innerField1: String, innerField2: Int, duplicateFieldName: String = "rendal")
   case class Outer(outerField1: String, outerField2: Inner, duplicateFieldName: String)
+
+  case class WriterRecordWithDefault(field1: String, field2: Boolean, field3: Int)
+  case class ReaderRecordWithDefault(field2: Boolean = true, field3: Int = 123)
+
+  case class WriterRecordWithNestedDefault(field1: String, field2: Outer, field3: Int)
+  case class ReaderRecordWithNestedDefault(name: String = "cupcat",
+                                           field2: Outer = Outer("cup", Inner("cupInner", 123), "rendal"),
+                                           field3: Int)
 
 }

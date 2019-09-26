@@ -48,8 +48,7 @@ object SchemaHelper {
       case Field(name, doc, Some(Left(default)), schema)     => schemaField(name, schema, doc, default)
       case Field(name, doc, Some(Right(default)), schema)    => schemaField(name, schema, doc, default)
       case Field(name, doc, Some(Inl(default)), schema)      => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(Inr(default)), schema) =>
-        makeSchemaField(Field(name, doc, default.some, schema))
+      case Field(name, doc, Some(Inr(default)), schema)      => makeSchemaField(Field(name, doc, default.some, schema))
       case Field(name, doc, Some(p: Product), schema) if (isEnum(p, schema)) =>
         schemaField(name, schema, doc, p.toString)
       case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toJavaMap(p))
@@ -68,21 +67,20 @@ object SchemaHelper {
     }
   }
 
-  //this will probably need to be much more extensive and to go in it's own file with tests
-  //scala types break the java schema validation
-  private def toJavaMap[T](t: T) =
+  private def toJavaMap[T](t: T): java.util.Map[String, Any] =
     parse(write(t))
       .extract[Map[String, Any]]
       .map {
         case (k, v) =>
           k -> (v match {
-            case x: Int    => java.lang.Integer.valueOf(x)
-            case x: BigInt => java.lang.Double.valueOf(x.doubleValue)
-            case x: Float  => java.lang.Float.valueOf(x)
-            case x: Double => java.lang.Double.valueOf(x)
-            case x: Long   => java.lang.Long.valueOf(x)
-            case x: String => new java.lang.String(x)
-            case other     => other
+            case x: Int       => java.lang.Integer.valueOf(x)
+            case x: BigInt    => java.lang.Double.valueOf(x.doubleValue)
+            case x: Float     => java.lang.Float.valueOf(x)
+            case x: Double    => java.lang.Double.valueOf(x)
+            case x: Long      => java.lang.Long.valueOf(x)
+            case x: String    => new java.lang.String(x)
+            case x: Map[_, _] => toJavaMap(x)
+            case other        => other
           })
       }
       .asJava

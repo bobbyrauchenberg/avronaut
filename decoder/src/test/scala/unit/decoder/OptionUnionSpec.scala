@@ -1,7 +1,7 @@
 package unit.decoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.{Decoder, Parser}
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import org.apache.avro.{Schema, SchemaBuilder}
@@ -36,7 +36,7 @@ class OptionUnionSpec extends UnitSpecBase {
 
         recordBuilder.set("field", innerRecord)
 
-        Parser.decode[UnionRecord](outerSchema, recordBuilder.build) should beRight(
+        Decoder.decode[UnionRecord](outerSchema, recordBuilder.build) should beRight(
           UnionRecord(Some(SimpleRecord(s.cup, s.cat))))
       }
 
@@ -48,7 +48,7 @@ class OptionUnionSpec extends UnitSpecBase {
       val record = new GenericData.Record(unionSchema)
       record.put("field", null)
 
-      Parser.decode[Union](unionSchema, record) should beRight(Union(None))
+      Decoder.decode[Union](unionSchema, record) should beRight(Union(None))
     }
 
     "decode a union with a default" in new TestContext {
@@ -76,7 +76,7 @@ class OptionUnionSpec extends UnitSpecBase {
           case None       => builder.set("field", null)
         }
 
-        Parser.decode[RecordWithOptionalListCaseClass](schema, builder.build()) should beRight(r)
+        Decoder.decode[RecordWithOptionalListCaseClass](schema, builder.build()) should beRight(r)
       }
     }
 
@@ -98,7 +98,7 @@ class OptionUnionSpec extends UnitSpecBase {
 
         val expected = ReaderRecordWithEnum(writerRecord.field2, writerRecord.field1)
 
-        Parser.decode[ReaderRecordWithEnum](readerSchema, builder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithEnum](readerSchema, builder.build()) should beRight(expected)
       }
     }
 
@@ -109,7 +109,7 @@ class OptionUnionSpec extends UnitSpecBase {
         val record = new GenericData.Record(schema)
         record.put("field", "value i don't recognise")
 
-        Parser.decode[T](schema, record) should beRight(expected)
+        Decoder.decode[T](schema, record) should beRight(expected)
       }
 
     }

@@ -1,7 +1,7 @@
 package unit.decoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Parser
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import unit.decoder.utils.RunAssert._
@@ -15,9 +15,7 @@ class ArraySpec extends UnitSpecBase {
   "decoder" should {
     "decode a record with a list" in {
       forAll { record: RecordWithList =>
-        whenever(!record.field.isEmpty) {
-          runListAssert(record.field, record)
-        }
+        runListAssert(record.field, record)
       }
     }
     "decode a record with a seq" in {
@@ -86,7 +84,7 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Parser.decode[RecordWithListOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
+        Decoder.decode[RecordWithListOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
       }
     }
 
@@ -113,7 +111,7 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Parser.decode[RecordWithSeqOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
+        Decoder.decode[RecordWithSeqOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
       }
     }
     "decode a record with a vector of caseclass" in {
@@ -139,7 +137,7 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Parser.decode[RecordWithVectorOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
+        Decoder.decode[RecordWithVectorOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
       }
     }
 
@@ -172,7 +170,7 @@ class ArraySpec extends UnitSpecBase {
 
         }.asJava
         recordBuilder.set("field", recordList)
-        Parser.decode[RecordWithListOfOptionalCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
+        Decoder.decode[RecordWithListOfOptionalCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
       }
     }
 
@@ -190,7 +188,7 @@ class ArraySpec extends UnitSpecBase {
         recordBuilder.set("field1", javaList)
 
         val expected = ReaderRecordWithListOfMap(writerRecord.field1)
-        Parser.decode[ReaderRecordWithListOfMap](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithListOfMap](readerSchema, recordBuilder.build()) should beRight(expected)
       }
     }
 
@@ -208,7 +206,7 @@ class ArraySpec extends UnitSpecBase {
         recordBuilder.set("field1", javaList)
 
         val expected = ReaderRecordWithListOfEnum(writerRecord.field1)
-        Parser.decode[ReaderRecordWithListOfEnum](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithListOfEnum](readerSchema, recordBuilder.build()) should beRight(expected)
       }
     }
 

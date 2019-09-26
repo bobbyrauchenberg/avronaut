@@ -13,7 +13,7 @@ AvroSchema[RecordWithMultipleFields].schema.map { writerSchema =>
           genericRecord.put(1, "cupcat")
           genericRecord.put(2, 45)
           genericRecord
-        }.flatMap(record => Parser.decode[ReaderStringRecord](readerSchema, record))
+        }.flatMap(record => Decoder.decode[ReaderStringRecord](readerSchema, record))
 ```
 
 Will, if successful, decode the relevent fields to the GenericRecord to your caseclass, using the provided reader schema

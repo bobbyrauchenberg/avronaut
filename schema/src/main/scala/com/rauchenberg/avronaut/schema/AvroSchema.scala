@@ -9,6 +9,7 @@ import collection.JavaConverters._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations._
 import com.rauchenberg.avronaut.schema.helpers.SchemaHelper._
+import com.rauchenberg.avronaut.common.ReflectionHelpers.isEnum
 import magnolia._
 import org.apache.avro.{LogicalTypes, Schema, SchemaBuilder}
 import shapeless.{:+:, CNil, Coproduct}
@@ -50,18 +51,11 @@ object AvroSchema {
 
     val subtypes = ctx.subtypes.toList
 
-    import scala.reflect.runtime.universe
-
-    val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
-    val tpe           = runtimeMirror.weakTypeOf[T]
-    val isEnum        = tpe.typeSymbol.isClass && tpe.typeSymbol.asClass.knownDirectSubclasses.forall(_.isModuleClass)
-
     override def schema: SchemaResult =
       if (isEnum)
         schemaEnum(name, namespace, anno.doc, subtypes.map(_.typeName.short))
-      else {
+      else
         subtypes.traverse(_.typeclass.schema).flatMap(schemaUnion)
-      }
 
   }
 
@@ -89,7 +83,8 @@ object AvroSchema {
         } { docValue =>
           Field(name, Option(docValue), default, enum).asRight[Error]
         }
-      case _ => toField(default).asRight[Error]
+      case _ if (Option(schema.getLogicalType).isDefined) => toField(None).asRight[Error]
+      case _                                              => toField(default).asRight[Error]
     }
   }
 

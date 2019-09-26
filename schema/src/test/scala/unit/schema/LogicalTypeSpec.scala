@@ -27,8 +27,10 @@ class LogicalTypeSpec extends UnitSpecBase {
 
       schemaAsString[RecordWithUUID] should beRight(expected)
     }
+
   }
 
   case class RecordWithDateTime(field: OffsetDateTime)
   case class RecordWithUUID(field: UUID)
+
 }

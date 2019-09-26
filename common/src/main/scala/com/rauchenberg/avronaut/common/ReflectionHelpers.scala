@@ -1,7 +1,7 @@
-package com.rauchenberg.avronaut.decoder.helpers
+package com.rauchenberg.avronaut.common
 
 import scala.reflect.runtime.universe
-import reflect.runtime.universe._
+import scala.reflect.runtime.universe._
 
 object ReflectionHelpers {
 
@@ -17,4 +17,9 @@ object ReflectionHelpers {
       case TypeRef(_, us, _) => us
     }).fullName == name
 
+  def isEnum[T : WeakTypeTag] = {
+    val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
+    val tpe           = runtimeMirror.weakTypeOf[T]
+    tpe.typeSymbol.isClass && tpe.typeSymbol.asClass.knownDirectSubclasses.forall(_.isModuleClass)
+  }
 }

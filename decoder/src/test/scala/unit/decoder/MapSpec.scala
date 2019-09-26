@@ -1,7 +1,7 @@
 package unit.decoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Parser
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 
@@ -23,7 +23,7 @@ class MapSpec extends UnitSpecBase {
         recordBuilder.set("field2", writerRecord.field2)
 
         val expected = ReaderRecordWithMap(writerRecord.field1, writerRecord.field2)
-        Parser.decode[ReaderRecordWithMap](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithMap](readerSchema, recordBuilder.build()) should beRight(expected)
       }
     }
 
@@ -55,7 +55,7 @@ class MapSpec extends UnitSpecBase {
 
           val expected = ReaderRecordWithMapOfRecord(writerRecord.field1, writerRecord.field2)
 
-          Parser.decode[ReaderRecordWithMapOfRecord](readerSchema, recordBuilder.build()) should beRight(expected)
+          Decoder.decode[ReaderRecordWithMapOfRecord](readerSchema, recordBuilder.build()) should beRight(expected)
         }
       }
     }
@@ -77,7 +77,7 @@ class MapSpec extends UnitSpecBase {
         recordBuilder.set("field2", javaCollection)
 
         val expected = ReaderRecordWithList(writerRecord.field2, writerRecord.field1)
-        Parser.decode[ReaderRecordWithList](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithList](readerSchema, recordBuilder.build()) should beRight(expected)
       }
     }
 
@@ -102,7 +102,7 @@ class MapSpec extends UnitSpecBase {
 
         val expected = ReaderRecordWithUnion(writerRecord.field2, writerRecord.field1)
 
-        Parser.decode[ReaderRecordWithUnion](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithUnion](readerSchema, recordBuilder.build()) should beRight(expected)
       }
     }
   }

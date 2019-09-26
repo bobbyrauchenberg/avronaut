@@ -9,6 +9,11 @@ sealed abstract class AvroType extends Product with Serializable { self =>
     case _        => false
   }
 
+  def isFailure = this match {
+    case AvroFail(_) => true
+    case _           => false
+  }
+
 }
 final case object AvroNull                                  extends AvroType
 final case class AvroInt(value: Int)                        extends AvroType
@@ -24,7 +29,6 @@ final case class AvroArray(value: List[AvroType])           extends AvroType
 final case class AvroMapEntry(key: String, value: AvroType) extends AvroType
 final case class AvroMap(value: List[AvroMapEntry])         extends AvroType
 final case class AvroBytes(value: Array[Byte])              extends AvroType
-final case class AvroField(value: AvroType)                 extends AvroType
 final case class AvroUUID(value: AvroType)                  extends AvroType
 final case class AvroTimestampMillis(value: AvroType)       extends AvroType
 final case class AvroFail(msg: String)                      extends AvroType
