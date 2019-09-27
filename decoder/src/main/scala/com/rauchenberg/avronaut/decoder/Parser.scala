@@ -14,12 +14,8 @@ import scala.annotation.tailrec
 
 object Parser {
 
-  def parse(toDecode: FieldDecode) = {
-    val field  = toDecode.schema
-    val genRec = toDecode.genericRecord
-
+  def parse(field: Schema.Field, genRec: GenericRecord) =
     parseTypes(field.schema, genRec.get(field.name))
-  }
 
   private def parseMap[A](schema: Schema, value: A): Result[AvroType] =
     safe(
@@ -82,7 +78,7 @@ object Parser {
   private def parseRecord[A](schema: Schema, value: A): Result[AvroType] =
     value match {
       case gr: GenericRecord =>
-        fieldsFrom(schema).traverse(field => parse(FieldDecode(field, gr))).map(AvroRecord(_))
+        fieldsFrom(schema).traverse(field => parse(field, gr)).map(AvroRecord(_))
       case _ => Error(s"expected a GenericRecord for '$value', '$schema'").asLeft
     }
 

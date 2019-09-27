@@ -2,19 +2,21 @@ package com.rauchenberg.avronaut.decoder
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
+
 import cats.implicits._
+
 import collection.JavaConverters._
 import cats.implicits._
 import com.rauchenberg.avronaut.common.{ReflectionHelpers, _}
+import com.rauchenberg.avronaut.schema.AvroSchema
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import shapeless.{:+:, CNil, Coproduct, Inr}
 
 private[this] sealed trait DecodeOperation
-private[this] final case class FullDecode(schema: Schema, genericRecord: GenericRecord)        extends DecodeOperation
-private[this] final case class FieldDecode(schema: Schema.Field, genericRecord: GenericRecord) extends DecodeOperation
-private[this] final case class TypeDecode(value: AvroType)                                     extends DecodeOperation
+private[this] final case class FullDecode(genericRecord: GenericRecord) extends DecodeOperation
+private[this] final case class TypeDecode(value: AvroType)              extends DecodeOperation
 
 trait Decoder[A] {
 
@@ -28,20 +30,21 @@ object Decoder {
 
   implicit def gen[A]: Typeclass[A] = macro Magnolia.gen[A]
 
-  def decode[A](readerSchema: Schema, genericRecord: GenericRecord)(implicit decoder: Decoder[A]) =
-    decoder.apply(FullDecode(readerSchema, genericRecord))
+  def decode[A](genericRecord: GenericRecord)(implicit decoder: Decoder[A]) =
+    decoder.apply(FullDecode(genericRecord))
 
-  def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
+  def combine[A](ctx: CaseClass[Typeclass, A])(implicit s: AvroSchema[A]): Typeclass[A] = new Typeclass[A] {
 
     val params = ctx.parameters.toList
 
     override def apply(operation: DecodeOperation): Result[A] =
       (operation match {
-        case FullDecode(schema, genericRecord) =>
+        case FullDecode(genericRecord) =>
+          val schema = s.schema.right.get
           params.zip(fieldsFrom(schema)).traverse {
             case (param, field) =>
               val res = Parser
-                .parse(FieldDecode(field, genericRecord))
+                .parse(field, genericRecord)
                 .map(TypeDecode(_))
                 .flatMap(v => param.typeclass.apply(v))
               (res, param.default) match {

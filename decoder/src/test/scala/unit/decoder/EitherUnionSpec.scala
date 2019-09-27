@@ -29,8 +29,6 @@ class EitherUnionSpec extends UnitSpecBase {
         val cupcatRecord = new GenericData.Record(cupcatSchema)
         val rendalRecord = new GenericData.Record(rendalSchema)
 
-        val readerSchema = AvroSchema[ReaderUnionWithCaseClass].schema.value
-
         val recordBuilder = new GenericRecordBuilder(outerRecord)
         u.field match {
           case Right(rendal) =>
@@ -43,7 +41,7 @@ class EitherUnionSpec extends UnitSpecBase {
             recordBuilder.set("field", cupcatRecord)
         }
         recordBuilder.set("fieldReaderIgnores", toIgnore)
-        Decoder.decode[ReaderUnionWithCaseClass](readerSchema, recordBuilder.build()) should beRight(
+        Decoder.decode[ReaderUnionWithCaseClass](recordBuilder.build()) should beRight(
           ReaderUnionWithCaseClass(u.field))
       }
     }
@@ -71,7 +69,7 @@ class EitherUnionSpec extends UnitSpecBase {
           case None => outerRecord.put(0, null)
         }
 
-        Decoder.decode[UnionWithOptionalEither](outerSchema, recordBuilder.build()) should beRight(u)
+        Decoder.decode[UnionWithOptionalEither](recordBuilder.build()) should beRight(u)
 
       }
     }
@@ -101,7 +99,7 @@ class EitherUnionSpec extends UnitSpecBase {
           case Left(None) =>
             outerRecord.put(0, null)
         }
-        Decoder.decode[UnionWithEitherOfOption](outerSchema, recordBuilder.build()) should beRight(u)
+        Decoder.decode[UnionWithEitherOfOption](recordBuilder.build()) should beRight(u)
       }
     }
 
@@ -136,7 +134,7 @@ class EitherUnionSpec extends UnitSpecBase {
             outerRecord.put(0, null)
         }
 
-        Decoder.decode[UnionWithEitherOfList](outerSchema, recordBuilder.build()) should beRight(u)
+        Decoder.decode[UnionWithEitherOfList](recordBuilder.build()) should beRight(u)
       }
     }
 
@@ -147,14 +145,13 @@ class EitherUnionSpec extends UnitSpecBase {
       recordBuilder.set("field", "232")
 
       val expected = UnionWithDefaultCaseClass()
-      Decoder.decode[UnionWithDefaultCaseClass](outerSchema, recordBuilder.build()) should beRight(expected)
+      Decoder.decode[UnionWithDefaultCaseClass](recordBuilder.build()) should beRight(expected)
     }
 
     "decode a union of null and enum" in {
       import EitherUnionSpec._
       forAll { record: WriterRecordWithEnum =>
         val writerSchema = AvroSchema[WriterRecordWithEnum].schema.value
-        val readerSchema = AvroSchema[ReaderRecordWithEnum].schema.value
 
         val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema))
 
@@ -167,7 +164,7 @@ class EitherUnionSpec extends UnitSpecBase {
 
         val expected = ReaderRecordWithEnum(record.field2, record.field1)
 
-        Decoder.decode[ReaderRecordWithEnum](readerSchema, builder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithEnum](builder.build()) should beRight(expected)
       }
     }
 

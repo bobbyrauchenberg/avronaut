@@ -21,6 +21,11 @@ lazy val decoder = newModule("decoder").dependsOn(
   schema % "compile->compile; test->compile"
 )
 
+lazy val encoder = newModule("encoder").dependsOn(
+  common % "compile->compile; test->test",
+  schema % "compile->compile; test->compile"
+)
+
 def newModule(name: String): Project =
   Project(id = name, base = file(name))
     .settings(AvronautBuild.buildSettings)

@@ -2,14 +2,7 @@ package com.rauchenberg.avronaut.common
 
 import cats.syntax.either._
 
-sealed abstract class AvroType extends Product with Serializable { self =>
-
-  def isNull = this match {
-    case AvroNull => true
-    case _        => false
-  }
-
-}
+sealed trait AvroType
 final case object AvroNull                                  extends AvroType
 final case class AvroInt(value: Int)                        extends AvroType
 final case class AvroLong(value: Long)                      extends AvroType

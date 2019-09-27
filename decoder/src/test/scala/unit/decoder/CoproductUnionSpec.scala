@@ -14,7 +14,6 @@ class CoproductUnionSpec extends UnitSpecBase {
     "decode a union of multiple types" in {
       forAll { (writerField: Long, field1: String :+: Boolean :+: Int :+: CNil, field2: Boolean) =>
         val writerSchema = AvroSchema[WriterRecordWithCoproduct].schema.value
-        val readerSchema = AvroSchema[ReaderRecordWithCoproduct].schema.value
 
         val recordBuilder = new GenericRecordBuilder(new GenericData.Record(writerSchema))
 
@@ -30,7 +29,7 @@ class CoproductUnionSpec extends UnitSpecBase {
         recordBuilder.set("field2", field2)
 
         val expected = ReaderRecordWithCoproduct(field2, field1)
-        Decoder.decode[ReaderRecordWithCoproduct](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithCoproduct](recordBuilder.build()) should beRight(expected)
       }
     }
 

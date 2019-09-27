@@ -13,7 +13,6 @@ class MapSpec extends UnitSpecBase {
 
       forAll { writerRecord: WriterRecordWithMap =>
         val writerSchema = AvroSchema[WriterRecordWithMap].schema.value
-        val readerSchema = AvroSchema[ReaderRecordWithMap].schema.value
 
         val record = new GenericData.Record(writerSchema)
 
@@ -23,7 +22,7 @@ class MapSpec extends UnitSpecBase {
         recordBuilder.set("field2", writerRecord.field2)
 
         val expected = ReaderRecordWithMap(writerRecord.field1, writerRecord.field2)
-        Decoder.decode[ReaderRecordWithMap](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithMap](recordBuilder.build()) should beRight(expected)
       }
     }
 
@@ -32,8 +31,6 @@ class MapSpec extends UnitSpecBase {
         whenever(writerRecord.field2.size > 0) {
           val writerSchema       = AvroSchema[WriterRecordWithMapOfRecord].schema.value
           val writerNestedSchema = AvroSchema[Nested].schema.value
-
-          val readerSchema = AvroSchema[ReaderRecordWithMapOfRecord].schema.value
 
           val nestedGenericRecord = new GenericData.Record(writerNestedSchema)
           nestedGenericRecord.put("field1", 5)
@@ -55,7 +52,7 @@ class MapSpec extends UnitSpecBase {
 
           val expected = ReaderRecordWithMapOfRecord(writerRecord.field1, writerRecord.field2)
 
-          Decoder.decode[ReaderRecordWithMapOfRecord](readerSchema, recordBuilder.build()) should beRight(expected)
+          Decoder.decode[ReaderRecordWithMapOfRecord](recordBuilder.build()) should beRight(expected)
         }
       }
     }
@@ -63,7 +60,6 @@ class MapSpec extends UnitSpecBase {
     "decode a record with a map of Array" in {
       forAll { writerRecord: WriterRecordWithList =>
         val writerSchema = AvroSchema[WriterRecordWithList].schema.value
-        val readerSchema = AvroSchema[ReaderRecordWithList].schema.value
 
         val record        = new GenericData.Record(writerSchema)
         val recordBuilder = new GenericRecordBuilder(record)
@@ -77,14 +73,13 @@ class MapSpec extends UnitSpecBase {
         recordBuilder.set("field2", javaCollection)
 
         val expected = ReaderRecordWithList(writerRecord.field2, writerRecord.field1)
-        Decoder.decode[ReaderRecordWithList](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithList](recordBuilder.build()) should beRight(expected)
       }
     }
 
     "decode a record with a map of Union" in {
       forAll { writerRecord: WriterRecordWithUnion =>
         val writerSchema = AvroSchema[WriterRecordWithUnion].schema.value
-        val readerSchema = AvroSchema[ReaderRecordWithUnion].schema.value
 
         val record        = new GenericData.Record(writerSchema)
         val recordBuilder = new GenericRecordBuilder(record)
@@ -102,7 +97,7 @@ class MapSpec extends UnitSpecBase {
 
         val expected = ReaderRecordWithUnion(writerRecord.field2, writerRecord.field1)
 
-        Decoder.decode[ReaderRecordWithUnion](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithUnion](recordBuilder.build()) should beRight(expected)
       }
     }
   }

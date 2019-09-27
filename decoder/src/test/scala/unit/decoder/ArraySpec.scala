@@ -84,7 +84,7 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Decoder.decode[RecordWithListOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
+        Decoder.decode[RecordWithListOfCaseClass](recordBuilder.build()) should beRight(r)
       }
     }
 
@@ -111,7 +111,7 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Decoder.decode[RecordWithSeqOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
+        Decoder.decode[RecordWithSeqOfCaseClass](recordBuilder.build()) should beRight(r)
       }
     }
     "decode a record with a vector of caseclass" in {
@@ -137,7 +137,7 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Decoder.decode[RecordWithVectorOfCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
+        Decoder.decode[RecordWithVectorOfCaseClass](recordBuilder.build()) should beRight(r)
       }
     }
 
@@ -170,14 +170,13 @@ class ArraySpec extends UnitSpecBase {
 
         }.asJava
         recordBuilder.set("field", recordList)
-        Decoder.decode[RecordWithListOfOptionalCaseClass](rootSchema.value, recordBuilder.build()) should beRight(r)
+        Decoder.decode[RecordWithListOfOptionalCaseClass](recordBuilder.build()) should beRight(r)
       }
     }
 
     "decode a list of map" in {
       forAll { writerRecord: WriterRecordWithListOfMap =>
         val writerSchema = AvroSchema[WriterRecordWithListOfMap].schema.value
-        val readerSchema = AvroSchema[ReaderRecordWithListOfMap].schema.value
 
         val javaList = writerRecord.field1.map(_.asJava).asJava
 
@@ -188,14 +187,13 @@ class ArraySpec extends UnitSpecBase {
         recordBuilder.set("field1", javaList)
 
         val expected = ReaderRecordWithListOfMap(writerRecord.field1)
-        Decoder.decode[ReaderRecordWithListOfMap](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithListOfMap](recordBuilder.build()) should beRight(expected)
       }
     }
 
     "decode a list of enum" in {
       forAll { writerRecord: WriterRecordWithListOfEnum =>
         val writerSchema = AvroSchema[WriterRecordWithListOfEnum].schema.value
-        val readerSchema = AvroSchema[ReaderRecordWithListOfEnum].schema.value
 
         val javaList = writerRecord.field1.map(_.toString).asJava
 
@@ -206,7 +204,7 @@ class ArraySpec extends UnitSpecBase {
         recordBuilder.set("field1", javaList)
 
         val expected = ReaderRecordWithListOfEnum(writerRecord.field1)
-        Decoder.decode[ReaderRecordWithListOfEnum](readerSchema, recordBuilder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithListOfEnum](recordBuilder.build()) should beRight(expected)
       }
     }
 

@@ -20,8 +20,8 @@ class OptionUnionSpec extends UnitSpecBase {
 
     "decode a union with a record" in {
       forAll { (s: SimpleRecord) =>
-        val simpleRecordSchema = AvroSchema[SimpleRecord].schema.value
-        val outerSchema        = AvroSchema[UnionRecord].schema.value
+        val simpleRecordSchema   = AvroSchema[SimpleRecord].schema.value
+        implicit val outerSchema = AvroSchema[UnionRecord].schema.value
 
         val unionSchema = Schema.createUnion(List(SchemaBuilder.builder.nullType, simpleRecordSchema): _*)
 
@@ -36,8 +36,7 @@ class OptionUnionSpec extends UnitSpecBase {
 
         recordBuilder.set("field", innerRecord)
 
-        Decoder.decode[UnionRecord](outerSchema, recordBuilder.build) should beRight(
-          UnionRecord(Some(SimpleRecord(s.cup, s.cat))))
+        Decoder.decode[UnionRecord](recordBuilder.build) should beRight(UnionRecord(Some(SimpleRecord(s.cup, s.cat))))
       }
 
     }
@@ -45,10 +44,10 @@ class OptionUnionSpec extends UnitSpecBase {
     "decode a union to None when the record value is null" in {
       val unionSchema = AvroSchema[Union].schema.value
 
-      val record = new GenericData.Record(unionSchema)
+      implicit val record = new GenericData.Record(unionSchema)
       record.put("field", null)
 
-      Decoder.decode[Union](unionSchema, record) should beRight(Union(None))
+      Decoder.decode[Union](record) should beRight(Union(None))
     }
 
     "decode a union with a default" in new TestContext {
@@ -65,7 +64,7 @@ class OptionUnionSpec extends UnitSpecBase {
 
     "decode a union with a list of records" in {
       forAll { writerRecord: Option[List[String]] =>
-        val schema = AvroSchema[RecordWithOptionalListCaseClass].schema.value
+        implicit val schema = AvroSchema[RecordWithOptionalListCaseClass].schema.value
 
         val builder = new GenericRecordBuilder(new GenericData.Record(schema))
 
@@ -76,7 +75,7 @@ class OptionUnionSpec extends UnitSpecBase {
           case None       => builder.set("field", null)
         }
 
-        Decoder.decode[RecordWithOptionalListCaseClass](schema, builder.build()) should beRight(r)
+        Decoder.decode[RecordWithOptionalListCaseClass](builder.build()) should beRight(r)
       }
     }
 
@@ -85,7 +84,7 @@ class OptionUnionSpec extends UnitSpecBase {
     "decode a union of null and enum" in {
       forAll { writerRecord: WriterRecordWithEnum =>
         val writerSchema = AvroSchema[WriterRecordWithEnum].schema.value
-        val readerSchema = AvroSchema[ReaderRecordWithEnum].schema.value
+        //implicit val readerSchema = AvroSchema[ReaderRecordWithEnum].schema.value
 
         val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema))
 
@@ -98,18 +97,18 @@ class OptionUnionSpec extends UnitSpecBase {
 
         val expected = ReaderRecordWithEnum(writerRecord.field2, writerRecord.field1)
 
-        Decoder.decode[ReaderRecordWithEnum](readerSchema, builder.build()) should beRight(expected)
+        Decoder.decode[ReaderRecordWithEnum](builder.build()) should beRight(expected)
       }
     }
 
     trait TestContext {
       def assertHasDefault[A : AvroSchema : Decoder](expected: A) = {
-        val schema = AvroSchema[A].schema.value
+        implicit val schema = AvroSchema[A].schema.value
 
         val record = new GenericData.Record(schema)
         record.put("field", "value i don't recognise")
 
-        Decoder.decode[A](schema, record) should beRight(expected)
+        Decoder.decode[A](record) should beRight(expected)
       }
 
     }
