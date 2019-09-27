@@ -13,13 +13,13 @@ class OptionUnionSpec extends UnitSpecBase {
 
   "decoder" should {
     "decode an union of null and T" in {
-      forAll { u: Union =>
-        runAssert(u.field.getOrElse(null), u)
+      forAll { record: Union =>
+        runAssert(record.field.getOrElse(null), record)
       }
     }
 
     "decode a union with a record" in {
-      forAll { (s: SimpleRecord) =>
+      forAll { record: SimpleRecord =>
         val simpleRecordSchema   = AvroSchema[SimpleRecord].schema.value
         implicit val outerSchema = AvroSchema[UnionRecord].schema.value
 
@@ -28,15 +28,16 @@ class OptionUnionSpec extends UnitSpecBase {
         val innerSchema = unionSchema.getTypes.asScala.last
         val innerRecord = new GenericData.Record(innerSchema)
 
-        innerRecord.put(0, s.cup)
-        innerRecord.put(1, s.cat)
+        innerRecord.put(0, record.cup)
+        innerRecord.put(1, record.cat)
 
         val outerRecord   = new GenericData.Record(outerSchema)
         val recordBuilder = new GenericRecordBuilder(outerRecord)
 
         recordBuilder.set("field", innerRecord)
 
-        Decoder.decode[UnionRecord](recordBuilder.build) should beRight(UnionRecord(Some(SimpleRecord(s.cup, s.cat))))
+        Decoder.decode[UnionRecord](recordBuilder.build) should beRight(
+          UnionRecord(Some(SimpleRecord(record.cup, record.cat))))
       }
 
     }

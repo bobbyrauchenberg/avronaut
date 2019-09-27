@@ -97,7 +97,7 @@ object AvroType {
     else Error(s"$value is not null").asLeft
 
   final def fromAvroNull(value: AvroType): Result[None.type] = value match {
-    case AvroNull => None.asRight
+    case AvroNull => Right(null)
     case _        => Error(s"$value is not an AvroNull").asLeft
   }
 

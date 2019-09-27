@@ -5,13 +5,9 @@ import com.rauchenberg.avronaut.common.AvroType._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import magnolia.{CaseClass, Magnolia}
-import org.apache.avro.Schema
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.generic.GenericData
 
-private[this] sealed trait EncodeOperation
-private[this] final case class FullEncode(schema: Schema, genericRecord: GenericRecord)        extends EncodeOperation
-private[this] final case class FieldEncode(schema: Schema.Field, genericRecord: GenericRecord) extends EncodeOperation
-private[this] final case class TypeEncode(value: AvroType)                                     extends EncodeOperation
+import scala.collection.JavaConverters._
 
 trait Encoder[A] {
 
@@ -27,25 +23,25 @@ object Encoder {
 
   implicit def gen[A]: Typeclass[A] = macro Magnolia.gen[A]
 
-  def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericRecord] =
+  def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericData.Record] =
     for {
       s       <- schema.schema
       encoded <- encoder.encode(a)
-      genRec  <- Parser.parse(s, encoded.asInstanceOf[AvroRecord])
+      genRec  <- Parser(new GenericData.Record(s)).parse(encoded.asInstanceOf[AvroRecord])
     } yield genRec
 
-  def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] =
+  def combine[A](ctx: CaseClass[Typeclass, A])(implicit s: AvroSchema[A]): Typeclass[A] =
     new Typeclass[A] {
-      override def encode(value: A): Result[AvroType] = {
-        val params = ctx.parameters.toList
-        val res = params.traverse {
-          case param =>
-            val res = param.typeclass.encode(param.dereference(value))
-            println(res)
-            res
+      override def encode(value: A): Result[AvroType] =
+        s.schema.flatMap { schema =>
+          schema.getFields.asScala.toList.traverse { field =>
+            ctx.parameters.toList
+              .find(_.label == field.name)
+              .map(_.asRight)
+              .getOrElse(Error("couldn't find param for schema field").asLeft)
+              .flatMap(p => p.typeclass.encode(p.dereference(value)))
+          }.map(AvroRecord(_))
         }
-        res.map(AvroRecord(_))
-      }
     }
 
   implicit val stringEncoder: Encoder[String] = toAvroString
@@ -64,4 +60,7 @@ object Encoder {
 
   implicit def listEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[List[A]] =
     value => value.traverse(elementEncoder.encode(_)).map(AvroArray(_))
+
+  implicit def optionEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[Option[A]] =
+    value => value.fold[Result[AvroType]](toAvroNull(null))(v => elementEncoder.encode(v)).map(AvroUnion(_))
 }
