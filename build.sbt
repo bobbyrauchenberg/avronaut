@@ -22,8 +22,9 @@ lazy val decoder = newModule("decoder").dependsOn(
 )
 
 lazy val encoder = newModule("encoder").dependsOn(
-  common % "compile->compile; test->test",
-  schema % "compile->compile; test->compile"
+  common  % "compile->compile; test->test",
+  schema  % "compile->compile; test->compile",
+  decoder % "test->compile"
 )
 
 def newModule(name: String): Project =

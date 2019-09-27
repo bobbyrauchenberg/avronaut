@@ -27,9 +27,19 @@ object AvroType {
     case _                   => Error(s"'$value' is not a String").asLeft
   }
 
+  final def fromAvroString(value: AvroType): Result[String] = value match {
+    case AvroString(s) => s.asRight
+    case _             => Error(s"$value is not an AvroString").asLeft
+  }
+
   final def toAvroInt[A](value: A): Result[AvroType] = value match {
     case v: java.lang.Integer => safe(AvroInt(v))
     case _                    => Error(s"'$value' is not an Int").asLeft
+  }
+
+  final def fromAvroInt(value: AvroType): Result[Int] = value match {
+    case AvroInt(s) => s.asRight
+    case _          => Error(s"$value is not an AvroInt").asLeft
   }
 
   final def toAvroLong[A](value: A): Result[AvroType] = value match {
@@ -37,9 +47,19 @@ object AvroType {
     case _                 => Error(s"'$value' is not a Long").asLeft
   }
 
+  final def fromAvroLong(value: AvroType): Result[Long] = value match {
+    case AvroLong(s) => s.asRight
+    case _           => Error(s"$value is not an AvroLong").asLeft
+  }
+
   final def toAvroFloat[A](value: A): Result[AvroType] = value match {
     case v: java.lang.Float => safe(AvroFloat(v))
     case _                  => Error(s"'$value' is not a Float").asLeft
+  }
+
+  final def fromAvroFloat(value: AvroType): Result[Float] = value match {
+    case AvroFloat(s) => s.asRight
+    case _            => Error(s"$value is not an AvroFloat").asLeft
   }
 
   final def toAvroDouble[A](value: A): Result[AvroType] = value match {
@@ -47,19 +67,39 @@ object AvroType {
     case _                   => Error(s"'$value' is not a Double").asLeft
   }
 
-  final def toAvroBool[A](value: A): Result[AvroType] = value match {
+  final def fromAvroDouble(value: AvroType): Result[Double] = value match {
+    case AvroDouble(s) => s.asRight
+    case _             => Error(s"$value is not an AvroDouble").asLeft
+  }
+
+  final def toAvroBoolean[A](value: A): Result[AvroType] = value match {
     case v: java.lang.Boolean => safe(AvroBoolean(v))
     case _                    => Error(s"'$value' is not a Boolean").asLeft
   }
 
+  final def fromAvroBoolean(value: AvroType): Result[Boolean] = value match {
+    case AvroBoolean(s) => s.asRight
+    case _              => Error(s"$value is not an AvroBoolean").asLeft
+  }
+
   final def toAvroBytes[A](value: A) = value match {
     case v: Array[Byte] => safe(AvroBytes(v))
-    case _              => Error(s"'$value' is not Bytes").asLeft
+    case _              => Error(s"'$value' is not an Array[Bytes]").asLeft
+  }
+
+  final def fromAvroBytes(value: AvroType): Result[Array[Byte]] = value match {
+    case AvroBytes(s) => s.asRight
+    case _            => Error(s"$value is not an AvroBytes").asLeft
   }
 
   final def toAvroNull[A](value: A) =
     if (value == null) AvroNull.asRight
     else Error(s"$value is not null").asLeft
+
+  final def fromAvroNull(value: AvroType): Result[None.type] = value match {
+    case AvroNull => None.asRight
+    case _        => Error(s"$value is not an AvroNull").asLeft
+  }
 
   final def toAvroRecord(value: List[AvroType])   = safe(AvroRecord(value))
   final def toAvroRecord(value: Vector[AvroType]) = safe(AvroRecord(value.toList))

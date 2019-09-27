@@ -17,6 +17,18 @@ object Parser {
   def parse(field: Schema.Field, genRec: GenericRecord) =
     parseTypes(field.schema, genRec.get(field.name))
 
+  private def parseTypes[A](schema: Schema, value: A) = {
+    val schemaType = schema.getType
+    schemaType match {
+      case RECORD => parseRecord(schema, value)
+      case UNION  => parseUnion(schema, value)
+      case ARRAY  => parseArray(schema, value)
+      case ENUM   => AvroEnum(value).asRight
+      case MAP    => parseMap(schema, value)
+      case _      => toAST(schema.getLogicalType, schemaType, value)
+    }
+  }
+
   private def parseMap[A](schema: Schema, value: A): Result[AvroType] =
     safe(
       value
@@ -89,18 +101,6 @@ object Parser {
       logicalTypeToPrimitive(lt.getName, value)
     }
 
-  private def parseTypes[A](schema: Schema, value: A) = {
-    val schemaType = schema.getType
-    schemaType match {
-      case RECORD => parseRecord(schema, value)
-      case UNION  => parseUnion(schema, value)
-      case ARRAY  => parseArray(schema, value)
-      case ENUM   => AvroEnum(value).asRight
-      case MAP    => parseMap(schema, value)
-      case _      => toAST(schema.getLogicalType, schemaType, value)
-    }
-  }
-
   private def parsePrimitive[A](field: Schema.Type, value: A) =
     field match {
       case STRING  => toAvroString(value)
@@ -108,7 +108,7 @@ object Parser {
       case LONG    => toAvroLong(value)
       case FLOAT   => toAvroFloat(value)
       case DOUBLE  => toAvroDouble(value)
-      case BOOLEAN => toAvroBool(value)
+      case BOOLEAN => toAvroBoolean(value)
       case BYTES   => toAvroBytes(value)
       case NULL    => toAvroNull(value)
       case _       => Error(s"couldn't map to AST '$value', '$field'").asLeft

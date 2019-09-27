@@ -1,7 +1,6 @@
 package unit.common
 
 import cats.scalatest.{EitherMatchers, EitherValues}
-import com.rauchenberg.cupcatAvro.schema.instances.schemaInstances
 import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
@@ -11,4 +10,3 @@ trait UnitSpecBase
     with Matchers
     with EitherMatchers
     with EitherValues
-    with schemaInstances

@@ -13,6 +13,7 @@ import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import shapeless.{:+:, CNil, Coproduct, Inr}
+import Parser.parse
 
 private[this] sealed trait DecodeOperation
 private[this] final case class FullDecode(genericRecord: GenericRecord) extends DecodeOperation
@@ -40,17 +41,15 @@ object Decoder {
     override def apply(operation: DecodeOperation): Result[A] =
       (operation match {
         case FullDecode(genericRecord) =>
-          val schema = s.schema.right.get
-          params.zip(fieldsFrom(schema)).traverse {
-            case (param, field) =>
-              val res = Parser
-                .parse(field, genericRecord)
-                .map(TypeDecode(_))
-                .flatMap(v => param.typeclass.apply(v))
-              (res, param.default) match {
-                case (Left(_), Some(default)) => default.asRight
-                case _                        => res
-              }
+          s.schema.flatMap { schema =>
+            params.zip(fieldsFrom(schema)).traverse {
+              case (param, field) =>
+                val res = parse(field, genericRecord).map(TypeDecode(_)).flatMap(param.typeclass.apply)
+                (res, param.default) match {
+                  case (Left(_), Some(default)) => default.asRight
+                  case _                        => res
+                }
+            }
           }
         case TypeDecode(AvroRecord(fields)) =>
           params.zip(fields).traverse {

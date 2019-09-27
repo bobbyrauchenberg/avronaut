@@ -6,42 +6,51 @@ import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import magnolia.{CaseClass, Magnolia}
 import org.apache.avro.Schema
-import org.apache.avro.generic.{GenericData, GenericRecord}
-
-
+import org.apache.avro.generic.GenericRecord
 
 private[this] sealed trait EncodeOperation
 private[this] final case class FullEncode(schema: Schema, genericRecord: GenericRecord)        extends EncodeOperation
 private[this] final case class FieldEncode(schema: Schema.Field, genericRecord: GenericRecord) extends EncodeOperation
 private[this] final case class TypeEncode(value: AvroType)                                     extends EncodeOperation
 
+trait Encoder[A] {
 
-trait Encoder[T] {
-
-  def encode(value: T): Result[AvroType]
+  def encode(value: A): Result[AvroType]
 
 }
 
 object Encoder {
 
-  def apply[T](implicit encoder: Encoder[T]) = encoder
+  def apply[A](implicit encoder: Encoder[A]) = encoder
 
-  type Typeclass[T] = Encoder[T]
+  type Typeclass[A] = Encoder[A]
 
-  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
+  implicit def gen[A]: Typeclass[A] = macro Magnolia.gen[A]
 
-  def combine[A](ctx: CaseClass[Typeclass, A])(implicit s: AvroSchema[A]): Typeclass[A] =
+  def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericRecord] =
+    for {
+      s       <- schema.schema
+      encoded <- encoder.encode(a)
+      genRec  <- Parser.parse(s, encoded.asInstanceOf[AvroRecord])
+    } yield genRec
+
+  def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] =
     new Typeclass[A] {
       override def encode(value: A): Result[AvroType] = {
         val params = ctx.parameters.toList
-
-
+        val res = params.traverse {
+          case param =>
+            val res = param.typeclass.encode(param.dereference(value))
+            println(res)
+            res
+        }
+        res.map(AvroRecord(_))
       }
     }
 
   implicit val stringEncoder: Encoder[String] = toAvroString
 
-  implicit val booleanEncoder: Encoder[Boolean] = toAvroBool
+  implicit val booleanEncoder: Encoder[Boolean] = toAvroBoolean
 
   implicit val intEncoder: Encoder[Int] = toAvroInt
 
@@ -52,6 +61,7 @@ object Encoder {
   implicit val doubleEncoder: Encoder[Double] = toAvroDouble
 
   implicit val bytesEncoder: Encoder[Array[Byte]] = toAvroBytes
+
+  implicit def listEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[List[A]] =
+    value => value.traverse(elementEncoder.encode(_)).map(AvroArray(_))
 }
-
-
