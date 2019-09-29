@@ -4,16 +4,14 @@ import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 import cats.implicits._
-
-import collection.JavaConverters._
-import cats.implicits._
 import com.rauchenberg.avronaut.common.{ReflectionHelpers, _}
+import com.rauchenberg.avronaut.decoder.Parser.parse
 import com.rauchenberg.avronaut.schema.AvroSchema
 import magnolia.{CaseClass, Magnolia, SealedTrait}
-import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import shapeless.{:+:, CNil, Coproduct, Inr}
-import Parser.parse
+
+import scala.collection.JavaConverters._
 
 private[this] sealed trait DecodeOperation
 private[this] final case class FullDecode(genericRecord: GenericRecord) extends DecodeOperation
@@ -42,35 +40,25 @@ object Decoder {
       (operation match {
         case FullDecode(genericRecord) =>
           s.schema.flatMap { schema =>
-            params.zip(fieldsFrom(schema)).traverse {
-              case (param, field) =>
-                val res = parse(field, genericRecord).map(TypeDecode(_)).flatMap(param.typeclass.apply)
-                (res, param.default) match {
-                  case (Left(_), Some(default)) => default.asRight
-                  case _                        => res
+            schema.getFields.asScala.toList.traverse { field =>
+              ctx.parameters.toList
+                .find(_.label == field.name)
+                .map(_.asRight)
+                .getOrElse(Error(s"couldn't find param for schema field ${field.name}").asLeft)
+                .flatMap { param =>
+                  valueOrDefault(parse(field, genericRecord).flatMap(v => param.typeclass.apply(TypeDecode(v))),
+                                 param.default)
                 }
             }
           }
         case TypeDecode(AvroRecord(fields)) =>
           params.zip(fields).traverse {
             case (param, avroType) =>
-              typeclassOrDefault(TypeDecode(avroType), param.typeclass.apply, param.default)
+              valueOrDefault(param.typeclass.apply(TypeDecode(avroType)), param.default)
           }
         case other =>
-          params.traverse(param => typeclassOrDefault(other, param.typeclass.apply, param.default))
+          params.traverse(param => valueOrDefault(param.typeclass.apply(other), param.default))
       }).map(ctx.rawConstruct(_))
-
-    def typeclassOrDefault[B](value: DecodeOperation,
-                              f: DecodeOperation => Result[B],
-                              default: Option[B]): Result[B] = {
-      val res = f(value)
-      (res, default) match {
-        case (Left(_), Some(default)) => default.asRight
-        case _                        => res
-      }
-    }
-
-    private def fieldsFrom(s: Schema) = s.getFields.asScala.toList
 
   }
 
@@ -85,6 +73,12 @@ object Decoder {
         case _ => Error("not an enum").asLeft
       }
   }
+
+  private def valueOrDefault[B](value: Result[B], default: Option[B]) =
+    (value, default) match {
+      case (Left(_), Some(default)) => default.asRight
+      case _                        => value
+    }
 
   def error[A](expected: String, actual: A): Either[Error, Nothing] = Error(s"expected $expected, got $actual").asLeft
 

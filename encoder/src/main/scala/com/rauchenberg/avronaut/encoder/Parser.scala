@@ -66,7 +66,7 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
       }
     }.map { list =>
       genericRecord.put(index, list.asJava)
-      (index += 1)
+      index += 1
     }
 
   private def parseUnion(schema: Schema, avroUnion: AvroUnion): Result[Unit] = {
