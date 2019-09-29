@@ -27,7 +27,10 @@ object Encoder {
     for {
       s       <- schema.schema
       encoded <- encoder.encode(a)
-      genRec  <- Parser(new GenericData.Record(s)).parse(encoded.asInstanceOf[AvroRecord])
+      genRec <- encoded match {
+                 case a @ AvroRecord(_) => Parser(new GenericData.Record(s)).parse(a)
+                 case _                 => Error(s"Can only encode records, got $encoded").asLeft
+               }
     } yield genRec
 
   def combine[A](ctx: CaseClass[Typeclass, A])(implicit s: AvroSchema[A]): Typeclass[A] =
@@ -38,7 +41,7 @@ object Encoder {
             ctx.parameters.toList
               .find(_.label == field.name)
               .map(_.asRight)
-              .getOrElse(Error("couldn't find param for schema field").asLeft)
+              .getOrElse(Error(s"couldn't find param for schema field ${field.name}").asLeft)
               .flatMap(p => p.typeclass.encode(p.dereference(value)))
           }.map(AvroRecord(_))
         }

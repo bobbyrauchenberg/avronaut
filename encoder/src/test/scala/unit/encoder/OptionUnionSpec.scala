@@ -53,7 +53,31 @@ class OptionUnionSpec extends UnitSpecBase {
         Encoder.encode[RecordWithUnionOfCaseclass](RecordWithUnionOfCaseclass(Some(record))) should beRight(
           recordBuilder.build)
       }
+    }
 
+    "encode a union with a record roundtrip" in {
+      forAll { record: RecordWithUnionOfCaseclass =>
+        Encoder.encode[RecordWithUnionOfCaseclass](record).flatMap { v =>
+          Decoder.decode[RecordWithUnionOfCaseclass](v)
+        } should beRight(record)
+      }
+    }
+
+    "encode a union with a list" in {
+      forAll { record: Option[List[String]] =>
+        implicit val schema = AvroSchema[RecordWithOptionalListCaseClass].schema.value
+
+        val builder = new GenericRecordBuilder(new GenericData.Record(schema))
+
+        val r = RecordWithOptionalListCaseClass(record)
+
+        r.field match {
+          case Some(list) => builder.set("field", list.asJava)
+          case None       => builder.set("field", null)
+        }
+
+        Encoder.encode[RecordWithOptionalListCaseClass](r) should beRight(builder.build())
+      }
     }
 
   }
@@ -61,5 +85,6 @@ class OptionUnionSpec extends UnitSpecBase {
   case class RecordWithUnion(field: Option[String])
   case class SimpleRecord(cup: String, cat: Int)
   case class RecordWithUnionOfCaseclass(field: Option[SimpleRecord])
+  case class RecordWithOptionalListCaseClass(field: Option[List[String]])
 
 }

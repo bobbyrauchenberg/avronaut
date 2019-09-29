@@ -85,7 +85,6 @@ class OptionUnionSpec extends UnitSpecBase {
     "decode a union of null and enum" in {
       forAll { writerRecord: WriterRecordWithEnum =>
         val writerSchema = AvroSchema[WriterRecordWithEnum].schema.value
-        //implicit val readerSchema = AvroSchema[ReaderRecordWithEnum].schema.value
 
         val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema))
 

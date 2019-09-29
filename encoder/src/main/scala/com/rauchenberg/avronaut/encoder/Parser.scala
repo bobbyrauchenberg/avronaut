@@ -39,9 +39,10 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
     val schemaType = schema.getType
     (schemaType, avroType) match {
       case (RECORD, v @ AvroRecord(_)) =>
-        Parser(new GenericData.Record(schema)).parseRecord(schema, v).map(v => genericRecord.put(index, v))
-        index += 1
-        ().asRight
+        Parser(new GenericData.Record(schema)).parseRecord(schema, v).map { v =>
+          genericRecord.put(index, v)
+          index += 1
+        }
       case (ARRAY, v @ AvroArray(_)) => parseArray(schema, v)
       case (UNION, v @ AvroUnion(_)) => parseUnion(schema, v)
       case (_, _)                    => addPrimitive(schema, avroType)
@@ -51,11 +52,6 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
   private def parseArray(schema: Schema, avroArray: AvroArray): Result[Unit] =
     avroArray.value.traverse { value =>
       schema.getElementType.getType match {
-        case ARRAY => // could this be parseType? need a test
-          value match {
-            case a @ AvroArray(_) => parseArray(schema.getElementType, a)
-            case _                => Error(s"couldn't parseArray, expected an AvroUnion, '$avroArray', '$schema'").asLeft
-          }
         case UNION   => parseType(schema.getElementType, value)
         case RECORD  => addRecord(schema.getElementType, value)
         case STRING  => fromAvroString(value)
@@ -76,22 +72,51 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
   private def parseUnion(schema: Schema, avroUnion: AvroUnion): Result[Unit] = {
     val initialIndex = index
     schema.getTypes.asScala.toList.foreach { schema =>
-      val res = schema.getType match {
-        case ARRAY | UNION => parseType(schema, avroUnion.value)
-        case RECORD        => addRecord(schema, avroUnion.value)
-        case STRING        => fromAvroString(avroUnion.value)
-        case INT           => fromAvroInt(avroUnion.value)
-        case BOOLEAN       => fromAvroBoolean(avroUnion.value)
-        case LONG          => fromAvroLong(avroUnion.value)
-        case FLOAT         => fromAvroFloat(avroUnion.value)
-        case DOUBLE        => fromAvroDouble(avroUnion.value)
-        case BYTES         => fromAvroBytes(avroUnion.value)
-        case NULL          => fromAvroNull(avroUnion.value)
-        case _             => Error(s"couldn't map to AST for array, '${avroUnion}', '$schema'").asLeft
-      }
-      if (res.isRight) {
-        res.map(genericRecord.put(index, _))
-        index += 1
+      schema.getType match {
+        case UNION => parseType(schema, avroUnion.value)
+        case ARRAY => parseType(schema, avroUnion.value)
+        case RECORD =>
+          addRecord(schema, avroUnion.value).map { v =>
+            genericRecord.put(index, v)
+            index += 1
+          }
+        case STRING =>
+          fromAvroString(avroUnion.value).map { v =>
+            genericRecord.put(index, v)
+            index += 1
+          }
+        case INT =>
+          fromAvroInt(avroUnion.value).map { v =>
+            genericRecord.put(index, v)
+            index += 1
+          }
+        case BOOLEAN =>
+          fromAvroBoolean(avroUnion.value).map { v =>
+            genericRecord.put(index, v)
+            index += 1
+          }
+        case LONG =>
+          fromAvroLong(avroUnion.value).map { v =>
+            genericRecord.put(index, v)
+            index += 1
+          }
+        case FLOAT =>
+          fromAvroFloat(avroUnion.value).map { v =>
+            genericRecord.put(index, v)
+            index += 1
+          }
+        case DOUBLE =>
+          fromAvroDouble(avroUnion.value).map { v =>
+            genericRecord.put(index, v)
+            index += 1
+          }
+        case BYTES =>
+          fromAvroBytes(avroUnion.value).map { v =>
+            genericRecord.put(index, v)
+            index += 1
+          }
+        case NULL => fromAvroNull(avroUnion.value)
+        case _    => Error(s"couldn't map to AST for array, '${avroUnion}', '$schema'").asLeft
       }
     }
     if (index > initialIndex) ().asRight[Error]

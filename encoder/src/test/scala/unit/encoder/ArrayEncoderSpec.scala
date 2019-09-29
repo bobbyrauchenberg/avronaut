@@ -70,6 +70,45 @@ class ArrayEncoderSpec extends UnitSpecBase {
       }
     }
 
+    "encode a record with a list of Union" in {
+      forAll { writerRecord: Option[List[String]] =>
+        val schema = AvroSchema[RecordWithOptionalListCaseClass].schema.value
+
+        val builder = new GenericRecordBuilder(new GenericData.Record(schema))
+
+        val r = RecordWithOptionalListCaseClass(writerRecord)
+
+        r.field match {
+          case Some(list) => builder.set("field", list.asJava)
+          case None       => builder.set("field", null)
+        }
+
+        Encoder.encode[RecordWithOptionalListCaseClass](r) should beRight(builder.build())
+      }
+    }
+
+    "encode a record with a list of Union roundtrip" in {
+      forAll { record: Option[List[String]] =>
+        val r = RecordWithOptionalListCaseClass(record)
+        Encoder.encode[RecordWithOptionalListCaseClass](r).flatMap { v =>
+          Decoder.decode[RecordWithOptionalListCaseClass](v)
+        } should beRight(r)
+      }
+    }
+
+    "encode a record with a nested list" in {
+      forAll { record: RecordWithListOfList =>
+        val schema = AvroSchema[RecordWithListOfList].schema.value
+
+        val builder = new GenericRecordBuilder(new GenericData.Record(schema))
+
+        val l = record.field.asJava
+        builder.set("field", l)
+
+        Encoder.encode[RecordWithListOfList](record) should beRight(builder.build())
+      }
+    }
+
   }
 
   case class TestRecord(list: List[String])
@@ -77,4 +116,7 @@ class ArrayEncoderSpec extends UnitSpecBase {
   case class InnerNested(field1: String, field2: Int)
   case class Nested(field1: String, field2: InnerNested, field3: Int)
   case class RecordWithListOfCaseClass(field: List[Nested])
+  case class RecordWithOptionalListCaseClass(field: Option[List[String]])
+  case class RecordWithListOfList(field: List[List[Int]])
+
 }
