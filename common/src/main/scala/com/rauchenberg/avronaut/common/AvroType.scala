@@ -4,10 +4,7 @@ import cats.syntax.either._
 
 sealed trait AvroType
 final case object AvroNull                                  extends AvroType
-final case class AvroInt(value: Int)                        extends AvroType
-final case class AvroLong(value: Long)                      extends AvroType
-final case class AvroFloat(value: Float)                    extends AvroType
-final case class AvroDouble(value: Double)                  extends AvroType
+final case class AvroNumber(value: AvroNum)                 extends AvroType
 final case class AvroBoolean(value: Boolean)                extends AvroType
 final case class AvroString(value: String)                  extends AvroType
 final case class AvroRecord(value: List[AvroType])          extends AvroType
@@ -32,42 +29,43 @@ object AvroType {
   }
 
   final def toAvroInt[A](value: A): Result[AvroType] = value match {
-    case v: java.lang.Integer => safe(AvroInt(v))
+    case v: java.lang.Integer => safe(AvroNumber(AvroNumLong(v.longValue)))
     case _                    => Error(s"'$value' is not an Int").asLeft
   }
 
-  final def fromAvroInt(value: AvroType): Result[Int] = value match {
-    case AvroInt(s) => s.asRight
-    case _          => Error(s"$value is not an AvroInt").asLeft
-  }
+  final def fromAvroInt(value: AvroType): Result[Int] =
+    value match {
+      case AvroNumber(v) => v.toInt
+      case _             => Error(s"$value is not an AvroInt").asLeft
+    }
 
   final def toAvroLong[A](value: A): Result[AvroType] = value match {
-    case v: java.lang.Long => safe(AvroLong(v))
+    case v: java.lang.Long => safe(AvroNumber(AvroNumLong(v)))
     case _                 => Error(s"'$value' is not a Long").asLeft
   }
 
   final def fromAvroLong(value: AvroType): Result[Long] = value match {
-    case AvroLong(s) => s.asRight
-    case _           => Error(s"$value is not an AvroLong").asLeft
+    case AvroNumber(v) => v.toLong
+    case _             => Error(s"$value is not an AvroLong").asLeft
   }
 
   final def toAvroFloat[A](value: A): Result[AvroType] = value match {
-    case v: java.lang.Float => safe(AvroFloat(v))
+    case v: java.lang.Float => safe(AvroNumber(AvroNumFloat(v)))
     case _                  => Error(s"'$value' is not a Float").asLeft
   }
 
   final def fromAvroFloat(value: AvroType): Result[Float] = value match {
-    case AvroFloat(s) => s.asRight
-    case _            => Error(s"$value is not an AvroFloat").asLeft
+    case AvroNumber(s) => s.toFloat.asRight
+    case _             => Error(s"$value is not an AvroFloat").asLeft
   }
 
   final def toAvroDouble[A](value: A): Result[AvroType] = value match {
-    case v: java.lang.Double => safe(AvroDouble(v))
+    case v: java.lang.Double => safe(AvroNumber(AvroNumDouble(v)))
     case _                   => Error(s"'$value' is not a Double").asLeft
   }
 
   final def fromAvroDouble(value: AvroType): Result[Double] = value match {
-    case AvroDouble(s) => s.asRight
+    case AvroNumber(s) => s.toDouble.asRight
     case _             => Error(s"$value is not an AvroDouble").asLeft
   }
 

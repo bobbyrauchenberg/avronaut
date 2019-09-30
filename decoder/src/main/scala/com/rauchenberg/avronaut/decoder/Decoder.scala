@@ -93,22 +93,22 @@ object Decoder {
   }
 
   implicit val intDecoder: Decoder[Int] = {
-    case TypeDecode(AvroInt(v)) => v.asRight
-    case value                  => error("int", value)
+    case TypeDecode(AvroNumber(v)) => v.toInt
+    case value                     => error("int", value)
   }
 
   implicit val longDecoder: Decoder[Long] = {
-    case TypeDecode(AvroLong(v)) => v.asRight
-    case value                   => error("long", value)
+    case TypeDecode(AvroNumber(v)) => v.toLong
+    case value                     => error("long", value)
   }
 
   implicit val floatDecoder: Decoder[Float] = {
-    case TypeDecode(AvroFloat(v)) => v.asRight
-    case value                    => error("float", value)
+    case TypeDecode(AvroNumber(v)) => v.toFloat.asRight
+    case value                     => error("float", value)
   }
 
   implicit val doubleDecoder: Decoder[Double] = {
-    case TypeDecode(AvroDouble(v)) => v.asRight
+    case TypeDecode(AvroNumber(v)) => v.toDouble.asRight
     case value                     => error("double", value)
   }
 
@@ -136,14 +136,14 @@ object Decoder {
   }
 
   implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = {
-    case TypeDecode(AvroLogicalType(AvroLong(value))) =>
+    case TypeDecode(AvroLogicalType(AvroNumber(AvroNumLong(value)))) =>
       safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
     case value => error("OffsetDateTime / Long", value)
   }
 
   implicit def instantDecoder: Decoder[Instant] = {
-    case TypeDecode(AvroLogicalType(AvroLong(value))) => safe(Instant.ofEpochMilli(value))
-    case value                                        => error("Instant / Long", value)
+    case TypeDecode(AvroLogicalType(AvroNumber(AvroNumLong(value)))) => safe(Instant.ofEpochMilli(value))
+    case value                                                       => error("Instant / Long", value)
   }
 
   implicit def uuidDecoder: Decoder[UUID] = {
