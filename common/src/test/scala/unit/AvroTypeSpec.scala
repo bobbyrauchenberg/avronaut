@@ -32,7 +32,7 @@ class AvroTypeSpec extends UnitSpecBase {
     "check it gets bytes" in {
       forAll { a: Any =>
         whenever(!a.isInstanceOf[Array[Byte]]) {
-          AvroType.toAvroBytes(a) should beLeft(Error(s"'$a' is not Bytes"))
+          AvroType.toAvroBytes(a) should beLeft(Error(s"'$a' is not an Array[Byte]"))
         }
       }
     }

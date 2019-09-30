@@ -17,8 +17,7 @@ final case class AvroArray(value: List[AvroType])           extends AvroType
 final case class AvroMapEntry(key: String, value: AvroType) extends AvroType
 final case class AvroMap(value: List[AvroMapEntry])         extends AvroType
 final case class AvroBytes(value: Array[Byte])              extends AvroType
-final case class AvroUUID(value: AvroType)                  extends AvroType
-final case class AvroTimestampMillis(value: AvroType)       extends AvroType
+final case class AvroLogicalType(value: AvroType)           extends AvroType
 
 object AvroType {
 
@@ -84,7 +83,7 @@ object AvroType {
 
   final def toAvroBytes[A](value: A) = value match {
     case v: Array[Byte] => safe(AvroBytes(v))
-    case _              => Error(s"'$value' is not an Array[Bytes]").asLeft
+    case _              => Error(s"'$value' is not an Array[Byte]").asLeft
   }
 
   final def fromAvroBytes(value: AvroType): Result[Array[Byte]] = value match {
@@ -108,7 +107,7 @@ object AvroType {
   final def toAvroUnion(value: AvroType)          = safe(AvroUnion(value))
   final def toAvroEnum[A](value: A)               = safe(AvroEnum(value))
 
-  final def toAvroUUID[A](value: A) = toAvroString(value).map(AvroUUID(_))
+  final def toAvroUUID[A](value: A) = toAvroString(value).map(AvroLogicalType(_))
 
-  final def toAvroTimestamp[A](value: A) = toAvroLong(value).map(AvroTimestampMillis(_))
+  final def toAvroTimestamp[A](value: A) = toAvroLong(value).map(AvroLogicalType(_))
 }

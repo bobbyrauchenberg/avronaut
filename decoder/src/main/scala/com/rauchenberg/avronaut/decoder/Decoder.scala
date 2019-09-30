@@ -136,19 +136,19 @@ object Decoder {
   }
 
   implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = {
-    case TypeDecode(AvroTimestampMillis(AvroLong(value))) =>
+    case TypeDecode(AvroLogicalType(AvroLong(value))) =>
       safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
     case value => error("OffsetDateTime / Long", value)
   }
 
   implicit def instantDecoder: Decoder[Instant] = {
-    case TypeDecode(AvroTimestampMillis(AvroLong(value))) => safe(Instant.ofEpochMilli(value))
-    case value                                            => error("Instant / Long", value)
+    case TypeDecode(AvroLogicalType(AvroLong(value))) => safe(Instant.ofEpochMilli(value))
+    case value                                        => error("Instant / Long", value)
   }
 
   implicit def uuidDecoder: Decoder[UUID] = {
-    case TypeDecode(AvroUUID(AvroString(value))) => safe(java.util.UUID.fromString(value))
-    case value                                   => error("UUID / String", value)
+    case TypeDecode(AvroLogicalType(AvroString(value))) => safe(java.util.UUID.fromString(value))
+    case value                                          => error("UUID / String", value)
   }
 
   implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]): Decoder[Option[A]] = {
