@@ -1,7 +1,7 @@
 package com.rauchenberg.avronaut.encoder
 
 import cats.implicits._
-import com.rauchenberg.avronaut.common.AvroType._
+import com.rauchenberg.avronaut.common.Avro._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import magnolia.{CaseClass, Magnolia}
@@ -12,7 +12,7 @@ import scala.collection.JavaConverters._
 
 trait Encoder[A] {
 
-  def encode(value: A): Result[AvroType]
+  def encode(value: A): Result[Avro]
 
 }
 
@@ -36,7 +36,7 @@ object Encoder {
 
   def combine[A](ctx: CaseClass[Typeclass, A])(implicit s: AvroSchema[A]): Typeclass[A] =
     new Typeclass[A] {
-      override def encode(value: A): Result[AvroType] =
+      override def encode(value: A): Result[Avro] =
         s.schema.flatMap { schema =>
           schema.getFields.asScala.toList.traverse { field =>
             ctx.parameters.toList
@@ -66,7 +66,7 @@ object Encoder {
     value => value.traverse(elementEncoder.encode(_)).map(AvroArray(_))
 
   implicit def optionEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[Option[A]] =
-    value => value.fold[Result[AvroType]](toAvroNull(null))(v => elementEncoder.encode(v)).map(AvroUnion(_))
+    value => value.fold[Result[Avro]](toAvroNull(null))(v => elementEncoder.encode(v)).map(AvroUnion(_))
 
   implicit def mapEncoder[A]: Encoder[Map[String, A]] = ???
 

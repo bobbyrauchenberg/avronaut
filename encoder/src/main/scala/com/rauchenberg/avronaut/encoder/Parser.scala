@@ -1,8 +1,8 @@
 package com.rauchenberg.avronaut.encoder
 
 import cats.implicits._
-import com.rauchenberg.avronaut.common.AvroType._
-import com.rauchenberg.avronaut.common.{AvroArray, AvroRecord, AvroType, AvroUnion, Error, Result}
+import com.rauchenberg.avronaut.common.Avro._
+import com.rauchenberg.avronaut.common.{Avro, AvroArray, AvroRecord, AvroUnion, Error, Result}
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type._
 import org.apache.avro.generic.GenericData
@@ -35,7 +35,7 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
     genericRecord.asRight
   }
 
-  private def parseType(schema: Schema, avroType: AvroType): Result[Unit] = {
+  private def parseType(schema: Schema, avroType: Avro): Result[Unit] = {
     val schemaType = schema.getType
     (schemaType, avroType) match {
       case (RECORD, v @ AvroRecord(_)) =>
@@ -124,14 +124,14 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
     else Error(s"couldn't parse Union, '${avroUnion.value}', '$schema'").asLeft
   }
 
-  private def addRecord(schema: Schema, avroType: AvroType): Result[GenericData.Record] =
+  private def addRecord(schema: Schema, avroType: Avro): Result[GenericData.Record] =
     avroType match {
       case a @ AvroRecord(_) =>
         Parser(new GenericData.Record(schema)).parseRecord(schema, a)
       case _ => Error(s"couldn't parseArray, expected an AvroRecord, '$avroType', '$schema'").asLeft
     }
 
-  private def addPrimitive(schema: Schema, value: AvroType): Result[Unit] =
+  private def addPrimitive(schema: Schema, value: Avro): Result[Unit] =
     (schema.getType match {
       case STRING  => fromAvroString(value)
       case INT     => fromAvroInt(value)

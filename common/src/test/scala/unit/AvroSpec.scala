@@ -1,10 +1,10 @@
 package unit
 
 import cats.syntax.either._
-import com.rauchenberg.avronaut.common.{AvroType, Error}
+import com.rauchenberg.avronaut.common.{Avro, Error}
 import org.scalacheck.{Arbitrary, Gen}
 
-class AvroTypeSpec extends UnitSpecBase {
+class AvroSpec extends UnitSpecBase {
 
   implicit val anyArb: Arbitrary[Any] = Arbitrary(
     Gen.oneOf(
@@ -25,14 +25,14 @@ class AvroTypeSpec extends UnitSpecBase {
     "not blindly convert anything to a string" in {
       forAll { a: Any =>
         whenever(!a.isInstanceOf[String]) {
-          AvroType.toAvroString(a) should beLeft(Error(s"'$a' is not a String"))
+          Avro.toAvroString(a) should beLeft(Error(s"'$a' is not a String"))
         }
       }
     }
     "check it gets bytes" in {
       forAll { a: Any =>
         whenever(!a.isInstanceOf[Array[Byte]]) {
-          AvroType.toAvroBytes(a) should beLeft(Error(s"'$a' is not an Array[Byte]"))
+          Avro.toAvroBytes(a) should beLeft(Error(s"'$a' is not an Array[Byte]"))
         }
       }
     }

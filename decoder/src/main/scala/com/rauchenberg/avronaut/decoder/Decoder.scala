@@ -15,7 +15,7 @@ import scala.collection.JavaConverters._
 
 private[this] sealed trait DecodeOperation
 private[this] final case class FullDecode(genericRecord: GenericRecord) extends DecodeOperation
-private[this] final case class TypeDecode(value: AvroType)              extends DecodeOperation
+private[this] final case class TypeDecode(value: Avro)                  extends DecodeOperation
 
 trait Decoder[A] {
 
@@ -136,19 +136,19 @@ object Decoder {
   }
 
   implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = {
-    case TypeDecode(AvroLogicalType(AvroNumber(AvroNumLong(value)))) =>
+    case TypeDecode(AvroLogical(AvroNumber(AvroNumLong(value)))) =>
       safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
     case value => error("OffsetDateTime / Long", value)
   }
 
   implicit def instantDecoder: Decoder[Instant] = {
-    case TypeDecode(AvroLogicalType(AvroNumber(AvroNumLong(value)))) => safe(Instant.ofEpochMilli(value))
-    case value                                                       => error("Instant / Long", value)
+    case TypeDecode(AvroLogical(AvroNumber(AvroNumLong(value)))) => safe(Instant.ofEpochMilli(value))
+    case value                                                   => error("Instant / Long", value)
   }
 
   implicit def uuidDecoder: Decoder[UUID] = {
-    case TypeDecode(AvroLogicalType(AvroString(value))) => safe(java.util.UUID.fromString(value))
-    case value                                          => error("UUID / String", value)
+    case TypeDecode(AvroLogical(AvroString(value))) => safe(java.util.UUID.fromString(value))
+    case value                                      => error("UUID / String", value)
   }
 
   implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]): Decoder[Option[A]] = {

@@ -3,7 +3,7 @@ package com.rauchenberg.avronaut.decoder
 import cats.implicits._
 import collection.JavaConverters._
 import scala.collection.convert.Wrappers.{MapWrapper, SeqWrapper}
-import com.rauchenberg.avronaut.common.AvroType._
+import com.rauchenberg.avronaut.common.Avro._
 import com.rauchenberg.avronaut.common._
 import org.apache.avro.{LogicalType, Schema}
 import org.apache.avro.Schema.Type._
@@ -29,7 +29,7 @@ object Parser {
     }
   }
 
-  private def parseMap[A](schema: Schema, value: A): Result[AvroType] =
+  private def parseMap[A](schema: Schema, value: A): Result[Avro] =
     safe(
       value
         .asInstanceOf[MapWrapper[String, A]]
@@ -38,18 +38,18 @@ object Parser {
         .traverse { case (k, v) => parseTypes(schema.getValueType, v).map(AvroMapEntry(k, _)) }
         .map(AvroMap(_))).flatten
 
-  private def parseArray[A](schema: Schema, value: A): Result[AvroType] =
+  private def parseArray[A](schema: Schema, value: A): Result[Avro] =
     safe(valueToList(value)).fold(
       _ => Error(s"parseArray can't cast '$value' to SeqWrapper for '$schema'").asLeft,
       _.traverse(parseTypes(schema.getElementType, _)).flatMap(toAvroArray(_))
     )
 
-  private def parseUnion[A](schema: Schema, value: A): Result[AvroType] = {
+  private def parseUnion[A](schema: Schema, value: A): Result[Avro] = {
 
-    val error = Error(s"couldn't parse union for '$value', '$schema'").asLeft[AvroType]
+    val error = Error(s"couldn't parse union for '$value', '$schema'").asLeft[Avro]
 
     @tailrec
-    def loop(schemas: List[Schema]): Result[AvroType] = schemas match {
+    def loop(schemas: List[Schema]): Result[Avro] = schemas match {
 
       case Nil => error
       case h :: t =>
@@ -87,7 +87,7 @@ object Parser {
     loop(enumToEndOfUnion(schema)).flatMap(toAvroUnion)
   }
 
-  private def parseRecord[A](schema: Schema, value: A): Result[AvroType] =
+  private def parseRecord[A](schema: Schema, value: A): Result[Avro] =
     value match {
       case gr: GenericRecord =>
         fieldsFrom(schema).traverse(field => parse(field, gr)).map(AvroRecord(_))
@@ -114,7 +114,7 @@ object Parser {
       case _       => Error(s"couldn't map to AST '$value', '$field'").asLeft
     }
 
-  private def logicalTypeToPrimitive[A](logicalTypeName: String, value: A): Result[AvroType] =
+  private def logicalTypeToPrimitive[A](logicalTypeName: String, value: A): Result[Avro] =
     logicalTypeName match {
       case "uuid"             => toAvroUUID(value)
       case "timestamp-millis" => toAvroTimestamp(value)
