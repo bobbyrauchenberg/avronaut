@@ -3,11 +3,11 @@ package unit.encoder
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
 import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
-
-import collection.JavaConverters._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import unit.common.UnitSpecBase
+
+import scala.collection.JavaConverters._
 
 class ArrayEncoderSpec extends UnitSpecBase {
 
@@ -17,7 +17,7 @@ class ArrayEncoderSpec extends UnitSpecBase {
       forAll { record: TestRecord =>
         val schema   = AvroSchema[TestRecord].schema.value
         val expected = new GenericRecordBuilder(new GenericData.Record(schema))
-        expected.set("list", record.list.asJava)
+        expected.set("field", record.field.asJava)
 
         Encoder.encode[TestRecord](record) should beRight(expected.build.asInstanceOf[GenericRecord])
       }
@@ -96,22 +96,34 @@ class ArrayEncoderSpec extends UnitSpecBase {
       }
     }
 
-    "encode a record with a nested list" ignore {
+    "encode a record with a nested list" in {
       forAll { record: RecordWithListOfList =>
         val schema = AvroSchema[RecordWithListOfList].schema.value
 
         val builder = new GenericRecordBuilder(new GenericData.Record(schema))
 
-        val l = record.field.asJava
+        val l = record.field.map(_.asJava).asJava
         builder.set("field", l)
 
         Encoder.encode[RecordWithListOfList](record) should beRight(builder.build())
       }
+
+    }
+
+    "blah" in {
+      val schema = AvroSchema[RecordWithListOfList].schema.value
+
+      val builder = new GenericRecordBuilder(new GenericData.Record(schema))
+
+      val list2 = List(List(), List())
+
+      builder.set("field", list2.asJava)
+
     }
 
   }
 
-  case class TestRecord(list: List[String])
+  case class TestRecord(field: List[String])
 
   case class InnerNested(field1: String, field2: Int)
   case class Nested(field1: String, field2: InnerNested, field3: Int)

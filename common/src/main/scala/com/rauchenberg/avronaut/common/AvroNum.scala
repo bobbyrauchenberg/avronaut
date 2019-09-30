@@ -61,7 +61,7 @@ private[avronaut] final case class AvroNumFloat(value: Float) extends AvroNum {
   }
 }
 
-private[avronaut] final case class AvroNumLong(value: Long) extends AvroNum {
+final case class AvroNumLong(value: Long) extends AvroNum {
   final def toBigDecimal: Result[BigDecimal] = BigDecimal(value).asRight
   final def toBigInt: Result[BigInt]         = BigInt(value).asRight
   final def toDouble: Double                 = value.toDouble

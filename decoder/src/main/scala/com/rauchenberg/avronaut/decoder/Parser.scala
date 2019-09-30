@@ -39,7 +39,7 @@ object Parser {
         .map(AvroMap(_))).flatten
 
   private def parseArray[A](schema: Schema, value: A): Result[Avro] =
-    safe(valueToList(value)).fold(
+    valueToList(value).fold(
       _ => Error(s"parseArray can't cast '$value' to SeqWrapper for '$schema'").asLeft,
       _.traverse(parseTypes(schema.getElementType, _)).flatMap(toAvroArray(_))
     )
@@ -125,6 +125,6 @@ object Parser {
 
   private def typesFrom(s: Schema) = s.getTypes.asScala.toList
 
-  private def valueToList[A](value: A) = value.asInstanceOf[SeqWrapper[A]].asScala.toList
+  private def valueToList[A](value: A) = safe(value.asInstanceOf[SeqWrapper[A]].asScala.toList)
 
 }

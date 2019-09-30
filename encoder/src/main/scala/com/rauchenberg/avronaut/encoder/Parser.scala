@@ -52,8 +52,13 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
   private def parseArray(schema: Schema, avroArray: AvroArray): Result[Unit] =
     avroArray.value.traverse { value =>
       schema.getElementType.getType match {
-        case ARRAY   => parseType(schema.getElementType, value)
-        case UNION   => parseType(schema.getElementType, value)
+        case ARRAY =>
+          value match {
+            case a @ AvroArray(_) => ListParser(schema.getElementType, a).parse
+            case _                => Error(s"expected ARRAY, '$value', '$schema'").asLeft
+          }
+        case UNION =>
+          parseType(schema.getElementType, value)
         case RECORD  => addRecord(schema.getElementType, value)
         case STRING  => fromAvroString(value)
         case INT     => fromAvroInt(value)
