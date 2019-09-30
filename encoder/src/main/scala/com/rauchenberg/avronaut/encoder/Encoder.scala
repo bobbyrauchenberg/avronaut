@@ -6,6 +6,7 @@ import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import magnolia.{CaseClass, Magnolia}
 import org.apache.avro.generic.GenericData
+import shapeless.{:+:, Coproduct}
 
 import scala.collection.JavaConverters._
 
@@ -66,4 +67,10 @@ object Encoder {
 
   implicit def optionEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[Option[A]] =
     value => value.fold[Result[AvroType]](toAvroNull(null))(v => elementEncoder.encode(v)).map(AvroUnion(_))
+
+  implicit def mapEncoder[A]: Encoder[Map[String, A]] = ???
+
+  implicit def eitherEncoder[L, R]: Encoder[Either[L, R]] = ???
+
+  implicit def coproductEncoder[H, T <: Coproduct]: Encoder[H :+: T] = ???
 }

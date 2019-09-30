@@ -96,7 +96,7 @@ class ArrayEncoderSpec extends UnitSpecBase {
       }
     }
 
-    "encode a record with a nested list" in {
+    "encode a record with a nested list" ignore {
       forAll { record: RecordWithListOfList =>
         val schema = AvroSchema[RecordWithListOfList].schema.value
 
