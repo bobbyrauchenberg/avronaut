@@ -54,8 +54,12 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
       schema.getElementType.getType match {
         case ARRAY =>
           value match {
-            case a @ AvroArray(_) => ListParser(schema.getElementType, a).parse
-            case _                => Error(s"expected ARRAY, '$value', '$schema'").asLeft
+            case a @ AvroArray(_) =>
+              ListParser(schema.getElementType, a).parse
+                .select[Result[java.util.List[Any]]]
+                .fold[Result[java.util.List[Any]]](
+                  Error(s"couldn't parse nested list, '$avroArray', '$schema'").asLeft)(identity)
+            case _ => Error(s"expected ARRAY, '$value', '$schema'").asLeft
           }
         case UNION =>
           parseType(schema.getElementType, value)
@@ -86,43 +90,8 @@ private[encoder] case class Parser(private[encoder] val genericRecord: GenericDa
             genericRecord.put(index, v)
             index += 1
           }
-        case STRING =>
-          fromAvroString(avroUnion.value).map { v =>
-            genericRecord.put(index, v)
-            index += 1
-          }
-        case INT =>
-          fromAvroInt(avroUnion.value).map { v =>
-            genericRecord.put(index, v)
-            index += 1
-          }
-        case BOOLEAN =>
-          fromAvroBoolean(avroUnion.value).map { v =>
-            genericRecord.put(index, v)
-            index += 1
-          }
-        case LONG =>
-          fromAvroLong(avroUnion.value).map { v =>
-            genericRecord.put(index, v)
-            index += 1
-          }
-        case FLOAT =>
-          fromAvroFloat(avroUnion.value).map { v =>
-            genericRecord.put(index, v)
-            index += 1
-          }
-        case DOUBLE =>
-          fromAvroDouble(avroUnion.value).map { v =>
-            genericRecord.put(index, v)
-            index += 1
-          }
-        case BYTES =>
-          fromAvroBytes(avroUnion.value).map { v =>
-            genericRecord.put(index, v)
-            index += 1
-          }
-        case NULL => fromAvroNull(avroUnion.value)
-        case _    => Error(s"couldn't map to AST for array, '${avroUnion}', '$schema'").asLeft
+        case _ =>
+          addPrimitive(schema, avroUnion.value)
       }
     }
     if (index > initialIndex) ().asRight[Error]

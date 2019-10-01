@@ -83,7 +83,10 @@ class ArrayEncoderSpec extends UnitSpecBase {
           case None       => builder.set("field", null)
         }
 
-        Encoder.encode[RecordWithOptionalListCaseClass](r) should beRight(builder.build())
+        Encoder
+          .encode[RecordWithOptionalListCaseClass](r)
+          .map(v => v.get(0).asInstanceOf[java.util.List[Any]].asScala) should beRight(
+          builder.build().get(0).asInstanceOf[java.util.List[Any]].asScala)
       }
     }
 
@@ -110,14 +113,20 @@ class ArrayEncoderSpec extends UnitSpecBase {
 
     }
 
-    "blah" in {
-      val schema = AvroSchema[RecordWithListOfList].schema.value
+    "encode a record with a more nested list" in {
+      forAll { list: List[Int] =>
+        val record = RecordWithManyListsOfList(List(List(List(List(list)))))
+        val schema = AvroSchema[RecordWithListOfList].schema.value
 
-      val builder = new GenericRecordBuilder(new GenericData.Record(schema))
+        val builder = new GenericRecordBuilder(new GenericData.Record(schema))
 
-      val list2 = List(List(), List())
+        val l = record.field.map(_.map(_.map(_.map(_.asJava).asJava).asJava).asJava).asJava
+        builder.set("field", l)
 
-      builder.set("field", list2.asJava)
+        val result            = Encoder.encode[RecordWithManyListsOfList](record)
+        val resultAsScalaList = result.map(_.get(0).asInstanceOf[java.util.List[Any]].asScala)
+        resultAsScalaList should beRight(builder.build().get(0).asInstanceOf[java.util.List[Any]].asScala)
+      }
 
     }
 
@@ -130,5 +139,6 @@ class ArrayEncoderSpec extends UnitSpecBase {
   case class RecordWithListOfCaseClass(field: List[Nested])
   case class RecordWithOptionalListCaseClass(field: Option[List[String]])
   case class RecordWithListOfList(field: List[List[Int]])
+  case class RecordWithManyListsOfList(field: List[List[List[List[List[Int]]]]])
 
 }
