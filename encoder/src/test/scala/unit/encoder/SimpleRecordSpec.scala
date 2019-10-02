@@ -17,10 +17,6 @@ class SimpleRecordSpec extends UnitSpecBase {
         expected.put("string", record.string)
         expected.put("boolean", record.boolean)
         expected.put("int", record.int)
-        expected.put("long", record.long)
-        expected.put("float", record.float)
-        expected.put("double", record.double)
-        expected.put("bytes", record.bytes)
 
         Encoder.encode[TestRecord](record) should beRight(expected.asInstanceOf[GenericRecord])
       }
@@ -41,6 +37,7 @@ class SimpleRecordSpec extends UnitSpecBase {
         val innerRecord = new GenericData.Record(AvroSchema[Inner].schema.value)
 
         innerRecord.put(0, record.inner.value)
+        innerRecord.put(1, record.inner.value2)
         expected.put(0, record.string)
         expected.put(1, record.boolean)
         expected.put(2, innerRecord)
@@ -59,13 +56,7 @@ class SimpleRecordSpec extends UnitSpecBase {
 
   }
 
-  case class TestRecord(string: String,
-                        boolean: Boolean,
-                        int: Int,
-                        long: Long,
-                        float: Float,
-                        double: Double,
-                        bytes: Array[Byte])
+  case class TestRecord(string: String, boolean: Boolean, int: Int)
   case class NestedRecord(string: String, boolean: Boolean, inner: Inner)
-  case class Inner(value: String)
+  case class Inner(value: String, value2: Int)
 }

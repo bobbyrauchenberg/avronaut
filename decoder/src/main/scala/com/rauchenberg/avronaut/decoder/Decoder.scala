@@ -13,9 +13,9 @@ import shapeless.{:+:, CNil, Coproduct, Inr}
 
 import scala.collection.JavaConverters._
 
-private[this] sealed trait DecodeOperation
-private[this] final case class FullDecode(genericRecord: GenericRecord) extends DecodeOperation
-private[this] final case class TypeDecode(value: Avro)                  extends DecodeOperation
+sealed trait DecodeOperation
+final case class FullDecode(genericRecord: GenericRecord) extends DecodeOperation
+final case class TypeDecode(value: Avro)                  extends DecodeOperation
 
 trait Decoder[A] {
 
@@ -51,7 +51,7 @@ object Decoder {
                 }
             }
           }
-        case TypeDecode(AvroRecord(fields)) =>
+        case TypeDecode(AvroRecord(_, fields)) =>
           params.zip(fields).traverse {
             case (param, avroType) =>
               valueOrDefault(param.typeclass.apply(TypeDecode(avroType)), param.default)
@@ -93,22 +93,22 @@ object Decoder {
   }
 
   implicit val intDecoder: Decoder[Int] = {
-    case TypeDecode(AvroNumber(v)) => v.toInt
-    case value                     => error("int", value)
+    case TypeDecode(AvroInt(v)) => v.asRight
+    case value                  => error("int", value)
   }
 
   implicit val longDecoder: Decoder[Long] = {
-    case TypeDecode(AvroNumber(v)) => v.toLong
-    case value                     => error("long", value)
+    case TypeDecode(AvroLong(v)) => v.asRight
+    case value                   => error("long", value)
   }
 
   implicit val floatDecoder: Decoder[Float] = {
-    case TypeDecode(AvroNumber(v)) => v.toFloat.asRight
-    case value                     => error("float", value)
+    case TypeDecode(AvroFloat(v)) => v.asRight
+    case value                    => error("float", value)
   }
 
   implicit val doubleDecoder: Decoder[Double] = {
-    case TypeDecode(AvroNumber(v)) => v.toDouble.asRight
+    case TypeDecode(AvroDouble(v)) => v.asRight
     case value                     => error("double", value)
   }
 
@@ -129,21 +129,22 @@ object Decoder {
 
   implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] = {
     case TypeDecode(AvroMap(l)) =>
-      l.traverse { entry =>
-        elementDecoder(TypeDecode(entry.value)).map(entry.key -> _)
+      l.traverse {
+        case (k, v) =>
+          elementDecoder(TypeDecode(v)).map(k -> _)
       }.map(_.toMap[String, A])
     case value => error("map", value)
   }
 
   implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = {
-    case TypeDecode(AvroLogical(AvroNumber(AvroNumLong(value)))) =>
+    case TypeDecode(AvroLogical(AvroLong(value))) =>
       safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
     case value => error("OffsetDateTime / Long", value)
   }
 
   implicit def instantDecoder: Decoder[Instant] = {
-    case TypeDecode(AvroLogical(AvroNumber(AvroNumLong(value)))) => safe(Instant.ofEpochMilli(value))
-    case value                                                   => error("Instant / Long", value)
+    case TypeDecode(AvroLogical(AvroLong(value))) => safe(Instant.ofEpochMilli(value))
+    case value                                    => error("Instant / Long", value)
   }
 
   implicit def uuidDecoder: Decoder[UUID] = {

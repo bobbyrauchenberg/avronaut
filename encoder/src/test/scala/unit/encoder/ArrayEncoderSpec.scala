@@ -4,7 +4,7 @@ import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
 import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
-import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
+import org.apache.avro.generic.{GenericContainer, GenericData, GenericRecord, GenericRecordBuilder}
 import unit.common.UnitSpecBase
 
 import scala.collection.JavaConverters._
@@ -127,6 +127,27 @@ class ArrayEncoderSpec extends UnitSpecBase {
         val resultAsScalaList = result.map(_.get(0).asInstanceOf[java.util.List[Any]].asScala)
         resultAsScalaList should beRight(builder.build().get(0).asInstanceOf[java.util.List[Any]].asScala)
       }
+
+    }
+
+    "blah" in {
+
+      val as = AvroSchema[TestRecord].schema.value
+
+      val gr = new GenericData.Record(as)
+
+      val arrSchema = as.getFields.asScala(0).schema()
+
+      val ga = new GenericData.Array[Any](2, arrSchema)
+
+      val l = List("cup", "cat", "ren", "dal")
+      l.zipWithIndex.map {
+        case (v, ind) =>
+          ga.add(ind, v)
+      }
+
+      val x: GenericContainer = ga
+      gr.put("field", x)
 
     }
 

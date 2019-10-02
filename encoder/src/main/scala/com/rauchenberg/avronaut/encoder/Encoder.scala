@@ -29,8 +29,9 @@ object Encoder {
       s       <- schema.schema
       encoded <- encoder.encode(a)
       genRec <- encoded match {
-                 case a @ AvroRecord(_) => Parser(new GenericData.Record(s)).parse(a)
-                 case _                 => Error(s"Can only encode records, got $encoded").asLeft
+                 case AvroRecord(schema, values) =>
+                   FoldingParser(new GenericData.Record(s)).parse(AvroRoot(schema, values))
+                 case _ => Error(s"Can only encode records, got $encoded").asLeft
                }
     } yield genRec
 
@@ -43,8 +44,10 @@ object Encoder {
               .find(_.label == field.name)
               .map(_.asRight)
               .getOrElse(Error(s"couldn't find param for schema field ${field.name}").asLeft)
-              .flatMap(param => param.typeclass.encode(param.dereference(value)))
-          }.map(AvroRecord(_))
+              .flatMap { param =>
+                param.typeclass.encode(param.dereference(value))
+              }
+          }.map { AvroRecord(schema, _) }
         }
     }
 
@@ -63,10 +66,10 @@ object Encoder {
   implicit val bytesEncoder: Encoder[Array[Byte]] = toAvroBytes
 
   implicit def listEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[List[A]] =
-    value => value.traverse(elementEncoder.encode(_)).map(AvroArray(_))
+    _.traverse(elementEncoder.encode(_)).map(AvroArray(_))
 
   implicit def optionEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[Option[A]] =
-    value => value.fold[Result[Avro]](toAvroNull(null))(v => elementEncoder.encode(v)).map(AvroUnion(_))
+    _.fold[Result[Avro]](toAvroNull(null))(v => elementEncoder.encode(v)).map(AvroUnion(_))
 
   implicit def mapEncoder[A]: Encoder[Map[String, A]] = ???
 

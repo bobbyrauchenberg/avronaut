@@ -102,13 +102,13 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     trait TestContext {
-      def assertHasDefault[A : AvroSchema : Decoder](expected: A) = {
-        implicit val schema = AvroSchema[A].schema.value
+      def assertHasDefault[B : AvroSchema : Decoder](expected: B) = {
+        implicit val schema = AvroSchema[B].schema.value
 
         val record = new GenericData.Record(schema)
         record.put("field", "value i don't recognise")
 
-        Decoder.decode[A](record) should beRight(expected)
+        Decoder.decode[B](record) should beRight(expected)
       }
 
     }
