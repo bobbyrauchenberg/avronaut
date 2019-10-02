@@ -22,6 +22,8 @@ object Dependencies {
     "com.propensive"      % "magnolia_2.12"                   % "0.11.0",
     "com.chuusai"         % "shapeless_2.12"                  % "2.3.3",
     "org.json4s"          %% "json4s-native"                  % "3.6.7",
+    "com.slamdata" %% "matryoshka-core" % "0.21.3",
+    "io.higherkindness" %% "droste-core" % "0.7.0",
     "org.scalatest"       %% "scalatest"                      % "3.0.8" % Test,
     "org.scalacheck"      %% "scalacheck"                     % "1.14.0" % Test,
     "com.danielasfregola" %% "random-data-generator-magnolia" % "2.6" % Test,

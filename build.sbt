@@ -3,6 +3,10 @@ import Dependencies._
 scalafmtVersion in ThisBuild := "1.2.0"
 scalafmtOnCompile in ThisBuild := true
 
+resolvers += Resolver.sonatypeRepo("releases")
+
+addCompilerPlugin("org.typelevel" % "kind-projector" % "0.10.3" cross CrossVersion.binary)
+
 configureDependencies()
 
 lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema, encoder)
