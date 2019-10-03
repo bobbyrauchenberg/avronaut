@@ -13,8 +13,7 @@ object Morphisms {
     fAlgebra(f.unfix.map(cata(fAlgebra)))
   }
 
-  def cataM[M[_], F[_], A](fAlgebraM: FAlgebraM[M, F, A])(f: Fix[F])(implicit M: Monad[M],
-                                                                     F: TraverseF[F]): Fix[F] => M[A] = {
+  def cataM[M[_], F[_], A](fAlgebraM: FAlgebraM[M, F, A])(implicit M: Monad[M], F: TraverseF[F]): Fix[F] => M[A] = {
     var self: Fix[F] => M[A] = null
     self = f => f.unfix.traverse(self).flatMap(fAlgebraM)
     self

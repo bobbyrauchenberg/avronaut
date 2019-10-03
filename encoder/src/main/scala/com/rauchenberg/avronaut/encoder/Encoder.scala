@@ -29,8 +29,8 @@ object Encoder {
       s       <- schema.schema
       encoded <- encoder.encode(a)
       genRec <- encoded match {
-                 case a @ AvroRecord(_) => Parser(new GenericData.Record(s)).parse(a)
-                 case _                 => Error(s"Can only encode records, got $encoded").asLeft
+                 case a @ AvroRecord(_, _) => FoldingParser(new GenericData.Record(s)).parse(a)
+                 case _                    => Error(s"Can only encode records, got $encoded").asLeft
                }
     } yield genRec
 
@@ -44,7 +44,7 @@ object Encoder {
               .map(_.asRight)
               .getOrElse(Error(s"couldn't find param for schema field ${field.name}").asLeft)
               .flatMap(param => param.typeclass.encode(param.dereference(value)))
-          }.map(AvroRecord(_))
+          }.map { AvroRecord(schema, _) }
         }
     }
 

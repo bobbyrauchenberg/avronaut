@@ -1,19 +1,20 @@
 package com.rauchenberg.avronaut.common
 
 import cats.syntax.either._
+import org.apache.avro.Schema
 
 sealed trait Avro
-final case object AvroNull                            extends Avro
-final case class AvroNumber(value: AvroNum)           extends Avro
-final case class AvroBoolean(value: Boolean)          extends Avro
-final case class AvroString(value: String)            extends Avro
-final case class AvroRecord(value: List[Avro])        extends Avro
-final case class AvroEnum[A](value: A)                extends Avro
-final case class AvroUnion(value: Avro)               extends Avro
-final case class AvroArray(value: List[Avro])         extends Avro
-final case class AvroMap(value: List[(String, Avro)]) extends Avro
-final case class AvroBytes(value: Array[Byte])        extends Avro
-final case class AvroLogical(value: Avro)             extends Avro
+final case object AvroNull                                     extends Avro
+final case class AvroNumber(value: AvroNum)                    extends Avro
+final case class AvroBoolean(value: Boolean)                   extends Avro
+final case class AvroString(value: String)                     extends Avro
+final case class AvroRecord(schema: Schema, value: List[Avro]) extends Avro
+final case class AvroEnum[A](value: A)                         extends Avro
+final case class AvroUnion(value: Avro)                        extends Avro
+final case class AvroArray(value: List[Avro])                  extends Avro
+final case class AvroMap(value: List[(String, Avro)])          extends Avro
+final case class AvroBytes(value: Array[Byte])                 extends Avro
+final case class AvroLogical(value: Avro)                      extends Avro
 
 object Avro {
 
@@ -97,8 +98,8 @@ object Avro {
     case _        => Error(s"$value is not an AvroNull").asLeft
   }
 
-  final def toAvroRecord(value: List[Avro])   = safe(AvroRecord(value))
-  final def toAvroRecord(value: Vector[Avro]) = safe(AvroRecord(value.toList))
+  final def toAvroRecord(value: List[Avro])   = safe(AvroRecord(null, value))
+  final def toAvroRecord(value: Vector[Avro]) = safe(AvroRecord(null, value.toList))
   final def toAvroArray(value: List[Avro])    = safe(AvroArray(value))
   final def toAvroArray(value: Vector[Avro])  = safe(AvroArray(value.toList))
   final def toAvroUnion(value: Avro)          = safe(AvroUnion(value))

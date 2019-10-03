@@ -51,7 +51,7 @@ object Decoder {
                 }
             }
           }
-        case TypeDecode(AvroRecord(fields)) =>
+        case TypeDecode(AvroRecord(_, fields)) =>
           params.zip(fields).traverse {
             case (param, avroType) =>
               valueOrDefault(param.typeclass.apply(TypeDecode(avroType)), param.default)
@@ -129,8 +129,9 @@ object Decoder {
 
   implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] = {
     case TypeDecode(AvroMap(l)) =>
-      l.traverse { entry =>
-        elementDecoder(TypeDecode(entry.value)).map(entry.key -> _)
+      l.traverse {
+        case (k, v) =>
+          elementDecoder(TypeDecode(v)).map(k -> _)
       }.map(_.toMap[String, A])
     case value => error("map", value)
   }

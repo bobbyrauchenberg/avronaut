@@ -35,7 +35,7 @@ object Parser {
         .asInstanceOf[MapWrapper[String, A]]
         .asScala
         .toList
-        .traverse { case (k, v) => parseTypes(schema.getValueType, v).map(AvroMapEntry(k, _)) }
+        .traverse { case (k, v) => parseTypes(schema.getValueType, v).map(k -> _) }
         .map(AvroMap(_))).flatten
 
   private def parseArray[A](schema: Schema, value: A): Result[Avro] =
@@ -65,8 +65,8 @@ object Parser {
                 case (r @ Right(_), _) => r
                 case (acc, recordSchema) =>
                   parseRecord(recordSchema, value) match {
-                    case r @ Right(AvroRecord(_)) => r
-                    case _                        => acc
+                    case r @ Right(AvroRecord(_, _)) => r
+                    case _                           => acc
                   }
               }
           case _ =>
@@ -90,7 +90,7 @@ object Parser {
   private def parseRecord[A](schema: Schema, value: A): Result[Avro] =
     value match {
       case gr: GenericRecord =>
-        fieldsFrom(schema).traverse(field => parse(field, gr)).map(AvroRecord(_))
+        fieldsFrom(schema).traverse(field => parse(field, gr)).map(AvroRecord(null, _))
       case _ => Error(s"expected a GenericRecord for '$value', '$schema'").asLeft
     }
 
