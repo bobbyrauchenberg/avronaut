@@ -1,0 +1,17 @@
+package com.rauchenberg.avronaut.common
+
+sealed trait AvroF[+A]
+final case object AvroNullF                            extends AvroF[Nothing]
+final case class AvroIntF(value: Int)                  extends AvroF[Nothing]
+final case class AvroLongF(value: Long)                extends AvroF[Nothing]
+final case class AvroFloatF(value: Float)              extends AvroF[Nothing]
+final case class AvroDoubleF(value: Double)            extends AvroF[Nothing]
+final case class AvroBooleanF(value: Boolean)          extends AvroF[Nothing]
+final case class AvroStringF(value: String)            extends AvroF[Nothing]
+final case class AvroRecordF[A](value: List[A])        extends AvroF[A]
+final case class AvroEnumF[B](value: String)           extends AvroF[Nothing]
+final case class AvroUnionF[A](value: A)               extends AvroF[A]
+final case class AvroArrayF[A](value: List[A])         extends AvroF[A]
+final case class AvroMapF[A](value: List[(String, A)]) extends AvroF[A]
+final case class AvroBytesF(value: Array[Byte])        extends AvroF[Nothing]
+final case class AvroLogicalF[A](value: A)             extends AvroF[A]
