@@ -14,7 +14,7 @@ object Morphisms {
   }
 
   def cataM[M[_], F[_], A](fAlgebraM: FAlgebraM[M, F, A])(f: Fix[F])(implicit M: Monad[M],
-                                                                     F: Traverse[F]): Fix[F] => M[A] = {
+                                                                     F: TraverseF[F]): Fix[F] => M[A] = {
     var self: Fix[F] => M[A] = null
     self = f => f.unfix.traverse(self).flatMap(fAlgebraM)
     self
@@ -26,8 +26,14 @@ object Morphisms {
     self
   }
 
+  def anaM[M[_], F[_], A](coalgebra: FCoalgebraM[M, F, A])(implicit M: Monad[M], F: TraverseF[F]): A => M[Fix[F]] = {
+    var self: A => M[Fix[F]] = null
+    self = a => M.flatMap(coalgebra(a))(fa => M.map(F.traverse(fa)(self))(Fix.apply[F]))
+    self
+  }
+
   def zipM[M[_], F[_], A, B](z1: FAlgebraM[M, F, A], z2: FAlgebraM[M, F, B])(implicit M: Monad[M],
-                                                                             F: Traverse[F]): FAlgebraM[M, F, (A, B)] =
+                                                                             F: TraverseF[F]): FAlgebraM[M, F, (A, B)] =
     fa => {
       M.map2(z1(fa.map(_._1)), z2(fa.map(_._2))) { case (a, b) => (a, b) }
     }

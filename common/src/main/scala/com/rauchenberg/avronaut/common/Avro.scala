@@ -3,18 +3,17 @@ package com.rauchenberg.avronaut.common
 import cats.syntax.either._
 
 sealed trait Avro
-final case object AvroNull                              extends Avro
-final case class AvroNumber(value: AvroNum)             extends Avro
-final case class AvroBoolean(value: Boolean)            extends Avro
-final case class AvroString(value: String)              extends Avro
-final case class AvroRecord(value: List[Avro])          extends Avro
-final case class AvroEnum[A](value: A)                  extends Avro
-final case class AvroUnion(value: Avro)                 extends Avro
-final case class AvroArray(value: List[Avro])           extends Avro
-final case class AvroMapEntry(key: String, value: Avro) extends Avro
-final case class AvroMap(value: List[AvroMapEntry])     extends Avro
-final case class AvroBytes(value: Array[Byte])          extends Avro
-final case class AvroLogical(value: Avro)               extends Avro
+final case object AvroNull                            extends Avro
+final case class AvroNumber(value: AvroNum)           extends Avro
+final case class AvroBoolean(value: Boolean)          extends Avro
+final case class AvroString(value: String)            extends Avro
+final case class AvroRecord(value: List[Avro])        extends Avro
+final case class AvroEnum[A](value: A)                extends Avro
+final case class AvroUnion(value: Avro)               extends Avro
+final case class AvroArray(value: List[Avro])         extends Avro
+final case class AvroMap(value: List[(String, Avro)]) extends Avro
+final case class AvroBytes(value: Array[Byte])        extends Avro
+final case class AvroLogical(value: Avro)             extends Avro
 
 object Avro {
 
