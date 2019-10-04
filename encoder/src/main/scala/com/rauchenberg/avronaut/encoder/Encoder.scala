@@ -26,8 +26,12 @@ object Encoder {
 
   def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericData.Record] =
     for {
-      s       <- schema.schema
-      encoded <- encoder.encode(a)
+      s <- schema.schema
+      encoded <- {
+        val res = encoder.encode(a)
+        println("res : " + res)
+        res
+      }
       genRec <- encoded match {
                  case a @ AvroRecord(_, _, _) => FoldingParser(new GenericData.Record(s)).parse(a.copy(isTop = true))
                  case _                       => Error(s"Can only encode records, got $encoded").asLeft
