@@ -4,7 +4,7 @@ import collection.JavaConverters._
 import cats.instances.either._
 import cats.syntax.either._
 import com.rauchenberg.avronaut.common.AvroF._
-import com.rauchenberg.avronaut.common._
+import com.rauchenberg.avronaut.common.{AvroNum, _}
 import matryoshka._
 import matryoshka.implicits._
 import shims._
@@ -46,21 +46,21 @@ case class FoldingParser(genericRecord: GenericData.Record) {
     case AvroLogical(value)        => AvroLogicalF(value)
   }
 
-  val toAvroFEnv: Coalgebra[WithIndex, (Int, AvroFix)] = {
-    case (index, Fix(AvroNullF))           => EnvT((index, AvroNullF))
-    case (index, Fix(AvroIntF(value)))     => EnvT((index, AvroIntF(value)))
-    case (index, Fix(AvroBooleanF(value))) => EnvT((index, AvroBooleanF(value)))
-    case (index, Fix(AvroStringF(value)))  => EnvT((index, AvroStringF(value)))
-    case (index, Fix(AvroRecordF(schema, value))) =>
+  val toAvroFEnv: Coalgebra[WithIndex, (Int, Avro)] = {
+    case (index, AvroNull)           => EnvT((index + 1, AvroNullF))
+    case (index, AvroNumber(_))      => EnvT((index + 1, AvroIntF(123)))
+    case (index, AvroBoolean(value)) => EnvT((index + 1, AvroBooleanF(value)))
+    case (index, AvroString(value))  => EnvT((index + 1, AvroStringF(value)))
+    case (index, AvroRecord(schema, value)) =>
       EnvT((index, AvroRecordF(schema, value.map { v =>
-        (index, v)
+        (index + 1, v)
       })))
-    case (index, Fix(AvroEnumF(value)))    => EnvT((index, AvroEnumF(value)))
-    case (index, Fix(AvroUnionF(value)))   => EnvT((index, AvroUnionF((index, value))))
-    case (index, Fix(AvroArrayF(value)))   => EnvT((index, AvroArrayF(value.map(v => (index, v)))))
-    case (index, Fix(AvroMapF(value)))     => EnvT((index, AvroMapF(value.map { case (k, v) => k -> (index, v) })))
-    case (index, Fix(AvroBytesF(value)))   => EnvT((index, AvroBytesF(value)))
-    case (index, Fix(AvroLogicalF(value))) => EnvT((index, AvroLogicalF((index, value))))
+    case (index, AvroEnum(value))    => EnvT((index + 1, AvroEnumF(value.toString)))
+    case (index, AvroUnion(value))   => EnvT((index + 1, AvroUnionF((index, value))))
+    case (index, AvroArray(value))   => EnvT((index + 1, AvroArrayF(value.map(v => (index, v)))))
+    case (index, AvroMap(value))     => EnvT((index + 1, AvroMapF(value.map { case (k, v) => k -> (index + 1, v) })))
+    case (index, AvroBytes(value))   => EnvT((index + 1, AvroBytesF(value)))
+    case (index, AvroLogical(value)) => EnvT((index + 1, AvroLogicalF((index, value))))
   }
 
   val toRawTypesM: AlgebraM[Result, AvroF, Any] = {
@@ -97,17 +97,29 @@ case class FoldingParser(genericRecord: GenericData.Record) {
     case AvroLogicalF(value)        => value
   }
 
+  val fromAvroEnv: Algebra[EnvT[Int, AvroF, ?], String] = {
+    case EnvT((ind, AvroNullF))                  => null
+    case EnvT((ind, AvroIntF(value)))            => s"$ind"
+    case EnvT((ind, AvroDoubleF(value)))         => s"$ind"
+    case EnvT((ind, AvroFloatF(value)))          => s"$ind"
+    case EnvT((ind, AvroLongF(value)))           => s"$ind"
+    case EnvT((ind, AvroBooleanF(value)))        => s"$ind"
+    case EnvT((ind, AvroStringF(value)))         => s"$ind"
+    case EnvT((ind, AvroRecordF(schema, value))) => s"$ind"
+    case EnvT((ind, AvroEnumF(value)))           => s"$ind"
+    case EnvT((ind, AvroUnionF(value)))          => s"$ind"
+    case EnvT((ind, AvroArrayF(value)))          => s"$ind"
+    case EnvT((ind, AvroMapF(value)))            => s"$ind"
+    case EnvT((ind, AvroBytesF(value)))          => s"$ind"
+    case EnvT((ind, AvroLogicalF(value)))        => s"$ind"
+  }
+
   def parse(avroType: Avro): Result[GenericData.Record] = {
 
-
-
-    val simpleAna = avroType.ana[AvroFix](toAvroF)
-    simpleAna.hylo()
+    //val simpleAna = avroType.ana[AvroFix](toAvroF)
+    val simpleAna = (0, avroType).hylo(fromAvroEnv, toAvroFEnv)
 
     println(simpleAna)
-    val runAna = avroType.anaM[AvroFix](toAvroFM)
-
-    val toRaw = runAna.flatMap(v => v.cataM(toRawTypesM))
 
 //    println(runAna)
 //    println(toRaw)

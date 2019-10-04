@@ -34,6 +34,8 @@ object AvronautBuild {
       "-target:jvm-1.8",
       "-feature",
       "-Ypartial-unification"
-    ))
+    ),
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10")
+  )
  
 }
