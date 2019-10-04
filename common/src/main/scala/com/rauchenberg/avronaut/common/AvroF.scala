@@ -1,9 +1,8 @@
 package com.rauchenberg.avronaut.common
 
-import cats.{Applicative, Eval, Traverse}
-import cats.syntax.traverse._
-import cats.instances.list._
-import com.rauchenberg.avronaut.common.recursion.{Fix, TraverseF}
+import scalaz._
+import Scalaz._
+import matryoshka.data.Fix
 import org.apache.avro.Schema
 
 sealed trait AvroF[+A]
@@ -25,29 +24,46 @@ final case class AvroLogicalF[A](value: A)                      extends AvroF[A]
 object AvroF {
   type AvroFix = Fix[AvroF]
 
-  implicit val AvroFTraverse = new TraverseF[AvroF] {
-    override def traverse[G[_], A, B](fa: AvroF[A])(f: A => G[B])(implicit G: Applicative[G]): G[AvroF[B]] = fa match {
-      case AvroNullF                  => G.pure(AvroNullF)
-      case a @ AvroIntF(_)            => G.pure(a)
-      case a @ AvroLongF(_)           => G.pure(a)
-      case a @ AvroFloatF(_)          => G.pure(a)
-      case a @ AvroDoubleF(_)         => G.pure(a)
-      case a @ AvroBooleanF(_)        => G.pure(a)
-      case a @ AvroStringF(_)         => G.pure(a)
-      case AvroRecordF(schema, value) => G.map(value.traverse(f))(AvroRecordF(schema, _))
-      case a @ AvroEnumF(_)           => G.pure(a)
-      case AvroUnionF(value)          => G.map(f(value))(AvroUnionF(_))
-      case AvroArrayF(value)          => G.map(value.traverse(f))(AvroArrayF(_))
-      case AvroMapF(value) => {
-        G.map(value.map {
-          case (s, a) =>
-            G.map(f(a))(v => (s, v))
-        }.sequence)(AvroMapF(_))
+  implicit val AvroFTraverse = new Traverse[AvroF] {
+    override def traverseImpl[G[_], A, B](fa: AvroF[A])(f: A => G[B])(implicit G: Applicative[G]): G[AvroF[B]] =
+      fa match {
+        case AvroNullF                  => G.pure(AvroNullF)
+        case a @ AvroIntF(_)            => G.pure(a)
+        case a @ AvroLongF(_)           => G.pure(a)
+        case a @ AvroFloatF(_)          => G.pure(a)
+        case a @ AvroDoubleF(_)         => G.pure(a)
+        case a @ AvroBooleanF(_)        => G.pure(a)
+        case a @ AvroStringF(_)         => G.pure(a)
+        case AvroRecordF(schema, value) => G.map(value.traverse(f))(AvroRecordF(schema, _))
+        case a @ AvroEnumF(_)           => G.pure(a)
+        case AvroUnionF(value)          => G.map(f(value))(AvroUnionF(_))
+        case AvroArrayF(value)          => G.map(value.traverse(f))(AvroArrayF(_))
+        case AvroMapF(value) => {
+          G.map(value.map {
+            case (s, a) =>
+              G.map(f(a))(v => (s, v))
+          }.sequence)(AvroMapF(_))
+        }
+        case a @ AvroBytesF(value) => G.pure(a)
+        case AvroLogicalF(value)   => G.map(f(value))(AvroLogicalF(_))
       }
-      case a @ AvroBytesF(value) => G.pure(a)
-      case AvroLogicalF(value)   => G.map(f(value))(AvroLogicalF(_))
+
+    override def map[A, B](fa: AvroF[A])(f: A => B): AvroF[B] = fa match {
+      case AvroNullF                  => AvroNullF
+      case a @ AvroIntF(_)            => a
+      case a @ AvroLongF(_)           => a
+      case a @ AvroFloatF(_)          => a
+      case a @ AvroDoubleF(_)         => a
+      case a @ AvroBooleanF(_)        => a
+      case a @ AvroStringF(_)         => a
+      case AvroRecordF(schema, value) => AvroRecordF(schema, value.map(f))
+      case a @ AvroEnumF(_)           => a
+      case AvroUnionF(value)          => AvroUnionF(f(value))
+      case AvroArrayF(value)          => AvroArrayF(value.map(f))
+      case AvroMapF(value)            => AvroMapF { value.map { case (k, v) => k -> f(v) } }
+      case a @ AvroBytesF(value)      => a
+      case a @ AvroLogicalF(value)    => AvroLogicalF(f(value))
     }
 
-    override def map[A, B](fa: AvroF[A])(f: A => B): AvroF[B] = ???
   }
 }
