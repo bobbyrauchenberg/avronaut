@@ -29,8 +29,8 @@ object Encoder {
       s       <- schema.schema
       encoded <- encoder.encode(a)
       genRec <- encoded match {
-                 case a @ AvroRecord(_, _) => FoldingParser(new GenericData.Record(s)).parse(a)
-                 case _                    => Error(s"Can only encode records, got $encoded").asLeft
+                 case a @ AvroRecord(_, _, _) => FoldingParser(new GenericData.Record(s)).parse(a.copy(isTop = true))
+                 case _                       => Error(s"Can only encode records, got $encoded").asLeft
                }
     } yield genRec
 

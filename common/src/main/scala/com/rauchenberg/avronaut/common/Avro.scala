@@ -4,17 +4,17 @@ import cats.syntax.either._
 import org.apache.avro.Schema
 
 sealed trait Avro
-final case object AvroNull                                     extends Avro
-final case class AvroNumber(value: AvroNum)                    extends Avro
-final case class AvroBoolean(value: Boolean)                   extends Avro
-final case class AvroString(value: String)                     extends Avro
-final case class AvroRecord(schema: Schema, value: List[Avro]) extends Avro
-final case class AvroEnum[A](value: A)                         extends Avro
-final case class AvroUnion(value: Avro)                        extends Avro
-final case class AvroArray(value: List[Avro])                  extends Avro
-final case class AvroMap(value: List[(String, Avro)])          extends Avro
-final case class AvroBytes(value: Array[Byte])                 extends Avro
-final case class AvroLogical(value: Avro)                      extends Avro
+final case object AvroNull                                                             extends Avro
+final case class AvroNumber(value: AvroNum)                                            extends Avro
+final case class AvroBoolean(value: Boolean)                                           extends Avro
+final case class AvroString(value: String)                                             extends Avro
+final case class AvroRecord(schema: Schema, value: List[Avro], isTop: Boolean = false) extends Avro
+final case class AvroEnum[A](value: A)                                                 extends Avro
+final case class AvroUnion(value: Avro)                                                extends Avro
+final case class AvroArray(value: List[Avro])                                          extends Avro
+final case class AvroMap(value: List[(String, Avro)])                                  extends Avro
+final case class AvroBytes(value: Array[Byte])                                         extends Avro
+final case class AvroLogical(value: Avro)                                              extends Avro
 
 object Avro {
 
