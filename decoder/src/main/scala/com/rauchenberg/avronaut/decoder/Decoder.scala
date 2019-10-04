@@ -51,7 +51,7 @@ object Decoder {
                 }
             }
           }
-        case TypeDecode(AvroRecord(_, fields)) =>
+        case TypeDecode(AvroRecord(_, fields, _)) =>
           params.zip(fields).traverse {
             case (param, avroType) =>
               valueOrDefault(param.typeclass.apply(TypeDecode(avroType)), param.default)

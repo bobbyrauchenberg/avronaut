@@ -65,8 +65,8 @@ object Parser {
                 case (r @ Right(_), _) => r
                 case (acc, recordSchema) =>
                   parseRecord(recordSchema, value) match {
-                    case r @ Right(AvroRecord(_, _)) => r
-                    case _                           => acc
+                    case r @ Right(AvroRecord(_, _, _)) => r
+                    case _                              => acc
                   }
               }
           case _ =>

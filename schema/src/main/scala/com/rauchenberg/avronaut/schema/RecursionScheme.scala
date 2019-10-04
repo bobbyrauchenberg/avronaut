@@ -115,8 +115,4 @@ object RecursionScheme extends App {
   val cataResult     = anaResult.cata[Any](avroAlgebra)
   val cataResultPara = anaResult.zygo(zygoAlgebra, avroGAlgebra)
 
-  println(anaResult)
-  println(cataResult)
-  println(cataResultPara)
-
 }

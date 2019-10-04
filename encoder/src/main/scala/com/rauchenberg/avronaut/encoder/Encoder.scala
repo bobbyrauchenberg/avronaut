@@ -43,7 +43,12 @@ object Encoder {
               .find(_.label == field.name)
               .map(_.asRight)
               .getOrElse(Error(s"couldn't find param for schema field ${field.name}").asLeft)
-              .flatMap(param => param.typeclass.encode(param.dereference(value)))
+              .flatMap { param =>
+                param.typeclass.encode(param.dereference(value)) match {
+                  case Right(AvroArray(values)) => AvroSchemaArray(field.schema, values).asRight
+                  case other                    => other
+                }
+              }
           }.map { AvroRecord(schema, _) }
         }
     }

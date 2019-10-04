@@ -42,17 +42,19 @@ class SimpleRecordSpec extends UnitSpecBase {
         expected.put(1, record.boolean)
         expected.put(2, innerRecord)
 
+        println(expected)
+
         Encoder.encode[NestedRecord](record) should beRight(expected.asInstanceOf[GenericRecord])
       }
     }
-//
-//    "encode a case class with nested primitives roundtrip" in {
-//      forAll { record: NestedRecord =>
-//        Encoder.encode[NestedRecord](record).flatMap { v =>
-//          Decoder.decode[NestedRecord](v)
-//        } should beRight(record)
-//      }
-//    }
+
+    "encode a case class with nested primitives roundtrip" in {
+      forAll { record: NestedRecord =>
+        Encoder.encode[NestedRecord](record).flatMap { v =>
+          Decoder.decode[NestedRecord](v)
+        } should beRight(record)
+      }
+    }
 
   }
 
