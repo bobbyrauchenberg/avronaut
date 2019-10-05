@@ -2,8 +2,7 @@ package com.rauchenberg.avronaut.common.recursion
 
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.traverse._
-import cats.{Functor, Monad, Traverse}
+import cats.{Functor, Monad}
 
 object Morphisms {
 

@@ -149,7 +149,6 @@ class ArrayEncoderSpec extends UnitSpecBase {
       val x: GenericContainer = ga
       gr.put("field", x)
 
-
     }
 
   }
