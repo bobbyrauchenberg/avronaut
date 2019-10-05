@@ -16,7 +16,7 @@ final case class AvroStringF(value: String)                                     
 final case class AvroRecordF[A](schema: Schema, value: List[A], isTop: Boolean = false) extends AvroF[A]
 final case class AvroEnumF[B](value: String)                                            extends AvroF[Nothing]
 final case class AvroUnionF[A](value: A)                                                extends AvroF[A]
-final case class AvroArrayF[A](schema: Schema, value: List[A])                          extends AvroF[A]
+final case class AvroArrayF[A](value: List[A])                                          extends AvroF[A]
 final case class AvroMapF[A](value: List[(String, A)])                                  extends AvroF[A]
 final case class AvroBytesF(value: Array[Byte])                                         extends AvroF[Nothing]
 final case class AvroLogicalF[A](value: A)                                              extends AvroF[A]
@@ -37,7 +37,7 @@ object AvroF {
         case AvroRecordF(schema, value, isTop) => G.map(value.traverse(f))(AvroRecordF(schema, _, isTop))
         case a @ AvroEnumF(_)                  => G.pure(a)
         case AvroUnionF(value)                 => G.map(f(value))(AvroUnionF(_))
-        case AvroArrayF(schema, value)         => G.map(value.traverse(f))(AvroArrayF(schema, _))
+        case AvroArrayF(value)                 => G.map(value.traverse(f))(AvroArrayF(_))
         case AvroMapF(value) => {
           G.map(value.map {
             case (s, a) =>
@@ -59,7 +59,7 @@ object AvroF {
       case AvroRecordF(schema, value, isTop) => AvroRecordF(schema, value.map(f), isTop)
       case a @ AvroEnumF(_)                  => a
       case AvroUnionF(value)                 => AvroUnionF(f(value))
-      case AvroArrayF(schema, value)         => AvroArrayF(schema, value.map(f))
+      case AvroArrayF(value)                 => AvroArrayF(value.map(f))
       case AvroMapF(value)                   => AvroMapF { value.map { case (k, v) => k -> f(v) } }
       case a @ AvroBytesF(value)             => a
       case a @ AvroLogicalF(value)           => AvroLogicalF(f(value))

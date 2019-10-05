@@ -29,7 +29,6 @@ object Encoder {
       s <- schema.schema
       encoded <- {
         val res = encoder.encode(a)
-        println("res : " + res)
         res
       }
       genRec <- encoded match {
@@ -48,10 +47,7 @@ object Encoder {
               .map(_.asRight)
               .getOrElse(Error(s"couldn't find param for schema field ${field.name}").asLeft)
               .flatMap { param =>
-                param.typeclass.encode(param.dereference(value)) match {
-                  case Right(AvroArray(values)) => AvroSchemaArray(field.schema, values).asRight
-                  case other                    => other
-                }
+                param.typeclass.encode(param.dereference(value))
               }
           }.map { AvroRecord(schema, _) }
         }

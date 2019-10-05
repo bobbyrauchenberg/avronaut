@@ -23,7 +23,7 @@ case class FoldingParser(genericRecord: GenericData.Record) {
     case AvroRecord(schema, value, isTop) => AvroRecordF(schema, value, isTop).asRight
     case AvroEnum(value)                  => AvroEnumF(value.toString).asRight
     case AvroUnion(value)                 => AvroUnionF(value).asRight
-    case AvroSchemaArray(schema, value)   => AvroArrayF(schema, value).asRight
+    case AvroArray(value)                 => AvroArrayF(value).asRight
     case AvroMap(value)                   => AvroMapF(value).asRight
     case AvroBytes(value)                 => AvroBytesF(value).asRight
     case AvroLogical(value)               => AvroLogicalF(value).asRight
@@ -37,101 +37,66 @@ case class FoldingParser(genericRecord: GenericData.Record) {
     case AvroRecord(schema, value, isTop) => AvroRecordF(schema, value, isTop)
     case AvroEnum(value)                  => AvroEnumF(value.toString)
     case AvroUnion(value)                 => AvroUnionF(value)
-    case AvroSchemaArray(schema, value)   => AvroArrayF(schema, value)
+    case AvroArray(value)                 => AvroArrayF(value)
     case AvroMap(value)                   => AvroMapF(value)
     case AvroBytes(value)                 => AvroBytesF(value)
     case AvroLogical(value)               => AvroLogicalF(value)
   }
 
-  //can use this to pass a schema about???
-  val toAvroFEnv: Coalgebra[WithIndex, (Schema, Avro)] = {
-    case (schema, AvroNull)           => EnvT((schema, AvroNullF))
-    case (schema, AvroNumber(value))  => EnvT((schema, AvroIntF(value.toInt.right.get)))
-    case (schema, AvroBoolean(value)) => EnvT((schema, AvroBooleanF(value)))
-    case (schema, AvroString(value))  => EnvT((schema, AvroStringF(value)))
-    case (schema, AvroRecord(s, value, isTop)) =>
-      EnvT((schema, AvroRecordF(schema, value.map { v =>
-        (schema, v)
-      }, isTop)))
-    case (schema, AvroEnum(value))           => EnvT((schema, AvroEnumF(value.toString)))
-    case (schema, AvroUnion(value))          => EnvT((schema, AvroUnionF((schema, value))))
-    case (schema, AvroSchemaArray(s, value)) => EnvT((s, AvroArrayF(s, value.map(v => (s, v)))))
-    case (schema, AvroMap(value))            => EnvT((schema, AvroMapF(value.map { case (k, v) => k -> (schema, v) })))
-    case (schema, AvroBytes(value))          => EnvT((schema, AvroBytesF(value)))
-    case (schema, AvroLogical(value))        => EnvT((schema, AvroLogicalF((schema, value))))
-  }
+//  //can use this to pass a schema about???
+//  val toAvroFEnv: Coalgebra[WithIndex, (Schema, Avro)] = {
+//    case (schema, AvroNull)           => EnvT((schema, AvroNullF))
+//    case (schema, AvroNumber(value))  => EnvT((schema, AvroIntF(value.toInt.right.get)))
+//    case (schema, AvroBoolean(value)) => EnvT((schema, AvroBooleanF(value)))
+//    case (schema, AvroString(value))  => EnvT((schema, AvroStringF(value)))
+//    case (schema, AvroRecord(s, value, isTop)) =>
+//      EnvT((schema, AvroRecordF(schema, value.map { v =>
+//        (schema, v)
+//      }, isTop)))
+//    case (schema, AvroEnum(value))        => EnvT((schema, AvroEnumF(value.toString)))
+//    case (schema, AvroUnion(value))       => EnvT((schema, AvroUnionF((schema, value))))
+//    case (schema, AvroArray(value)) => EnvT((s, AvroArrayF(value.map(v => (s, v)))))
+//    case (schema, AvroMap(value))         => EnvT((schema, AvroMapF(value.map { case (k, v) => k -> (schema, v) })))
+//    case (schema, AvroBytes(value))       => EnvT((schema, AvroBytesF(value)))
+//    case (schema, AvroLogical(value))     => EnvT((schema, AvroLogicalF((schema, value))))
+//  }
 
-  val toGR: Algebra[WithIndex, List[(Int, Either[GenericData.Array[Any], GenericData.Record]) => Unit]] = {
-    case EnvT((schema: Schema, AvroNullF)) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) => r.fold(_.add(i, null), _.put(i, null))
-      List(r)
-    case EnvT((schema: Schema, AvroIntF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroDoubleF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroFloatF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroLongF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroBooleanF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroStringF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroRecordF(s, value, isTop))) =>
+  val toGR: Algebra[AvroF, Any] = {
+    case AvroNullF => null
+    case AvroIntF(value) =>
+      value
+    case AvroDoubleF(value) =>
+      value
+    case AvroFloatF(value) =>
+      value
+    case AvroLongF(value) =>
+      value
+    case AvroBooleanF(value) =>
+      value
+    case AvroStringF(value) =>
+      value
+    case AvroRecordF(schema, values, isTop) =>
       val gr = if (isTop) genericRecord else new GenericData.Record(schema)
       val lu = schema.getFields.asScala.toList
-        .zip(value)
+        .zip(values)
         .zipWithIndex
         .map {
-          case ((sf, func), i) =>
-            if (func.isEmpty)
-              gr.put(i, Nil.asJava)
-            else {
-              func.map { v =>
-                v.apply(i, gr.asRight)
-              }
-            }
+          case ((sf, value), i) =>
+            gr.put(i, value)
         }
-      val f = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) => r.fold(_.add(i, gr), _.put(i, gr))
-      List(f)
-    case EnvT((schema: Schema, AvroEnumF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroUnionF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroArrayF(s, value))) =>
-      val ga = new GenericData.Array[Any](value.size, schema)
-      value.flatten.zipWithIndex.foreach {
-        case (f, ind) => f(ind, ga.asLeft)
-      }
-      List((i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) => r.fold(_.add(i, ga), _.put(i, ga)))
-    case EnvT((schema: Schema, AvroMapF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroBytesF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
-    case EnvT((schema: Schema, AvroLogicalF(value))) =>
-      val r = (i: Int, r: Either[GenericData.Array[Any], GenericData.Record]) =>
-        r.fold(_.add(i, value), _.put(i, value))
-      List(r)
+      gr
+    case AvroEnumF(value) =>
+      value
+    case AvroUnionF(value) =>
+      value
+    case AvroArrayF(value) =>
+      value.asJava
+    case AvroMapF(value) =>
+      value
+    case AvroBytesF(value) =>
+      value
+    case AvroLogicalF(value) =>
+      value
   }
 
   val fromAvroEnv: Algebra[EnvT[Int, AvroF, ?], String] = {
@@ -145,15 +110,14 @@ case class FoldingParser(genericRecord: GenericData.Record) {
     case EnvT((ind, AvroRecordF(schema, value, _))) => s"write Record"
     case EnvT((ind, AvroEnumF(value)))              => s"write Enum"
     case EnvT((ind, AvroUnionF(value)))             => s"write Union"
-    case EnvT((ind, AvroArrayF(schema, value)))     => s"write array"
+    case EnvT((ind, AvroArrayF(value)))             => s"write array"
     case EnvT((ind, AvroMapF(value)))               => s"write map"
     case EnvT((ind, AvroBytesF(value)))             => s"write bytes"
     case EnvT((ind, AvroLogicalF(value)))           => s"write logical"
   }
 
   def parse(avroType: Avro): Result[GenericData.Record] = {
-    println(avroType)
-    val funcs = avroType.hylo(toGR, toAvroFEnv)
+    val funcs = avroType.hylo(toGR, toAvroF)
 
 //
 //

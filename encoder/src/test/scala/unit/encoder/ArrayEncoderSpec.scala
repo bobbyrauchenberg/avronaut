@@ -26,7 +26,6 @@ class ArrayEncoderSpec extends UnitSpecBase {
     "encode a record with a list of primitives roundtrip" in {
       forAll { record: TestRecord =>
         Encoder.encode[TestRecord](record).flatMap { v =>
-          println(record)
           Decoder.decode[TestRecord](v)
         } should beRight(record)
       }
@@ -150,7 +149,6 @@ class ArrayEncoderSpec extends UnitSpecBase {
       val x: GenericContainer = ga
       gr.put("field", x)
 
-      println(gr)
 
     }
 
