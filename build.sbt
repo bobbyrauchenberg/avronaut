@@ -9,27 +9,14 @@ addCompilerPlugin("org.typelevel" % "kind-projector" % "0.10.3" cross CrossVersi
 
 configureDependencies()
 
-lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common, decoder, schema, encoder)
+lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common)
 
 lazy val root = Project(id = "avronaut", base = file("."))
   .aggregate(aggregatedProjects: _*)
 
 lazy val common = newModule("common")
 
-lazy val schema = newModule("schema").dependsOn(
-  common % "compile->compile"
-)
-
-lazy val decoder = newModule("decoder").dependsOn(
-  common % "compile->compile; test->test",
-  schema % "compile->compile; test->compile"
-)
-
-lazy val encoder = newModule("encoder").dependsOn(
-  common  % "compile->compile; test->test",
-  schema  % "compile->compile; test->compile",
-  decoder % "test->compile; compile->compile"
-)
+lazy val core = newModule("core")
 
 def newModule(name: String): Project =
   Project(id = name, base = file(name))
