@@ -36,6 +36,7 @@ case class Parser(genericRecord: GenericData.Record) {
     case AvroLogical(value)        => AvroLogicalF(value).asRight
     case AvroRecord(schema, value) => AvroRecordF(schema, value).asRight
     case AvroRoot(schema, value)   => AvroRootF(schema, value).asRight
+    case AvroDecode                => Error("should never encode an AvroDecode").asLeft
   }
 
   val populateGenericRecord: AlgebraM[Result, AvroF, Any] = {

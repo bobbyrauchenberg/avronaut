@@ -14,7 +14,7 @@ class DateTimeSpec extends UnitSpecBase {
         |,"doc":"","fields":[{"name":"field","type":{"type":"long",
         |"logicalType":"timestamp-millis"}}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[DateTimeField] should beRight(expected)
+      schemaAsString[DateTimeField] shouldBe expected
     }
   }
 

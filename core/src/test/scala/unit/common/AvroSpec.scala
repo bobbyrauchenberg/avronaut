@@ -3,6 +3,7 @@ package unit.common
 import cats.syntax.either._
 import com.rauchenberg.avronaut.common.{Avro, Error}
 import org.scalacheck.{Arbitrary, Gen}
+import unit.utils.UnitSpecBase
 
 class AvroSpec extends UnitSpecBase {
 

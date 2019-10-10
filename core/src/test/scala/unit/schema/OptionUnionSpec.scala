@@ -12,7 +12,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"Union","namespace":"unit.schema.OptionUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["null","string"]}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[Union] should beRight(expected)
+      schemaAsString[Union] shouldBe expected
     }
 
     "create a union from an Option with a string default" in {
@@ -22,7 +22,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |"fields":[{"name":"cupcat","type":["string","null"],"doc":"","default":"cupcat"}]}""".stripMargin
           .replace("\n", "")
 
-      schemaAsString[UnionWithStringDefault] should beRight(expected)
+      schemaAsString[UnionWithStringDefault] shouldBe expected
     }
 
     "create a union from an Option with an int default" in {
@@ -31,7 +31,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"UnionWithIntDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
           |"fields":[{"name":"cupcat","type":["int","null"],"doc":"","default":123}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[UnionWithIntDefault] should beRight(expected)
+      schemaAsString[UnionWithIntDefault] shouldBe expected
     }
 
     "create a union from an Option with a Byte Array default" in {
@@ -41,7 +41,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |"fields":[{"name":"cupcat","type":["bytes","null"],"doc":"","default":"cupcat"}]}""".stripMargin
           .replace("\n", "")
 
-      schemaAsString[UnionWithByteArrayDefault] should beRight(expected)
+      schemaAsString[UnionWithByteArrayDefault] shouldBe expected
     }
 
     "create a union from an Option with None as default" in {
@@ -51,7 +51,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |"fields":[{"name":"cupcat","type":["null","string"],"doc":"","default":null}]}""".stripMargin.replace("\n",
                                                                                                                  "")
 
-      schemaAsString[UnionWithDefaultNone] should beRight(expected)
+      schemaAsString[UnionWithDefaultNone] shouldBe expected
     }
 
     "create a union from an Option with a default case class" in {
@@ -62,7 +62,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |"fields":[{"name":"cupcat","type":"string"}]},"doc":"",
           |"default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[UnionWithCaseClassDefault] should beRight(expected)
+      schemaAsString[UnionWithCaseClassDefault] shouldBe expected
     }
 
     "create a union from an Option with a default optional case class" in {
@@ -72,7 +72,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |"fields":[{"name":"cupcat","type":"string"}]},"null"],
           |"doc":"","default":{"cupcat":"cupcat"}}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[UnionWithOptionalCaseClassDefault] should beRight(expected)
+      schemaAsString[UnionWithOptionalCaseClassDefault] shouldBe expected
     }
 
     "flatten a nested structure of types that are encoded as unions" in {
@@ -81,7 +81,7 @@ class OptionUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"NestedUnion","namespace":"unit.schema.OptionUnionSpec","doc":"",
           |"fields":[{"name":"cupcat","type":["null","boolean","string"]}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[NestedUnion] should beRight(expected)
+      schemaAsString[NestedUnion] shouldBe expected
     }
 
   }

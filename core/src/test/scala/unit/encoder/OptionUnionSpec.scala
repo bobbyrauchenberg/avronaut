@@ -1,9 +1,10 @@
 package unit.encoder
 
-import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
+import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
 import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
+import com.rauchenberg.avronaut.schema.AvroSchema._
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import org.apache.avro.{Schema, SchemaBuilder}
 import unit.utils.UnitSpecBase
@@ -15,30 +16,31 @@ class OptionUnionSpec extends UnitSpecBase {
   "encoder" should {
 
     "encode a Union of null and T" in {
+      val writerSchema = AvroSchema.toSchema[RecordWithUnion].value
       forAll { record: RecordWithUnion =>
-        val schema        = AvroSchema[RecordWithUnion].schema.value
-        val genericRecord = new GenericData.Record(schema)
+        val genericRecord = new GenericData.Record(writerSchema.schema)
 
         genericRecord.put(0, record.field.orNull)
 
-        Encoder.encode[RecordWithUnion](record) should beRight(genericRecord)
+        Encoder.encode[RecordWithUnion](record, writerSchema) should beRight(genericRecord)
       }
     }
 
     "encode a Union of null and T roundtrip" in {
+      val writerSchema = AvroSchema.toSchema[RecordWithUnion].value
       forAll { record: RecordWithUnion =>
-        Encoder.encode[RecordWithUnion](record).flatMap { v =>
-          Decoder.decode[RecordWithUnion](v)
+        Encoder.encode[RecordWithUnion](record, writerSchema).flatMap { v =>
+          Decoder.decode[RecordWithUnion](v, writerSchema)
         } should beRight(record)
       }
     }
 
     "encode a union with a record" in {
-      forAll { record: SimpleRecord =>
-        val simpleRecordSchema   = AvroSchema[SimpleRecord].schema.value
-        implicit val outerSchema = AvroSchema[RecordWithUnionOfCaseclass].schema.value
+      val writerSchema = AvroSchema.toSchema[RecordWithUnionOfCaseclass].value
 
-        val unionSchema = Schema.createUnion(List(SchemaBuilder.builder.nullType, simpleRecordSchema): _*)
+      forAll { record: SimpleRecord =>
+        val simpleRecordSchema = AvroSchema.toSchema[SimpleRecord].value
+        val unionSchema        = Schema.createUnion(List(SchemaBuilder.builder.nullType, simpleRecordSchema.schema): _*)
 
         val innerSchema = unionSchema.getTypes.asScala.last
         val innerRecord = new GenericData.Record(innerSchema)
@@ -46,29 +48,30 @@ class OptionUnionSpec extends UnitSpecBase {
         innerRecord.put(0, record.cup)
         innerRecord.put(1, record.cat)
 
-        val outerRecord   = new GenericData.Record(outerSchema)
+        val outerRecord   = new GenericData.Record(writerSchema.schema)
         val recordBuilder = new GenericRecordBuilder(outerRecord)
 
         recordBuilder.set("field", innerRecord)
 
-        Encoder.encode[RecordWithUnionOfCaseclass](RecordWithUnionOfCaseclass(Some(record))) should beRight(
+        Encoder
+          .encode[RecordWithUnionOfCaseclass](RecordWithUnionOfCaseclass(Some(record)), writerSchema) should beRight(
           recordBuilder.build)
       }
     }
 
     "encode a union with a record roundtrip" in {
+      val writerSchema = AvroSchema.toSchema[RecordWithUnionOfCaseclass].value
       forAll { record: RecordWithUnionOfCaseclass =>
-        Encoder.encode[RecordWithUnionOfCaseclass](record).flatMap { v =>
-          Decoder.decode[RecordWithUnionOfCaseclass](v)
+        Encoder.encode[RecordWithUnionOfCaseclass](record, writerSchema).flatMap { v =>
+          Decoder.decode[RecordWithUnionOfCaseclass](v, writerSchema)
         } should beRight(record)
       }
     }
 
     "encode a union with a list" in {
+      implicit val writerSchema = AvroSchema.toSchema[RecordWithOptionalListCaseClass].value
       forAll { record: Option[List[String]] =>
-        implicit val schema = AvroSchema[RecordWithOptionalListCaseClass].schema.value
-
-        val builder = new GenericRecordBuilder(new GenericData.Record(schema))
+        val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema.schema))
 
         val r = RecordWithOptionalListCaseClass(record)
 
@@ -77,7 +80,7 @@ class OptionUnionSpec extends UnitSpecBase {
           case None       => builder.set("field", null)
         }
 
-        Encoder.encode[RecordWithOptionalListCaseClass](r) should beRight(builder.build())
+        Encoder.encode[RecordWithOptionalListCaseClass](r, writerSchema) should beRight(builder.build())
       }
     }
 

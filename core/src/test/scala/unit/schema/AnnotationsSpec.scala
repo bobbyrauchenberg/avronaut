@@ -42,14 +42,18 @@ class AnnotationsSpec extends UnitSpecBase {
     }
 
     "apply annotations to an enum" in new TestContext {
-      runAssert[AnnotatedEnum]("""{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
-          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat",
-          |"symbols":["AnnotatedCup","AnnotatedCat"]}}]}""".stripMargin.replace("\n", ""))
+
+      val expected =
+        """{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
+                       |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat","namespace":"unit.schema.Annotated",
+                       |"symbols":["AnnotatedCup","AnnotatedCat"]}}]}""".stripMargin.replace("\n", "")
+
+      runAssert[AnnotatedEnum](expected)
     }
   }
 
   trait TestContext {
-    def runAssert[A : AvroSchema](expected: String) = schemaAsString[A] should beRight(expected)
+    def runAssert[A : AvroSchema](expected: String) = schemaAsString[A] shouldBe expected
   }
 
   case class FieldNameAnnotation(@SchemaMetadata(Map(Name -> "cuppers")) cupcat: String)

@@ -1,8 +1,8 @@
 package unit.schema
 
 import com.rauchenberg.avronaut.schema.AvroSchema
-import unit.utils.UnitSpecBase
 import org.scalacheck.{Arbitrary, Gen}
+import unit.utils.UnitSpecBase
 
 class SimpleRecordDefaultsSpec extends UnitSpecBase {
 
@@ -44,7 +44,7 @@ class SimpleRecordDefaultsSpec extends UnitSpecBase {
   trait TestContext {
 
     def runAssert[A : AvroSchema, B](typeName: String, valueType: String, default: B) =
-      schemaAsString[A] should beRight(simpleSchema(typeName, valueType, default))
+      schemaAsString[A] shouldBe simpleSchema(typeName, valueType, default)
 
     def simpleSchema[A](typeName: String, valueType: String, default: A) =
       s"""{"type":"record","name":"$typeName","namespace":"unit.schema.SimpleRecordDefaultsSpec","doc":"",

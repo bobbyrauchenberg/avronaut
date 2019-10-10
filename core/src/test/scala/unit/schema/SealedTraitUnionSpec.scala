@@ -14,7 +14,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string"}]},
           |{"type":"record","name":"Rendal","doc":"","fields":[]}]}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[Union] should beRight(expected)
+      schemaAsString[Union] shouldBe expected
     }
     "handle mixed sealed trait unions with defaults" in {
       val expected =
@@ -25,7 +25,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"Rendal","doc":"","fields":[]}],
           |"doc":"","default":{"name":"cupcat"}}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[UnionWithCaseClassDefault] should beRight(expected)
+      schemaAsString[UnionWithCaseClassDefault] shouldBe expected
     }
     "handle mixed sealed trait unions with case object defaults" in {
       val expected =
@@ -35,7 +35,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"Cupcat","doc":"","fields":[]},{"type":"record","name":"Snoutley","doc":"",
           |"fields":[{"name":"name","type":"string"}]}],"doc":"","default":{}}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[UnionWithCaseObjectDefault] should beRight(expected)
+      schemaAsString[UnionWithCaseObjectDefault] shouldBe expected
     }
   }
 }

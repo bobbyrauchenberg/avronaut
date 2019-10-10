@@ -16,52 +16,57 @@ class LogicalTypeSpec extends UnitSpecBase {
 
     "decode UUID" in {
       forAll { writerRecord: WriterRecordWithUUID =>
-        val schema = AvroSchema[WriterRecordWithUUID].schema.value
+        val writerSchema = AvroSchema.toSchema[WriterRecordWithUUID].value
+        val readerSchema = AvroSchema.toSchema[ReaderRecordWithUUID].value
 
-        val record = new GenericData.Record(schema)
+        val record = new GenericData.Record(writerSchema.schema)
         record.put(0, writerRecord.writerField1)
         record.put(1, writerRecord.field.toString)
         record.put(2, writerRecord.writerField2)
 
         val expected = ReaderRecordWithUUID(writerRecord.field)
-        Decoder.decode[ReaderRecordWithUUID](record) should beRight(expected)
+        Decoder.decode[ReaderRecordWithUUID](record, readerSchema) should beRight(expected)
       }
     }
 
     "decode OffsetDateTime" in {
       forAll { writerRecord: WriterRecordWithDateTime =>
-        val schema = AvroSchema[WriterRecordWithDateTime].schema.value
+        val writerSchema = AvroSchema.toSchema[WriterRecordWithDateTime].value
+        val readerSchema = AvroSchema.toSchema[ReaderRecordWithDateTime].value
 
-        val record = new GenericData.Record(schema)
+        val record = new GenericData.Record(writerSchema.schema)
         record.put(0, writerRecord.writerField1)
         record.put(1, writerRecord.writerField2)
         record.put(2, writerRecord.field.toInstant.toEpochMilli)
 
         val expected = ReaderRecordWithDateTime(writerRecord.field)
-        Decoder.decode[ReaderRecordWithDateTime](record) should beRight(expected)
+        Decoder.decode[ReaderRecordWithDateTime](record, readerSchema) should beRight(expected)
       }
     }
 
     "decode Instant" in {
       forAll { writerRecord: WriterRecordWithInstant =>
-        val schema = AvroSchema[WriterRecordWithInstant].schema.value
+        val writerSchema = AvroSchema.toSchema[WriterRecordWithInstant].value
+        val readerSchema = AvroSchema.toSchema[ReaderRecordWithInstant].value
 
-        val record = new GenericData.Record(schema)
+        val record = new GenericData.Record(writerSchema.schema)
         record.put(0, writerRecord.writerField1)
         record.put(1, writerRecord.writerField2)
         record.put(2, writerRecord.field.toEpochMilli)
 
         val expected = ReaderRecordWithInstant(writerRecord.field)
-        Decoder.decode[ReaderRecordWithInstant](record) should beRight(expected)
+        Decoder.decode[ReaderRecordWithInstant](record, readerSchema) should beRight(expected)
       }
     }
 
     "decode with an OffsetDateTime default" in {
-      val writerSchema = AvroSchema[WriterRecordWithDateTime].schema.value
+      val writerSchema = AvroSchema.toSchema[WriterRecordWithDateTime].value
+      val readerSchema = AvroSchema.toSchema[ReaderRecordWithDateTimeDefault].value
 
-      val record = new GenericData.Record(writerSchema)
+      val record = new GenericData.Record(writerSchema.schema)
 
-      Decoder.decode[ReaderRecordWithDateTimeDefault](record) should beRight(ReaderRecordWithDateTimeDefault())
+      Decoder.decode[ReaderRecordWithDateTimeDefault](record, readerSchema) should beRight(
+        ReaderRecordWithDateTimeDefault())
     }
   }
 

@@ -13,41 +13,37 @@ class CoproductUnionSpec extends UnitSpecBase {
         """
           |{"type":"record","name":"CoproductUnion","namespace":"unit.schema.CoproductUnionSpec",
           |"doc":"","fields":[{"name":"cupcat"
-          |,"type":["int","boolean","string"]}]}""".stripMargin.replace("\n", "")
+          |,"type":["string","boolean","int"]}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[CoproductUnion] should beRight(expected)
+      schemaAsString[CoproductUnion] shouldBe expected
     }
 
     "respect a Coproduct default" in {
       val expected =
         """
           |{"type":"record","name":"CoproductWithStringDefault","namespace":"unit.schema.CoproductUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["string","int","boolean"]
+          |"doc":"","fields":[{"name":"cupcat","type":["string","boolean","int"]
           |,"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[CoproductWithStringDefault] should beRight(expected)
+      schemaAsString[CoproductWithStringDefault] shouldBe expected
     }
 
     "respect a Coproduct default regardless of place in the coproduct" in {
       val expected =
         """
           |{"type":"record","name":"CoproductWithIntDefault","namespace":"unit.schema.CoproductUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["int","boolean","string"],"doc":""
+          |"doc":"","fields":[{"name":"cupcat","type":["int","string","boolean"],"doc":""
           |,"default":123}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[CoproductWithIntDefault] should beRight(expected)
+      schemaAsString[CoproductWithIntDefault] shouldBe expected
     }
 
     "flatten a nested structure of types that map to unions" in {
       val expected =
         """
           |{"type":"record","name":"Nested","namespace":"unit.schema.CoproductUnionSpec","doc":"",
-          |"fields":[{"name":"cupcat","type":["boolean","int","long","string"]}]}""".stripMargin.replace("\n", "")
-      schemaAsString[Nested] should beRight(expected)
-    }
-
-    "error if a union contains a duplicate" in {
-      schemaAsString[IllegalDuplicateCP] should beLeft(Error("Duplicate in union:string"))
+          |"fields":[{"name":"cupcat","type":["string","int","long","boolean"]}]}""".stripMargin.replace("\n", "")
+      schemaAsString[Nested] shouldBe expected
     }
 
   }

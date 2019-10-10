@@ -90,7 +90,7 @@ object Parser {
   private def parseRecord[A](schema: Schema, value: A): Result[Avro] =
     value match {
       case gr: GenericRecord =>
-        fieldsFrom(schema).traverse(field => parse(field, gr)).map(AvroRecord(null, _))
+        fieldsFrom(schema).traverse(field => parse(field, gr)).map(AvroRecord(schema, _))
       case _ => Error(s"expected a GenericRecord for '$value', '$schema'").asLeft
     }
 

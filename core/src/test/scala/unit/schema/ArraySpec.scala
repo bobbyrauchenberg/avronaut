@@ -28,19 +28,18 @@ class ArraySpec extends UnitSpecBase {
 
   trait TestContext {
     def runAssert[A : AvroSchema](name: String) =
-      schemaAsString[A] should beRight(
+      schemaAsString[A] shouldBe
         s"""
            |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec","doc":"",
            |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"}}]}
            |""".stripMargin.replace("\n", "")
-      )
+
     def runAssertWithDefault[A : AvroSchema](name: String) =
-      schemaAsString[A] should beRight(
+      schemaAsString[A] shouldBe
         s"""
            |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec","doc":"",
            |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"},"doc":"","default":["cup","cat"]}]}
            |""".stripMargin.replace("\n", "")
-      )
   }
 
   case class RecordWithList(cupcat: List[String])

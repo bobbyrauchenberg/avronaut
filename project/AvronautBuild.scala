@@ -1,12 +1,13 @@
 import sbt.Keys._
 import sbt._
 
-
 object AvronautBuild {
+
+  addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.3.7")
 
   lazy val buildSettings = Seq(
     organization := "com.rauchenberg.avronaut",
-    scalaVersion := "2.12.9"
+    scalaVersion := "2.12.10"
   )
 
   def isTravis = System.getenv("TRAVIS") == "true"
@@ -15,7 +16,8 @@ object AvronautBuild {
 
   lazy val projectSettings = buildSettings ++ Seq(
     resolvers ++= Seq(Resolver.sonatypeRepo("releases"),
-    Resolver.sonatypeRepo("snapshots")),
+    Resolver.sonatypeRepo("snapshots"),
+      "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"),
     scalacOptions ++= Seq(
         "-deprecation",                      // Emit warning and location for usages of deprecated APIs.
         "-encoding", "utf-8",                // Specify character encoding used by source files.
@@ -63,7 +65,9 @@ object AvronautBuild {
         "-Ywarn-unused:privates",            // Warn if a private member is unused.
         "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
     ),
-    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10")
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
+    addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.3.7")
   )
- 
+
+
 }

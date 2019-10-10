@@ -1,9 +1,10 @@
 package unit
 
+import cats.scalatest.EitherValues
 import com.rauchenberg.avronaut.schema.AvroSchema
 
-package object schema {
+package object schema extends EitherValues {
 
-  def schemaAsString[A : AvroSchema] = AvroSchema[A].schema.map(_.toString)
+  def schemaAsString[A : AvroSchema] = AvroSchema.toSchema[A].value.schema.toString
 
 }

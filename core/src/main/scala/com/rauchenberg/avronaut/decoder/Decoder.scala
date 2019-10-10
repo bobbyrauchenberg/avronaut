@@ -3,23 +3,22 @@ package com.rauchenberg.avronaut.decoder
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
+import cats._
+import cats.data.Reader
 import cats.implicits._
+import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
 import com.rauchenberg.avronaut.common.{ReflectionHelpers, _}
 import com.rauchenberg.avronaut.decoder.Parser.parse
-import com.rauchenberg.avronaut.schema.AvroSchema
+import com.rauchenberg.avronaut.schema.SchemaData
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.GenericRecord
 import shapeless.{:+:, CNil, Coproduct, Inr}
 
 import scala.collection.JavaConverters._
 
-sealed trait DecodeOperation
-final case class FullDecode(genericRecord: GenericRecord) extends DecodeOperation
-final case class TypeDecode(value: Avro)                  extends DecodeOperation
-
 trait Decoder[A] {
 
-  def apply(operation: DecodeOperation): Result[A]
+  def apply(value: Avro): Reader[(GenericRecord, SchemaData), Result[A]]
 
 }
 
@@ -29,48 +28,59 @@ object Decoder {
 
   implicit def gen[A]: Typeclass[A] = macro Magnolia.gen[A]
 
-  def decode[A](genericRecord: GenericRecord)(implicit decoder: Decoder[A]) =
-    decoder.apply(FullDecode(genericRecord))
+  def apply[A](implicit decoder: Decoder[A]) = decoder
 
-  def combine[A](ctx: CaseClass[Typeclass, A])(implicit s: AvroSchema[A]): Typeclass[A] = new Typeclass[A] {
+  def decode[A](genericRecord: GenericRecord, schemaData: SchemaData)(implicit decoder: Decoder[A]) =
+    decoder(AvroDecode).apply((genericRecord, schemaData))
+
+  def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
     val params = ctx.parameters.toList
 
-    override def apply(operation: DecodeOperation): Result[A] =
-      (operation match {
-        case FullDecode(genericRecord) =>
-          s.schema.flatMap { schema =>
-            schema.getFields.asScala.toList.traverse { field =>
-              ctx.parameters.toList
-                .find(_.label == field.name)
-                .map(_.asRight)
-                .getOrElse(Error(s"couldn't find param for schema field ${field.name}").asLeft)
-                .flatMap { param =>
-                  valueOrDefault(parse(field, genericRecord).flatMap(v => param.typeclass.apply(TypeDecode(v))),
-                                 param.default)
-                }
-            }
-          }
-        case TypeDecode(AvroRecord(_, fields)) =>
-          params.zip(fields).traverse {
-            case (param, avroType) =>
-              valueOrDefault(param.typeclass.apply(TypeDecode(avroType)), param.default)
-          }
-        case other =>
-          params.traverse(param => valueOrDefault(param.typeclass.apply(other), param.default))
-      }).map(ctx.rawConstruct(_))
+    override def apply(value: Avro): Reader[(GenericRecord, SchemaData), Result[A]] = {
 
+      val annotations       = getAnnotations(ctx.annotations)
+      val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
+
+      Reader[(GenericRecord, SchemaData), Result[A]] {
+        case (genericRecord, schemaData) =>
+          (value match {
+            case AvroDecode =>
+              params.flatTraverse { param =>
+                val paramAnnotations = getAnnotations(param.annotations)
+                val paramName        = paramAnnotations.name(param.label)
+
+                schemaData.schemaMap.get(s"$namespace.$name").toList.flatTraverse { schema =>
+                  schema.getFields.asScala.toList.filter(_.name == paramName).traverse { field =>
+                    valueOrDefault(
+                      parse(field, genericRecord).flatMap(v => param.typeclass.apply(v)((genericRecord, schemaData))),
+                      param.default)
+                  }
+                }
+              }
+            case AvroRecord(_, fields) =>
+              params.zip(fields).traverse {
+                case (param, avroType) =>
+                  valueOrDefault(param.typeclass.apply(avroType)((genericRecord, schemaData)), param.default)
+              }
+            case other =>
+              params.traverse(param =>
+                valueOrDefault(param.typeclass.apply(other)((genericRecord, schemaData)), param.default))
+          }).map(ctx.rawConstruct(_))
+      }
+    }
   }
 
   def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
-    override def apply(value: DecodeOperation): Result[A] =
+    override def apply(value: Avro): Reader[(GenericRecord, SchemaData), Result[A]] =
       value match {
-        case TypeDecode(AvroEnum(v)) =>
+        case AvroEnum(v) =>
           ctx.subtypes
             .find(_.typeName.short == v.toString)
             .map(st => safe(ReflectionHelpers.toCaseObject[A](st.typeName.full)))
             .getOrElse(Error(s"wasn't able to find or to instantiate enum value $v in $v").asLeft[A])
-        case _ => Error("not an enum").asLeft
+            .liftR
+        case _ => Error("not an enum").asLeft.liftR
       }
   }
 
@@ -83,104 +93,111 @@ object Decoder {
   def error[A](expected: String, actual: A): Either[Error, Nothing] = Error(s"expected $expected, got $actual").asLeft
 
   implicit val stringDecoder: Decoder[String] = {
-    case TypeDecode(AvroString(v)) => v.asRight
-    case value                     => error("string", value)
+    case AvroString(v) => v.asRight[Error].liftR
+    case value         => error("string", value).liftR
   }
 
   implicit val booleanDecoder: Decoder[Boolean] = {
-    case TypeDecode(AvroBoolean(v)) => v.asRight
-    case value                      => error("boolean", value)
+    case AvroBoolean(v) => v.asRight[Error].liftR
+    case value          => error("boolean", value).liftR
   }
 
   implicit val intDecoder: Decoder[Int] = {
-    case TypeDecode(AvroInt(v)) => v.asRight
-    case value                  => error("int", value)
+    case AvroInt(v) => v.asRight[Error].liftR
+    case value      => error("int", value).liftR
   }
 
   implicit val longDecoder: Decoder[Long] = {
-    case TypeDecode(AvroLong(v)) => v.asRight
-    case value                   => error("long", value)
+    case AvroLong(v) => v.asRight[Error].liftR
+    case value       => error("long", value).liftR
   }
 
   implicit val floatDecoder: Decoder[Float] = {
-    case TypeDecode(AvroFloat(v)) => v.asRight
-    case value                    => error("float", value)
+    case AvroFloat(v) => v.asRight[Error].liftR
+    case value        => error("float", value).liftR
   }
 
   implicit val doubleDecoder: Decoder[Double] = {
-    case TypeDecode(AvroDouble(v)) => v.asRight
-    case value                     => error("double", value)
+    case AvroDouble(v) => v.asRight[Error].liftR
+    case value         => error("double", value).liftR
   }
 
   implicit val bytesDecoder: Decoder[Array[Byte]] = {
-    case TypeDecode(AvroBytes(v)) => v.asRight
-    case value                    => error("Array[Byte]", value)
+    case AvroBytes(v) => v.asRight[Error].liftR
+    case value        => error("Array[Byte]", value).liftR
   }
 
   implicit def listDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[List[A]] = {
-    case TypeDecode(AvroArray(v)) =>
-      v.traverse(at => elementDecoder.apply(TypeDecode(at)))
-    case value => error("list", value)
+    case AvroArray(v) =>
+      v.traverse(at => elementDecoder.apply(at)).map(_.sequence)
+    case value => error("list", value).liftR
   }
 
-  implicit def seqDecoder[A : Decoder]: Decoder[Seq[A]] = listDecoder[A].apply(_)
+  implicit def seqDecoder[A : Decoder]: Decoder[Seq[A]] = listDecoder[A].apply(_).map(_.map(_.toSeq))
 
-  implicit def vectorDecoder[A : Decoder]: Decoder[Vector[A]] = listDecoder[A].apply(_).map(_.toVector)
+  implicit def vectorDecoder[A : Decoder]: Decoder[Vector[A]] = listDecoder[A].apply(_).map(_.map(_.toVector))
 
   implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] = {
-    case TypeDecode(AvroMap(l)) =>
-      l.traverse {
-        case (k, v) =>
-          elementDecoder(TypeDecode(v)).map(k -> _)
-      }.map(_.toMap[String, A])
-    case value => error("map", value)
+    case AvroMap(l) =>
+      Reader(m => l.traverse { case (k, v) => elementDecoder(v).apply(m).map(k -> _) }.map(_.toMap))
+    case value => error("map", value).liftR
   }
 
   implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = {
-    case TypeDecode(AvroLogical(AvroLong(value))) =>
-      safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
-    case value => error("OffsetDateTime / Long", value)
+    case AvroLogical(AvroLong(value)) =>
+      safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC)).liftR
+    case value => error("OffsetDateTime / Long", value).liftR
   }
 
   implicit def instantDecoder: Decoder[Instant] = {
-    case TypeDecode(AvroLogical(AvroLong(value))) => safe(Instant.ofEpochMilli(value))
-    case value                                    => error("Instant / Long", value)
+    case AvroLogical(AvroLong(value)) => safe(Instant.ofEpochMilli(value)).liftR
+    case value                        => error("Instant / Long", value).liftR
   }
 
   implicit def uuidDecoder: Decoder[UUID] = {
-    case TypeDecode(AvroLogical(AvroString(value))) => safe(java.util.UUID.fromString(value))
-    case value                                      => error("UUID / String", value)
+    case AvroLogical(AvroString(value)) => safe(java.util.UUID.fromString(value)).liftR
+    case value                          => error("UUID / String", value).liftR
   }
 
   implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]): Decoder[Option[A]] = {
-    case TypeDecode(AvroUnion(AvroNull)) => None.asRight
-    case TypeDecode(AvroUnion(value))    => valueDecoder(TypeDecode(value)).map(Option(_))
-    case other                           => valueDecoder(other).map(Option(_))
+    case AvroUnion(AvroNull) => none[A].asRight[Error].liftR
+    case AvroUnion(value)    => valueDecoder(value).map(_.map(Option(_)))
+    case other               => valueDecoder(other).map(_.map(Option(_)))
   }
 
   implicit def eitherDecoder[A, B](implicit lDecoder: Decoder[A], rDecoder: Decoder[B]): Decoder[Either[A, B]] =
     value => {
-      def runDecoders(value: DecodeOperation) =
-        lDecoder(value).fold(_ => rDecoder(value).map(_.asRight), _.asLeft.asRight)
+      def runDecoders(value: Avro) =
+        lDecoder(value).flatMap {
+          _.fold(
+            _ => rDecoder(value).map(_.map(_.asRight[A])),
+            _.asLeft[B].asRight[Error].liftR
+          )
+        }
       value match {
-        case TypeDecode(AvroUnion(AvroNull)) => runDecoders(value)
-        case TypeDecode(AvroUnion(v))        => runDecoders(TypeDecode(v))
-        case _                               => runDecoders(value)
+        case AvroUnion(AvroNull) => runDecoders(value)
+        case AvroUnion(v)        => runDecoders(v)
+        case _                   => runDecoders(value)
       }
     }
 
   implicit object CNilDecoderValue extends Decoder[CNil] {
-    override def apply(value: DecodeOperation): Result[CNil] = error("not to decode CNil", value)
+    override def apply(value: Avro) =
+      Reader { _ =>
+        Error(s"ended up reaching CNil when decoding $value").asLeft
+      }
   }
 
   implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H],
                                                    tDecoder: Decoder[T]): Decoder[H :+: T] = {
-    case value @ TypeDecode(AvroUnion(v)) =>
-      hDecoder(TypeDecode(v)) match {
-        case r @ Right(_) => r.map(h => Coproduct[H :+: T](h))
-        case _            => tDecoder(value).map(Inr(_))
+    case value @ AvroUnion(v) =>
+      Reader { m =>
+        hDecoder(v).apply(m) match {
+          case r @ Right(_) => r.map(h => Coproduct[H :+: T](h))
+          case _            => tDecoder(value).apply(m).map(Inr(_))
+        }
       }
-    case value => tDecoder(value).map(Inr(_))
+    case value => Reader(m => tDecoder(value).apply(m).map(Inr(_)))
   }
 
 }

@@ -49,23 +49,7 @@ object AvroF {
         case AvroRootF(schema, value)   => G.map(value.traverse(f))(AvroRootF(schema, _))
       }
 
-    override def map[A, B](fa: AvroF[A])(f: A => B): AvroF[B] = fa match {
-      case AvroNullF                  => AvroNullF
-      case a @ AvroIntF(_)            => a
-      case a @ AvroLongF(_)           => a
-      case a @ AvroFloatF(_)          => a
-      case a @ AvroDoubleF(_)         => a
-      case a @ AvroBooleanF(_)        => a
-      case a @ AvroStringF(_)         => a
-      case a @ AvroEnumF(_)           => a
-      case AvroUnionF(value)          => AvroUnionF(f(value))
-      case AvroArrayF(value)          => AvroArrayF(value.map(f))
-      case AvroMapF(value)            => AvroMapF { value.map { case (k, v) => k -> f(v) } }
-      case a @ AvroBytesF(_)          => a
-      case AvroLogicalF(value)        => AvroLogicalF(f(value))
-      case AvroRecordF(schema, value) => AvroRecordF(schema, value.map(f))
-      case AvroRootF(schema, value)   => AvroRootF(schema, value.map(f))
-    }
+    override def map[A, B](fa: AvroF[A])(f: A => B): AvroF[B] = super.map(fa)(f)
 
   }
 }

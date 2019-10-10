@@ -12,23 +12,21 @@ object RunAssert extends Matchers with EitherMatchers with EitherValues {
 
   def runAssert[A, B : Decoder : AvroSchema](fieldValue: A, expected: B) = {
 
-    val schema = AvroSchema[B].schema
+    val schemaData = AvroSchema.toSchema[B].value
 
-    val record = new GenericData.Record(schema.value)
+    val record = new GenericData.Record(schemaData.schema)
     record.put("field", fieldValue)
 
-    Decoder.decode[B](record) should beRight(expected)
+    Decoder.decode[B](record, schemaData) should beRight(expected)
   }
 
   def runListAssert[A, B : Decoder : AvroSchema](fieldValue: Seq[A], expected: B) = {
 
-    val schema = AvroSchema[B].schema
+    val schemaData = AvroSchema.toSchema[B].value
 
-    val rootRecord = new GenericData.Record(schema.value)
-
-    val recordBuilder = new GenericRecordBuilder(rootRecord)
+    val recordBuilder = new GenericRecordBuilder(schemaData.schema)
     recordBuilder.set("field", fieldValue.asJava)
 
-    Decoder.decode[B](recordBuilder.build()) should beRight(expected)
+    Decoder.decode[B](recordBuilder.build(), schemaData) should beRight(expected)
   }
 }

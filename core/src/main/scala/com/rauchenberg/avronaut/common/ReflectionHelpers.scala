@@ -12,11 +12,6 @@ object ReflectionHelpers {
     companion.instance.asInstanceOf[A]
   }
 
-  def isOfType[A](name: String)(implicit tt: TypeTag[A]) =
-    (tt.tpe match {
-      case TypeRef(_, us, _) => us
-    }).fullName == name
-
   def isEnum[A : WeakTypeTag] = {
     val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
     val tpe           = runtimeMirror.weakTypeOf[A]

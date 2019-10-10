@@ -15,7 +15,7 @@ class LogicalTypeSpec extends UnitSpecBase {
           |"fields":[{"name":"field","type":{"type":"long",
           |"logicalType":"timestamp-millis"}}]}""".stripMargin.replaceAll("\n", "")
 
-      schemaAsString[RecordWithDateTime] should beRight(expected)
+      schemaAsString[RecordWithDateTime] shouldBe expected
     }
 
     "encode a UUID" in {
@@ -24,7 +24,7 @@ class LogicalTypeSpec extends UnitSpecBase {
           |"fields":[{"name":"field","type":{"type":"string","logicalType":"uuid"}}]}""".stripMargin.replaceAll("\n",
                                                                                                                 "")
 
-      schemaAsString[RecordWithUUID] should beRight(expected)
+      schemaAsString[RecordWithUUID] shouldBe expected
     }
 
   }

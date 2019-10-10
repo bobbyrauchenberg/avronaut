@@ -1,5 +1,7 @@
 package com.rauchenberg.avronaut.schema.helpers
 
+import java.time.OffsetDateTime
+
 import cats.syntax.option._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.schema.{schemaField, _}
@@ -35,20 +37,38 @@ object SchemaHelper {
         union
     }
 
+  def transformDefault[A](default: A, schema: Schema): Any =
+    default match {
+      case default: Map[_, _]              => default.asJava
+      case default: Seq[_]                 => default.asJava
+      case Some(p: Product)                => toJavaMap(p)
+      case Left(p: Product)                => toJavaMap(p)
+      case Right(p: Product)               => toJavaMap(p)
+      case Some(default)                   => default
+      case None                            => JsonProperties.NULL_VALUE
+      case Left(default)                   => default
+      case Right(default)                  => default
+      case Inl(default)                    => default
+      case Inr(default)                    => transformDefault(default, schema)
+      case p: Product if isEnum(p, schema) => p.toString
+      case p: Product                      => toJavaMap(p)
+      case odt: OffsetDateTime             => odt.toInstant.toEpochMilli
+      case default                         => default
+    }
+
   def makeSchemaField[A](field: Field[A]): Result[Schema.Field] =
     field match {
-      case Field(name, doc, Some(default: Map[_, _]), schema) =>
-        schemaField(name, schema, doc, default.asJava)
-      case Field(name, doc, Some(default: Seq[_]), schema)   => schemaField(name, schema, doc, default.asJava)
-      case Field(name, doc, Some(Some(p: Product)), schema)  => schemaField(name, schema, doc, toJavaMap(p))
-      case Field(name, doc, Some(Left(p: Product)), schema)  => schemaField(name, schema, doc, toJavaMap(p))
-      case Field(name, doc, Some(Right(p: Product)), schema) => schemaField(name, schema, doc, toJavaMap(p))
-      case Field(name, doc, Some(Some(default)), schema)     => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(None), schema)              => schemaField(name, schema, doc, JsonProperties.NULL_VALUE)
-      case Field(name, doc, Some(Left(default)), schema)     => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(Right(default)), schema)    => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(Inl(default)), schema)      => schemaField(name, schema, doc, default)
-      case Field(name, doc, Some(Inr(default)), schema)      => makeSchemaField(Field(name, doc, default.some, schema))
+      case Field(name, doc, Some(default: Map[_, _]), schema) => schemaField(name, schema, doc, default.asJava)
+      case Field(name, doc, Some(default: Seq[_]), schema)    => schemaField(name, schema, doc, default.asJava)
+      case Field(name, doc, Some(Some(p: Product)), schema)   => schemaField(name, schema, doc, toJavaMap(p))
+      case Field(name, doc, Some(Left(p: Product)), schema)   => schemaField(name, schema, doc, toJavaMap(p))
+      case Field(name, doc, Some(Right(p: Product)), schema)  => schemaField(name, schema, doc, toJavaMap(p))
+      case Field(name, doc, Some(Some(default)), schema)      => schemaField(name, schema, doc, default)
+      case Field(name, doc, Some(None), schema)               => schemaField(name, schema, doc, JsonProperties.NULL_VALUE)
+      case Field(name, doc, Some(Left(default)), schema)      => schemaField(name, schema, doc, default)
+      case Field(name, doc, Some(Right(default)), schema)     => schemaField(name, schema, doc, default)
+      case Field(name, doc, Some(Inl(default)), schema)       => schemaField(name, schema, doc, default)
+      case Field(name, doc, Some(Inr(default)), schema)       => makeSchemaField(Field(name, doc, default.some, schema))
       case Field(name, doc, Some(p: Product), schema) if (isEnum(p, schema)) =>
         schemaField(name, schema, doc, p.toString)
       case Field(name, doc, Some(p: Product), schema) => schemaField(name, schema, doc, toJavaMap(p))

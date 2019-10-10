@@ -9,14 +9,13 @@ addCompilerPlugin("org.typelevel" % "kind-projector" % "0.10.3" cross CrossVersi
 
 configureDependencies()
 
-lazy val aggregatedProjects: Seq[ProjectReference] = Seq(common)
+lazy val aggregatedProjects: Seq[ProjectReference] = Seq(core)
 
 lazy val root = Project(id = "avronaut", base = file("."))
   .aggregate(aggregatedProjects: _*)
+  .enablePlugins(JmhPlugin)
 
-lazy val common = newModule("common")
-
-lazy val core = newModule("core")
+lazy val core = newModule("core").enablePlugins(JmhPlugin)
 
 def newModule(name: String): Project =
   Project(id = name, base = file(name))

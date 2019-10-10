@@ -1,7 +1,6 @@
 package unit.schema
 
 import cats.syntax.either._
-import com.rauchenberg.avronaut.common._
 import unit.utils.UnitSpecBase
 
 class EitherUnionSpec extends UnitSpecBase {
@@ -14,7 +13,7 @@ class EitherUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"EitherUnion","namespace":"unit.schema.EitherUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"]}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[EitherUnion] should beRight(expected)
+      schemaAsString[EitherUnion] shouldBe expected
     }
 
     "create a union from an Either with a Left default" in {
@@ -24,7 +23,7 @@ class EitherUnionSpec extends UnitSpecBase {
           |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"],"doc":"","default":true}]}""".stripMargin
           .replace("\n", "")
 
-      schemaAsString[EitherUnionWithLeftDefault] should beRight(expected)
+      schemaAsString[EitherUnionWithLeftDefault] shouldBe expected
     }
 
     "create a union from an Either with a Right default" in {
@@ -34,7 +33,7 @@ class EitherUnionSpec extends UnitSpecBase {
           |"doc":"","fields":[{"name":"cupcat","type":["string","boolean"],"doc":"","default":"cupcat"}]}""".stripMargin
           .replace("\n", "")
 
-      schemaAsString[EitherUnionWithRightDefault] should beRight(expected)
+      schemaAsString[EitherUnionWithRightDefault] shouldBe expected
     }
 
     "flatten a nested structure of types that map to unions" in {
@@ -43,12 +42,9 @@ class EitherUnionSpec extends UnitSpecBase {
           |{"type":"record","name":"NestedUnion","namespace":"unit.schema.EitherUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":["boolean","int","string"]}]}""".stripMargin.replace("\n", "")
 
-      schemaAsString[NestedUnion] should beRight(expected)
+      schemaAsString[NestedUnion] shouldBe expected
     }
 
-    "error if a union contains a duplicate" in {
-      schemaAsString[IllegalDuplicateUnion] should beLeft(Error("Duplicate in union:string"))
-    }
   }
 
   case class EitherUnion(cupcat: Either[Boolean, String])

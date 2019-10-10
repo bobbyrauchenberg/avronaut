@@ -19,6 +19,7 @@ final case class AvroBytes(value: Array[Byte])                 extends Avro
 final case class AvroLogical(value: Avro)                      extends Avro
 final case class AvroRecord(schema: Schema, value: List[Avro]) extends Avro
 final case class AvroRoot(schema: Schema, value: List[Avro])   extends Avro
+final case object AvroDecode                                   extends Avro
 
 object Avro {
 
@@ -77,8 +78,8 @@ object Avro {
     case _              => Error(s"$value is not an AvroBoolean").asLeft
   }
 
-  final def toAvroBytes[A](value: A) = value match {
-    case v: Array[Byte] => safe(AvroBytes(v))
+  final def toAvroBytes[A](value: A): Result[Avro] = value match {
+    case v: Array[Byte] => AvroBytes(v).asRight
     case _              => Error(s"'$value' is not an Array[Byte]").asLeft
   }
 
