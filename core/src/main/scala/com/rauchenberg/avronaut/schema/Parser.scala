@@ -1,17 +1,16 @@
 package com.rauchenberg.avronaut.schema
 
 import cats.implicits._
-import com.rauchenberg.avronaut.common.recursion.Morphisms._
-import com.rauchenberg.avronaut.common.recursion.recursion.{FAlgebraM, FCoalgebraM}
 import com.rauchenberg.avronaut.common.{safe, Error, Result}
 import com.rauchenberg.avronaut.schema.AvroSchemaF._
 import com.rauchenberg.avronaut.schema.helpers.SchemaHelper.{moveDefaultToHead, transformDefault}
+import japgolly.microlibs.recursion.{FAlgebraM, FCoalgebraM}
 import org.apache.avro.Schema.Type._
 import org.apache.avro.{LogicalTypes, Schema, SchemaBuilder}
 import shims._
 
 import scala.collection.JavaConverters._
-
+import japgolly.microlibs.recursion.Recursion._
 case class SchemaData(schemaMap: Map[String, Schema], schema: Schema)
 
 case class Parser(record: AvroSchemaADT) {
@@ -21,13 +20,11 @@ case class Parser(record: AvroSchemaADT) {
   val empty = Map.empty[String, Schema]
 
   def parse: Either[Error, SchemaData] =
-    (hyloM[Result, AvroSchemaF, AvroSchemaADT, Either[(Registry, Schema.Field), (Registry, Schema)]](toSchemaF,
-                                                                                                     toAvroSchema)
-      .apply(record))
-      .flatMap {
-        _.leftMap(f => Error(s"expected a Schema, got a field $f"))
-      }
-      .map(SchemaData.tupled(_))
+    hyloM[Result, AvroSchemaF, AvroSchemaADT, Either[(Registry, Schema.Field), (Registry, Schema)]](
+      toSchemaF,
+      toAvroSchema)(record).flatMap {
+      _.leftMap(f => Error(s"expected a Schema, got a field $f"))
+    }.map(SchemaData.tupled(_))
 
   val toSchemaF: FCoalgebraM[Result, AvroSchemaF, AvroSchemaADT] = {
     case SchemaInt                                   => SchemaIntF.asRight

@@ -1,6 +1,7 @@
 package com.rauchenberg.avronaut.encoder
 
 import shims._
+
 import collection.JavaConverters._
 import cats.syntax.either._
 import cats.instances.list._
@@ -8,19 +9,19 @@ import cats.instances.either._
 import cats.syntax.traverse._
 import com.rauchenberg.avronaut.common.AvroF._
 import com.rauchenberg.avronaut.common._
-import matryoshka.implicits._
-import matryoshka.{CoalgebraM, _}
+import japgolly.microlibs.recursion.Recursion._
+import japgolly.microlibs.recursion.{FAlgebraM, FCoalgebraM}
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData
 
 case class Parser(genericRecord: GenericData.Record) {
 
   def parse(avroType: Avro): Result[GenericData.Record] = {
-    avroType.hyloM(populateGenericRecord, toAvroF)
+    hyloM[Result, AvroF, Avro, Any](toAvroF, populateGenericRecord)(avroType)
     genericRecord.asRight
   }
 
-  val toAvroF: CoalgebraM[Result, AvroF, Avro] = {
+  val toAvroF: FCoalgebraM[Result, AvroF, Avro] = {
     case AvroNull                  => AvroNullF.asRight
     case AvroInt(value)            => AvroIntF(value).asRight
     case AvroDouble(value)         => AvroDoubleF(value).asRight
@@ -39,7 +40,7 @@ case class Parser(genericRecord: GenericData.Record) {
     case AvroDecode                => Error("should never encode an AvroDecode").asLeft
   }
 
-  val populateGenericRecord: AlgebraM[Result, AvroF, Any] = {
+  val populateGenericRecord: FAlgebraM[Result, AvroF, Any] = {
     case AvroNullF           => Right(null)
     case AvroIntF(value)     => value.asRight
     case AvroDoubleF(value)  => value.asRight

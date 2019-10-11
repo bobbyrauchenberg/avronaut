@@ -26,6 +26,7 @@ object Dependencies {
     "org.json4s"          %% "json4s-native"                  % "3.6.7",
     "com.slamdata"        %% "matryoshka-core"                % "0.21.3",
     "com.codecommit"      %% "shims"                          % "2.0.0",
+    "com.github.japgolly.microlibs" %% "recursion" % "1.22",
     "com.sksamuel.avro4s"        %% "avro4s-core"             % "3.0.1", // in here for benchmarks which will go in another project soon
     "org.scalatest"       %% "scalatest"                      % "3.0.8" % Test,
     "org.scalacheck"      %% "scalacheck"                     % "1.14.0" % Test,

@@ -4,7 +4,7 @@ import shims._
 import scalaz._
 import Scalaz._
 import cats.data.NonEmptyList
-import com.rauchenberg.avronaut.common.recursion.recursion.Fix
+import japgolly.microlibs.recursion.Fix
 import scalaz.{Applicative, Traverse}
 
 sealed trait AvroSchemaADT
