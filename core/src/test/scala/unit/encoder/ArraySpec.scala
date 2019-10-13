@@ -1,15 +1,15 @@
 package unit.encoder
 
-import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Decoder
+import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import unit.utils.UnitSpecBase
+import RunRoundTripAssert._
 
 import scala.collection.JavaConverters._
 
-class ArrayEncoderSpec extends UnitSpecBase {
+class ArraySpec extends UnitSpecBase {
 
   "encoder" should {
 
@@ -20,15 +20,6 @@ class ArrayEncoderSpec extends UnitSpecBase {
         expected.set("field", record.field.asJava)
 
         Encoder.encode[TestRecord](record, writerSchema) should beRight(expected.build.asInstanceOf[GenericRecord])
-      }
-    }
-
-    "encode a record with a list of primitives roundtrip" in {
-      val writerSchema = AvroSchema.toSchema[TestRecord].value
-      forAll { record: TestRecord =>
-        Encoder.encode[TestRecord](record, writerSchema).flatMap { v =>
-          Decoder.decode[TestRecord](v, writerSchema)
-        } should beRight(record)
       }
     }
 
@@ -63,17 +54,6 @@ class ArrayEncoderSpec extends UnitSpecBase {
       }
     }
 
-    "encode a record with a list of caseclass roundtrip" in {
-
-      val writerSchema = AvroSchema.toSchema[RecordWithListOfCaseClass].value
-
-      forAll { record: RecordWithListOfCaseClass =>
-        Encoder.encode[RecordWithListOfCaseClass](record, writerSchema).flatMap { v =>
-          Decoder.decode[RecordWithListOfCaseClass](v, writerSchema)
-        } should beRight(record)
-      }
-    }
-
     "encode a record with a list of Union" in {
 
       val writerSchema = AvroSchema.toSchema[RecordWithOptionalListCaseClass].value
@@ -95,16 +75,6 @@ class ArrayEncoderSpec extends UnitSpecBase {
       }
     }
 
-    "encode a record with a list of Union roundtrip" in {
-      val writerSchema = AvroSchema.toSchema[RecordWithOptionalListCaseClass].value
-      forAll { record: Option[List[String]] =>
-        val r = RecordWithOptionalListCaseClass(record)
-        Encoder.encode[RecordWithOptionalListCaseClass](r, writerSchema).flatMap { v =>
-          Decoder.decode[RecordWithOptionalListCaseClass](v, writerSchema)
-        } should beRight(r)
-      }
-    }
-
     "encode a record with a nested list" in {
       val writerSchema = AvroSchema.toSchema[RecordWithListOfList].value
       forAll { record: RecordWithListOfList =>
@@ -115,14 +85,11 @@ class ArrayEncoderSpec extends UnitSpecBase {
 
         Encoder.encode[RecordWithListOfList](record, writerSchema) should beRight(builder.build())
       }
-
     }
 
     "encode a record with a more nested list" in {
       val writerSchema = AvroSchema.toSchema[RecordWithManyListsOfList].value
-      forAll { list: List[Int] =>
-        val record = RecordWithManyListsOfList(List(List(List(List(list)))))
-
+      forAll { record: RecordWithManyListsOfList =>
         val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema.schema))
 
         val l = record.field.map(_.map(_.map(_.map(_.asJava).asJava).asJava).asJava).asJava
@@ -132,9 +99,15 @@ class ArrayEncoderSpec extends UnitSpecBase {
         val resultAsScalaList = result.map(_.get(0).asInstanceOf[java.util.List[Any]].asScala)
         resultAsScalaList should beRight(builder.build().get(0).asInstanceOf[java.util.List[Any]].asScala)
       }
-
     }
 
+    "roundtrip tests" in {
+      runRoundTrip[TestRecord]
+      runRoundTrip[RecordWithListOfCaseClass]
+      runRoundTrip[RecordWithOptionalListCaseClass]
+      runRoundTrip[RecordWithListOfList]
+      runRoundTrip[RecordWithManyListsOfList] //slow
+    }
   }
 
   case class TestRecord(field: List[String])

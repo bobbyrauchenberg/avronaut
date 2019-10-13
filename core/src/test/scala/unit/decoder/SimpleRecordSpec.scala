@@ -29,7 +29,7 @@ class SimpleRecordSpec extends UnitSpecBase {
     }
     "decode a record with a boolean field" in {
       forAll { record: BooleanRecord =>
-        runAssert(record.field, record)
+        runDecodeAssert(record.field, record)
       }
     }
 
@@ -50,22 +50,22 @@ class SimpleRecordSpec extends UnitSpecBase {
 
     "decode a record with an int field" in {
       forAll { record: IntRecord =>
-        runAssert(record.field, record)
+        runDecodeAssert(record.field, record)
       }
     }
     "decode a record with a long field" in {
       forAll { record: LongRecord =>
-        runAssert(record.field, record)
+        runDecodeAssert(record.field, record)
       }
     }
     "decode a record with a float field" in {
       forAll { record: FloatRecord =>
-        runAssert(record.field, record)
+        runDecodeAssert(record.field, record)
       }
     }
     "decode a record with a double field" in {
       forAll { record: DoubleRecord =>
-        runAssert(record.field, record)
+        runDecodeAssert(record.field, record)
       }
     }
 

@@ -15,7 +15,7 @@ class OptionUnionSpec extends UnitSpecBase {
   "decoder" should {
     "decode an union of null and T" in {
       forAll { record: Union =>
-        runAssert(record.field.getOrElse(null), record)
+        runDecodeAssert(record.field.getOrElse(null), record)
       }
     }
 

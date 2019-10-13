@@ -1,12 +1,12 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import com.rauchenberg.avronaut.schema.AvroSchema._
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import org.apache.avro.{Schema, SchemaBuilder}
+import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 
 import scala.collection.JavaConverters._
@@ -23,15 +23,6 @@ class OptionUnionSpec extends UnitSpecBase {
         genericRecord.put(0, record.field.orNull)
 
         Encoder.encode[RecordWithUnion](record, writerSchema) should beRight(genericRecord)
-      }
-    }
-
-    "encode a Union of null and T roundtrip" in {
-      val writerSchema = AvroSchema.toSchema[RecordWithUnion].value
-      forAll { record: RecordWithUnion =>
-        Encoder.encode[RecordWithUnion](record, writerSchema).flatMap { v =>
-          Decoder.decode[RecordWithUnion](v, writerSchema)
-        } should beRight(record)
       }
     }
 
@@ -59,15 +50,6 @@ class OptionUnionSpec extends UnitSpecBase {
       }
     }
 
-    "encode a union with a record roundtrip" in {
-      val writerSchema = AvroSchema.toSchema[RecordWithUnionOfCaseclass].value
-      forAll { record: RecordWithUnionOfCaseclass =>
-        Encoder.encode[RecordWithUnionOfCaseclass](record, writerSchema).flatMap { v =>
-          Decoder.decode[RecordWithUnionOfCaseclass](v, writerSchema)
-        } should beRight(record)
-      }
-    }
-
     "encode a union with a list" in {
       implicit val writerSchema = AvroSchema.toSchema[RecordWithOptionalListCaseClass].value
       forAll { record: Option[List[String]] =>
@@ -84,6 +66,11 @@ class OptionUnionSpec extends UnitSpecBase {
       }
     }
 
+    "encode a union with a list roundtrip" in {
+      runRoundTrip[RecordWithUnion]
+      runRoundTrip[RecordWithUnionOfCaseclass]
+      runRoundTrip[RecordWithUnionOfCaseclass]
+    }
   }
 
   case class RecordWithUnion(field: Option[String])

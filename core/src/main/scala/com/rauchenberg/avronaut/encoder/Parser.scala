@@ -56,7 +56,7 @@ case class Parser(genericRecord: GenericData.Record) {
     case AvroEnumF(value)    => value.asRight
     case AvroUnionF(value)   => value.asRight
     case AvroArrayF(value)   => safe(value.asJava)
-    case AvroMapF(value)     => value.asRight
+    case AvroMapF(value)     => value.toMap.asJava.asRight
     case AvroBytesF(value)   => value.asRight
     case AvroLogicalF(value) => value.asRight
   }

@@ -12,12 +12,12 @@ class SealedTraitSpec extends UnitSpecBase {
 
     "handle sealed trait enums" in {
       forAll { enumRecord: EnumRecord =>
-        runAssert(enumRecord.field.toString, enumRecord)
+        runDecodeAssert(enumRecord.field.toString, enumRecord)
       }
     }
 
     "handle sealed trait enums with defaults" in {
-      runAssert(B.toString, SealedTraitEnumWithDefault())
+      runDecodeAssert(B.toString, SealedTraitEnumWithDefault())
     }
   }
 

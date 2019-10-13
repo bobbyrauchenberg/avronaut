@@ -1,11 +1,11 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import com.rauchenberg.avronaut.schema.AvroSchema._
 import org.apache.avro.generic.{GenericData, GenericRecord}
+import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 
 class SimpleRecordSpec extends UnitSpecBase {
@@ -18,17 +18,12 @@ class SimpleRecordSpec extends UnitSpecBase {
         expected.put("string", record.string)
         expected.put("boolean", record.boolean)
         expected.put("int", record.int)
+        expected.put("float", record.float)
+        expected.put("double", record.double)
+        expected.put("long", record.long)
+        expected.put("bytes", record.bytes)
 
         Encoder.encode[TestRecord](record, schema) should beRight(expected.asInstanceOf[GenericRecord])
-      }
-    }
-
-    "encode a case class with supported primitives roundtrip" in {
-      val schema = AvroSchema.toSchema[TestRecord].value
-      forAll { record: TestRecord =>
-        Encoder.encode[TestRecord](record, schema).flatMap { v =>
-          Decoder.decode[TestRecord](v, schema)
-        } should beRight(record)
       }
     }
 
@@ -49,17 +44,18 @@ class SimpleRecordSpec extends UnitSpecBase {
     }
 
     "encode a case class with nested primitives roundtrip" in {
-      val writerSchema = AvroSchema.toSchema[NestedRecord].value
-      forAll { record: NestedRecord =>
-        Encoder.encode[NestedRecord](record, writerSchema).flatMap { v =>
-          Decoder.decode[NestedRecord](v, writerSchema)
-        } should beRight(record)
-      }
+      runRoundTrip[TestRecord]
+      runRoundTrip[NestedRecord]
     }
-
   }
 
-  case class TestRecord(string: String, boolean: Boolean, int: Int)
+  case class TestRecord(string: String,
+                        boolean: Boolean,
+                        int: Int,
+                        float: Float,
+                        double: Double,
+                        long: Long,
+                        bytes: Array[Byte])
   case class NestedRecord(string: String, boolean: Boolean, inner: Inner)
   case class Inner(value: String, value2: Int)
 }
