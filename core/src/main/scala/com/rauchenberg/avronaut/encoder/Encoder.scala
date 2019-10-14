@@ -1,5 +1,8 @@
 package com.rauchenberg.avronaut.encoder
 
+import java.time.{Instant, OffsetDateTime}
+import java.util.UUID
+
 import cats.data.Reader
 import cats.implicits._
 import com.rauchenberg.avronaut.common.Avro._
@@ -104,18 +107,32 @@ object Encoder {
   implicit def eitherEncoder[A, B](implicit lEncoder: Encoder[A], rEncoder: Encoder[B]): Encoder[Either[A, B]] =
     (value: Either[A, B]) => value.fold(lEncoder.apply, rEncoder.apply)
 
-  implicit def cnilEncoder: Encoder[CNil] = new Encoder[CNil] {
-    override def apply(value: CNil): Reader[SchemaData, Result[Avro]] =
-      Error("encoding CNil should never happen").asLeft[Avro].liftR
-  }
+  implicit def cnilEncoder: Encoder[CNil] =
+    _ => Error("encoding CNil should never happen").asLeft[Avro].liftR
 
   implicit def coproductEncoder[H, T <: Coproduct](implicit hEncoder: Encoder[H],
-                                                   tEncoder: Encoder[T]): Encoder[H :+: T] = new Encoder[H :+: T] {
-    override def apply(value: H :+: T): Reader[SchemaData, Result[Avro]] =
+                                                   tEncoder: Encoder[T]): Encoder[H :+: T] =
+    (value: H :+: T) =>
       value match {
         case Inl(h) => hEncoder(h)
         case Inr(v) => tEncoder(v)
-      }
+    }
+
+  implicit val uuidEncoder: Encoder[UUID] = (value: UUID) => {
+    val avroUUID: Result[Avro] = uuidToAvroLogical(value)
+    avroUUID.liftR
+  }
+
+  implicit val dateTimeEncoder: Encoder[OffsetDateTime] = (value: OffsetDateTime) => {
+    val avroDateTime: Result[Avro] = dateTimeToAvroLogical(value)
+    avroDateTime.liftR
+  }
+
+  implicit val instantEncoder = new Encoder[Instant] {
+    override def apply(value: Instant): Reader[SchemaData, Result[Avro]] = {
+      val avroInstant: Result[Avro] = instantToAvroLogical(value)
+      avroInstant.liftR
+    }
   }
 
 }

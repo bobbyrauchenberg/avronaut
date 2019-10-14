@@ -1,5 +1,8 @@
 package com.rauchenberg.avronaut.common
 
+import java.time.{Instant, OffsetDateTime}
+import java.util.UUID
+
 import cats.syntax.either._
 import org.apache.avro.Schema
 
@@ -104,7 +107,13 @@ object Avro {
   final def toAvroUnion(value: Avro)          = safe(AvroUnion(value))
   final def toAvroEnum[A](value: A)           = safe(AvroEnum(value))
 
-  final def toAvroUUID[A](value: A) = toAvroString(value).map(AvroLogical(_))
+  final def toAvroUUID[A](value: A)        = toAvroString(value).map(AvroLogical(_))
+  final def uuidToAvroLogical(value: UUID) = toAvroString(value.toString).map(AvroLogical(_))
+
+  final def dateTimeToAvroLogical(value: OffsetDateTime) =
+    safe(value.toInstant.toEpochMilli).flatMap(toAvroLong).map(AvroLogical(_))
+
+  final def instantToAvroLogical(value: Instant) = safe(value.toEpochMilli).flatMap(toAvroLong).map(AvroLogical(_))
 
   final def toAvroTimestamp[A](value: A) = toAvroLong(value).map(AvroLogical(_))
 }
