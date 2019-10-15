@@ -9,7 +9,7 @@ import cats.implicits._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
 import com.rauchenberg.avronaut.common.{ReflectionHelpers, _}
 import com.rauchenberg.avronaut.decoder.Parser.parse
-import com.rauchenberg.avronaut.schema.SchemaData
+import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.GenericRecord
 import shapeless.{:+:, CNil, Coproduct, Inr}
@@ -30,8 +30,10 @@ object Decoder {
 
   def apply[A](implicit decoder: Decoder[A]) = decoder
 
-  def decode[A](genericRecord: GenericRecord, schemaData: SchemaData)(implicit decoder: Decoder[A]) =
-    decoder(AvroDecode).apply((genericRecord, schemaData))
+  def decode[A](genericRecord: GenericRecord)(implicit decoder: Decoder[A], avroSchema: AvroSchema[A]) =
+    avroSchema.data.flatMap { as =>
+      decoder(AvroDecode).apply((genericRecord, as))
+    }
 
   def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 

@@ -11,11 +11,9 @@ import scala.collection.JavaConverters._
 
 class MapSpec extends UnitSpecBase {
 
-  "encode a record with a map" in {
+  "encode a record with a map" in new TestContext {
     forAll { writerRecord: WriterRecordWithMap =>
-      val schema = AvroSchema.toSchema[WriterRecordWithMap].value
-
-      val record = new GenericData.Record(schema.schema)
+      val record = new GenericData.Record(writerRecordSchema.data.value.schema)
 
       val recordBuilder = new GenericRecordBuilder(record)
       recordBuilder.set("writerField", writerRecord.writerField)
@@ -24,17 +22,15 @@ class MapSpec extends UnitSpecBase {
 
       val expected = recordBuilder.build()
 
-      Encoder.encode(writerRecord, schema) should beRight(expected)
+      Encoder.encode(writerRecord) should beRight(expected)
 
     }
   }
 
-  "encode a record with a map of records" in {
+  "encode a record with a map of records" in new TestContext {
     forAll { writerRecord: WriterRecordWithMapOfRecord =>
       whenever(writerRecord.field2.size > 0) {
-        val schema = AvroSchema.toSchema[WriterRecordWithMapOfRecord].value
-
-        val nestedSchema = AvroSchema.toSchema[Nested].value
+        val nestedSchema = AvroSchema.toSchema[Nested].data.value
 
         val nestedGenericRecord = new GenericData.Record(nestedSchema.schema)
         nestedGenericRecord.put("field1", 5)
@@ -47,23 +43,21 @@ class MapSpec extends UnitSpecBase {
           nestedGenericRecord
         }.asJava
 
-        val genericRecord = new GenericData.Record(schema.schema)
+        val genericRecord = new GenericData.Record(writerRecordWithMapOfRecordSchema.data.value.schema)
         val recordBuilder = new GenericRecordBuilder(genericRecord)
 
         recordBuilder.set("writerField", writerRecord.writerField)
         recordBuilder.set("field1", writerRecord.field1)
         recordBuilder.set("field2", nestedMap)
 
-        Encoder.encode(writerRecord, schema) should beRight(recordBuilder.build)
+        Encoder.encode(writerRecord) should beRight(recordBuilder.build)
       }
     }
   }
 
-  "encode a record with a map of Array" in {
+  "encode a record with a map of Array" in new TestContext {
     forAll { writerRecord: WriterRecordWithList =>
-      val schema = AvroSchema.toSchema[WriterRecordWithList].value
-
-      val record        = new GenericData.Record(schema.schema)
+      val record        = new GenericData.Record(writerRecordWithList.data.value.schema)
       val recordBuilder = new GenericRecordBuilder(record)
 
       val javaCollection = writerRecord.field2.mapValues { list =>
@@ -74,11 +68,11 @@ class MapSpec extends UnitSpecBase {
       recordBuilder.set("field1", writerRecord.field1)
       recordBuilder.set("field2", javaCollection)
 
-      Encoder.encode(writerRecord, schema) should beRight(recordBuilder.build)
+      Encoder.encode(writerRecord) should beRight(recordBuilder.build)
     }
   }
 
-  "roundtrip tests" in {
+  "do a roundtrip encode and decode" in new TestContext {
     runRoundTrip[WriterRecordWithMapOfRecord]
     runRoundTrip[WriterRecordWithMap]
     runRoundTrip[WriterRecordWithList]
@@ -91,4 +85,11 @@ class MapSpec extends UnitSpecBase {
   case class WriterRecordWithMapOfRecord(field1: Int, writerField: Boolean, field2: Map[String, Nested])
 
   case class WriterRecordWithList(writerField: Boolean, field1: String, field2: Map[String, List[Int]])
+
+  trait TestContext {
+    implicit val writerRecordSchema: AvroSchema[WriterRecordWithMap] = AvroSchema.toSchema[WriterRecordWithMap]
+    implicit val writerRecordWithMapOfRecordSchema: AvroSchema[WriterRecordWithMapOfRecord] =
+      AvroSchema.toSchema[WriterRecordWithMapOfRecord]
+    implicit val writerRecordWithList: AvroSchema[WriterRecordWithList] = AvroSchema.toSchema[WriterRecordWithList]
+  }
 }

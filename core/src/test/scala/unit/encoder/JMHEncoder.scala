@@ -16,9 +16,8 @@ class NestedRecordData extends RandomDataGenerator {
   case class Nested(field1: String, field2: List[List[InnerNested]], field3: Int)
   case class RecordWithNestedCaseClasses(field: Nested)
 
-  val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses].right.get
-
-  val encoder = Encoder[RecordWithNestedCaseClasses]
+  implicit val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses]
+  implicit val encoder      = Encoder[RecordWithNestedCaseClasses]
 
   def prepare: List[RecordWithNestedCaseClasses] = {
     (1 to 100).map { _ =>
@@ -35,9 +34,8 @@ class NestedAvro4SRecordData extends RandomDataGenerator {
   case class Nested(field1: String, field2: List[List[InnerNested]], field3: Int)
   case class RecordWithNestedCaseClasses(field: Nested)
 
-  val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses].right.get.schema
-
-  val encoder = Avro4SEncoder[RecordWithNestedCaseClasses]
+  implicit val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses]
+  implicit val encoder      = Avro4SEncoder[RecordWithNestedCaseClasses]
 
   def prepare: List[RecordWithNestedCaseClasses] = {
     (1 to 100).map { _ =>
@@ -52,15 +50,16 @@ trait NestedRecordEncoding { self: NestedRecordData =>
   @Benchmark
   def runNestedEncoder: List[Result[GenericData.Record]] =
     testData.map { element =>
-      Encoder.encode[RecordWithNestedCaseClasses](element, writerSchema)(encoder)
+      Encoder.encode[RecordWithNestedCaseClasses](element)
     }
 }
 
 trait NestedAvro4SRecordEncoding { self: NestedAvro4SRecordData =>
   @Benchmark
+  val schema = writerSchema.data.right.get.schema
   def runNestedEncoder: List[AnyRef] =
     testData.map { element =>
-      encoder.encode(element, writerSchema, DefaultFieldMapper)
+      encoder.encode(element, schema, DefaultFieldMapper)
     }
 }
 

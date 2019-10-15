@@ -1,11 +1,13 @@
 package unit.schema
 
+import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
 
 class MapSpec extends UnitSpecBase {
 
   "schema" should {
     "build a record with a Map" in {
+      implicit val schema = AvroSchema.toSchema[RecordWithMap]
       val expected =
         """{"type":"record","name":"RecordWithMap","namespace":"unit.schema.MapSpec",
           |"doc":"","fields":[{"name":"cupcat",
@@ -14,6 +16,7 @@ class MapSpec extends UnitSpecBase {
       schemaAsString[RecordWithMap] shouldBe expected
     }
     "build a record with a Map with a default" in {
+      implicit val schema = AvroSchema.toSchema[RecordWithDefaultMap]
       val expected =
         """{"type":"record","name":"RecordWithDefaultMap","namespace":"unit.schema.MapSpec","doc":"",
           |"fields":[{"name":"cupcat","type":{"type":"map","values":"string"},

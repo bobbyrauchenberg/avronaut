@@ -14,9 +14,9 @@ class CoproductUnionSpec extends UnitSpecBase {
 
     "encode a union of multiple types" in {
       forAll { (field: Long, field1: String :+: Boolean :+: Int :+: CNil, field2: Boolean) =>
-        val schema = AvroSchema.toSchema[WriterRecordWithCoproduct].value
+        implicit val schema = AvroSchema.toSchema[WriterRecordWithCoproduct]
 
-        val recordBuilder = new GenericRecordBuilder(new GenericData.Record(schema.schema))
+        val recordBuilder = new GenericRecordBuilder(new GenericData.Record(schema.data.value.schema))
 
         field1 match {
           case Inl(long)          => recordBuilder.set("field1", long)
@@ -32,11 +32,12 @@ class CoproductUnionSpec extends UnitSpecBase {
         val toEncode = WriterRecordWithCoproduct(field, field1, field2)
         val expected = recordBuilder.build
 
-        Encoder.encode[WriterRecordWithCoproduct](toEncode, schema) should beRight(expected)
+        Encoder.encode[WriterRecordWithCoproduct](toEncode) should beRight(expected)
       }
     }
 
-    "roundtrip tests" in {
+    "do a roundtrip encode and decode" in {
+      implicit val schema = AvroSchema.toSchema[WriterRecordWithCoproduct]
       runRoundTrip[WriterRecordWithCoproduct]
     }
 

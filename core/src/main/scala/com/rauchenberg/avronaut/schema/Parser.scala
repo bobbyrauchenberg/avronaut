@@ -4,14 +4,13 @@ import cats.implicits._
 import com.rauchenberg.avronaut.common.{safe, Error, Result}
 import com.rauchenberg.avronaut.schema.AvroSchemaF._
 import com.rauchenberg.avronaut.schema.helpers.SchemaHelper.{moveDefaultToHead, transformDefault}
+import japgolly.microlibs.recursion.Recursion._
 import japgolly.microlibs.recursion.{FAlgebraM, FCoalgebraM}
 import org.apache.avro.Schema.Type._
-import org.apache.avro.{LogicalTypes, Schema, SchemaBuilder}
+import org.apache.avro.{LogicalTypes, Schema, SchemaBuilder => AvroSchemaBuilder}
 import shims._
 
 import scala.collection.JavaConverters._
-import japgolly.microlibs.recursion.Recursion._
-case class SchemaData(schemaMap: Map[String, Schema], schema: Schema)
 
 case class Parser(record: AvroSchemaADT) {
 
@@ -47,17 +46,17 @@ case class Parser(record: AvroSchemaADT) {
   }
 
   val toAvroSchema: FAlgebraM[Result, AvroSchemaF, Either[(Registry, Schema.Field), (Registry, Schema)]] = {
-    case SchemaIntF     => (empty, SchemaBuilder.builder.intType).asRight.asRight
-    case SchemaLongF    => (empty, SchemaBuilder.builder.longType).asRight.asRight
-    case SchemaDoubleF  => (empty, SchemaBuilder.builder.doubleType).asRight.asRight
-    case SchemaFloatF   => (empty, SchemaBuilder.builder.floatType).asRight.asRight
-    case SchemaBooleanF => (empty, SchemaBuilder.builder.booleanType).asRight.asRight
-    case SchemaStringF  => (empty, SchemaBuilder.builder.stringType).asRight.asRight
-    case SchemaNullF    => (empty, SchemaBuilder.builder.nullType).asRight.asRight
-    case SchemaBytesF   => (empty, SchemaBuilder.builder.bytesType).asRight.asRight
-    case SchemaUUIDF    => (empty, LogicalTypes.uuid.addToSchema(SchemaBuilder.builder.stringType)).asRight.asRight
+    case SchemaIntF     => (empty, AvroSchemaBuilder.builder.intType).asRight.asRight
+    case SchemaLongF    => (empty, AvroSchemaBuilder.builder.longType).asRight.asRight
+    case SchemaDoubleF  => (empty, AvroSchemaBuilder.builder.doubleType).asRight.asRight
+    case SchemaFloatF   => (empty, AvroSchemaBuilder.builder.floatType).asRight.asRight
+    case SchemaBooleanF => (empty, AvroSchemaBuilder.builder.booleanType).asRight.asRight
+    case SchemaStringF  => (empty, AvroSchemaBuilder.builder.stringType).asRight.asRight
+    case SchemaNullF    => (empty, AvroSchemaBuilder.builder.nullType).asRight.asRight
+    case SchemaBytesF   => (empty, AvroSchemaBuilder.builder.bytesType).asRight.asRight
+    case SchemaUUIDF    => (empty, LogicalTypes.uuid.addToSchema(AvroSchemaBuilder.builder.stringType)).asRight.asRight
     case SchemaTimestampMillisF =>
-      (empty, LogicalTypes.timestampMillis.addToSchema(SchemaBuilder.builder.longType)).asRight.asRight
+      (empty, LogicalTypes.timestampMillis.addToSchema(AvroSchemaBuilder.builder.longType)).asRight.asRight
     case SchemaEnumF(name, namespace, doc, values) =>
       schemaEnum(name, namespace, doc, values).map(s => (empty -> s).asRight)
     case SchemaListF(value) =>
@@ -74,10 +73,10 @@ case class Parser(record: AvroSchemaADT) {
       value match {
         case Left((_, v)) => error("Option", v).asLeft
         case Right((reg, s)) if (s.getType == UNION) =>
-          safe(Schema.createUnion((SchemaBuilder.builder.nullType +: s.getTypes.asScala.toList): _*)).map(s =>
+          safe(Schema.createUnion((AvroSchemaBuilder.builder.nullType +: s.getTypes.asScala.toList): _*)).map(s =>
             (reg -> s).asRight)
         case Right((reg, s)) =>
-          safe(Schema.createUnion(List(SchemaBuilder.builder.nullType, s).asJava)).map(s => (reg, s).asRight)
+          safe(Schema.createUnion(List(AvroSchemaBuilder.builder.nullType, s).asJava)).map(s => (reg, s).asRight)
       }
     case SchemaCoproductF(values) =>
       values.sequence.traverse { values =>

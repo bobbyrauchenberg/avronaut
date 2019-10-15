@@ -7,21 +7,27 @@ class ArraySpec extends UnitSpecBase {
 
   "schema" should {
     "treat a List as an Array" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[RecordWithList]
       runAssert[RecordWithList]("RecordWithList")
     }
     "treat a Seq as an Array" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[RecordWithSeq]
       runAssert[RecordWithSeq]("RecordWithSeq")
     }
     "treat a Vector as an Array" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[RecordWithVector]
       runAssert[RecordWithVector]("RecordWithVector")
     }
     "treat a List as an Array with default" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[RecordWithListDefault]
       runAssertWithDefault[RecordWithListDefault]("RecordWithListDefault")
     }
     "treat a Seq as an Array with default" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[RecordWithSeqDefault]
       runAssertWithDefault[RecordWithSeqDefault]("RecordWithSeqDefault")
     }
     "treat a Vector as an Array with default" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[RecordWithVectorDefault]
       runAssertWithDefault[RecordWithVectorDefault]("RecordWithVectorDefault")
     }
   }

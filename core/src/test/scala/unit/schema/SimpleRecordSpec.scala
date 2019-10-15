@@ -1,6 +1,7 @@
 package unit.schema
 
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{Namespace, SchemaMetadata}
+import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
 
 class SimpleRecordSpec extends UnitSpecBase {
@@ -8,34 +9,42 @@ class SimpleRecordSpec extends UnitSpecBase {
   "schema" should {
 
     "be built for a basic null record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[SimpleNull]
       schemaAsString[SimpleNull] shouldBe simpleSchema("SimpleNull", "null")
     }
 
     "be built for a basic boolean record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[SimpleBool]
       schemaAsString[SimpleBool] shouldBe simpleSchema("SimpleBool", "boolean")
     }
 
     "be built for a basic string record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[SimpleString]
       schemaAsString[SimpleString] shouldBe simpleSchema("SimpleString", "string")
     }
 
     "be built for a basic int record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[SimpleInt]
       schemaAsString[SimpleInt] shouldBe simpleSchema("SimpleInt", "int")
     }
 
     "be built for a basic long record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[SimpleLong]
       schemaAsString[SimpleLong] shouldBe simpleSchema("SimpleLong", "long")
     }
 
     "be built for a basic float record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[SimpleFloat]
       schemaAsString[SimpleFloat] shouldBe simpleSchema("SimpleFloat", "float")
     }
 
     "be built for a basic double record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[SimpleDouble]
       schemaAsString[SimpleDouble] shouldBe simpleSchema("SimpleDouble", "double")
     }
 
     "be built for a basic bytes record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[SimpleByte]
       schemaAsString[SimpleByte] shouldBe simpleSchema("SimpleByte", "bytes")
     }
 

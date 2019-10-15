@@ -9,12 +9,14 @@ class AnnotationsSpec extends UnitSpecBase {
   "annotations" should {
 
     "amend the field name if name annotation is present" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[FieldNameAnnotation]
       runAssert[FieldNameAnnotation](
         s"""{"type":"record","name":"FieldNameAnnotation","namespace":"unit.schema.AnnotationsSpec",
            |"doc":"","fields":[{"name":"cuppers","type":"string"}]}""".stripMargin.replace("\n", ""))
     }
 
     "add documentation if present" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[FieldDocAnnotation]
       runAssert[FieldDocAnnotation](
         s"""{"type":"record","name":"FieldDocAnnotation","namespace":"unit.schema.AnnotationsSpec",
            |"doc":"","fields":[{"name":"cupcat","type":"string","doc":\"Field now deprecated"}]}""".stripMargin
@@ -22,6 +24,7 @@ class AnnotationsSpec extends UnitSpecBase {
     }
 
     "add global namespace if present" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[NamespaceAnnotation]
       runAssert[NamespaceAnnotation](
         s"""{"type":"record","name":"NamespaceAnnotation","namespace":"com.cupcat","doc":"",
            |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n", "")
@@ -29,12 +32,14 @@ class AnnotationsSpec extends UnitSpecBase {
     }
 
     "treat a name with a dot as a fullname, so namespace is ignored" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[FullName]
       runAssert[FullName](
         s"""{"type":"record","name":"Cat","namespace":"cup","doc":"","fields":[{"name":"cupcat","type":"string"}]}"""
       )
     }
 
     "document a top level record " in new TestContext {
+      implicit val schema = AvroSchema.toSchema[TopLevelDoc]
       runAssert[TopLevelDoc](
         s"""{"type":"record","name":"TopLevelDoc","namespace":"unit.schema.AnnotationsSpec","doc":"Record is now deprecated",
            |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n", "")
@@ -42,7 +47,7 @@ class AnnotationsSpec extends UnitSpecBase {
     }
 
     "apply annotations to an enum" in new TestContext {
-
+      implicit val schema = AvroSchema.toSchema[AnnotatedEnum]
       val expected =
         """{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
                        |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat","namespace":"unit.schema.Annotated",

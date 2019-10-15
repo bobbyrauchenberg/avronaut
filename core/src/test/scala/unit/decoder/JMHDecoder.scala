@@ -13,12 +13,12 @@ import org.openjdk.jmh.annotations._
 case class RecordWithMultipleFields(field1: Boolean, field2: String, field3: Int)
 class SimpleRecordData extends RandomDataGenerator {
 
-  val writerSchema = AvroSchema.toSchema[RecordWithMultipleFields].right.get
-  val decoder      = Decoder[RecordWithMultipleFields]
+  implicit val writerSchema = AvroSchema.toSchema[RecordWithMultipleFields]
+  val decoder               = Decoder[RecordWithMultipleFields]
   def prepare: List[(GenericData.Record, RecordWithMultipleFields)] =
     (1 to 1000).toList.flatMap { _ =>
       val data   = random[RecordWithMultipleFields]
-      val record = new GenericData.Record(writerSchema.schema)
+      val record = new GenericData.Record(writerSchema.data.right.get.schema)
       record.put(0, data.field1)
       record.put(1, data.field2)
       record.put(2, data.field3)
@@ -34,7 +34,7 @@ class SimpleRecordDataAvro4s extends RandomDataGenerator {
   implicit val decoder      = Decoder4s[RecordWithMultipleFields]
 
   def prepare: List[(GenericData.Record, RecordWithMultipleFields)] = {
-    implicit val writerSchema = AvroSchema.toSchema[RecordWithMultipleFields].right.get
+    implicit val writerSchema = AvroSchema.toSchema[RecordWithMultipleFields].data.right.get
     (1 to 100).map { _ =>
       val data   = random[RecordWithMultipleFields]
       val record = new GenericData.Record(writerSchema.schema)
@@ -54,16 +54,16 @@ class NestedRecordData extends RandomDataGenerator {
   case class Nested(field1: String, field2: InnerNested, field3: Int)
   case class RecordWithNestedCaseClasses(field: Nested)
 
-  val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses].right.get
-  val nestedSchema = AvroSchema.toSchema[Nested].right.get
-  val innerSchema  = AvroSchema.toSchema[InnerNested].right.get
+  implicit val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses]
+  val nestedSchema          = AvroSchema.toSchema[Nested].data.right.get
+  val innerSchema           = AvroSchema.toSchema[InnerNested].data.right.get
 
-  val decoder = Decoder[RecordWithNestedCaseClasses]
+  implicit val decoder = Decoder[RecordWithNestedCaseClasses]
 
   def prepare: List[(GenericData.Record, RecordWithNestedCaseClasses)] = {
     (1 to 100).flatMap { _ =>
       val data   = random[RecordWithNestedCaseClasses]
-      val record = new GenericData.Record(writerSchema.schema)
+      val record = new GenericData.Record(writerSchema.data.right.get.schema)
       val nested = new GenericData.Record(nestedSchema.schema)
       val inner  = new GenericData.Record(innerSchema.schema)
 
@@ -93,7 +93,7 @@ class NestedAvro4SRecordData extends RandomDataGenerator {
   val decoder = Decoder[RecordWithNestedCaseClasses]
 
   def prepare: List[(GenericData.Record, RecordWithNestedCaseClasses)] = {
-    implicit val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses].right.get
+    implicit val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses].data.right.get
     (1 to 100).map { _ =>
       val data   = random[RecordWithNestedCaseClasses]
       val record = new GenericData.Record(writerSchema.schema)
@@ -117,7 +117,7 @@ trait SimpleRecordDecoding { self: SimpleRecordData =>
   @Benchmark
   def runDecoder: List[Result[RecordWithMultipleFields]] =
     testData.map { element =>
-      Decoder.decode[RecordWithMultipleFields](element._1, writerSchema)(decoder)
+      Decoder.decode[RecordWithMultipleFields](element._1)
     }
 }
 
@@ -133,7 +133,7 @@ trait NestedRecordDecoding { self: NestedRecordData =>
   @Benchmark
   def runNestedDecoder: List[Result[RecordWithNestedCaseClasses]] =
     testData.map { element =>
-      Decoder.decode[RecordWithNestedCaseClasses](element._1, writerSchema)(decoder)
+      Decoder.decode[RecordWithNestedCaseClasses](element._1)
     }
 }
 

@@ -1,6 +1,7 @@
 package unit.schema
 
 import com.rauchenberg.avronaut.common._
+import com.rauchenberg.avronaut.schema.AvroSchema
 import shapeless._
 import unit.utils.UnitSpecBase
 
@@ -9,6 +10,7 @@ class CoproductUnionSpec extends UnitSpecBase {
   "schema" should {
 
     "create a union from a Coproduct" in {
+      implicit val schema = AvroSchema.toSchema[CoproductUnion]
       val expected =
         """
           |{"type":"record","name":"CoproductUnion","namespace":"unit.schema.CoproductUnionSpec",
@@ -19,6 +21,7 @@ class CoproductUnionSpec extends UnitSpecBase {
     }
 
     "respect a Coproduct default" in {
+      implicit val schema = AvroSchema.toSchema[CoproductWithStringDefault]
       val expected =
         """
           |{"type":"record","name":"CoproductWithStringDefault","namespace":"unit.schema.CoproductUnionSpec",
@@ -29,6 +32,7 @@ class CoproductUnionSpec extends UnitSpecBase {
     }
 
     "respect a Coproduct default regardless of place in the coproduct" in {
+      implicit val schema = AvroSchema.toSchema[CoproductWithIntDefault]
       val expected =
         """
           |{"type":"record","name":"CoproductWithIntDefault","namespace":"unit.schema.CoproductUnionSpec",
@@ -39,6 +43,7 @@ class CoproductUnionSpec extends UnitSpecBase {
     }
 
     "flatten a nested structure of types that map to unions" in {
+      implicit val schema = AvroSchema.toSchema[Nested]
       val expected =
         """
           |{"type":"record","name":"Nested","namespace":"unit.schema.CoproductUnionSpec","doc":"",

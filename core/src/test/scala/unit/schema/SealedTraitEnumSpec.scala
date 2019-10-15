@@ -1,6 +1,7 @@
 package unit.schema
 
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{Name, Namespace, SchemaMetadata}
+import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
 import unit.schema.SealedTraitEnum._
 
@@ -8,6 +9,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
 
   "schema" should {
     "treat sealed trait hierachies of case objects as an enum" in {
+      implicit val schema = AvroSchema.toSchema[EnumCC]
       val expected =
         """
           |{"type":"record","name":"EnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
@@ -17,6 +19,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
       schemaAsString[EnumCC] shouldBe expected
     }
     "allow name to be overriden with an annotation" in {
+      implicit val schema = AvroSchema.toSchema[AnnotatedEnumCC]
       val expected =
         """{"type":"record","name":"AnnotatedEnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
           |"fields":[{"name":"cupcat","type":{"type":"enum","name":"CupcatEnum","namespace":"unit.schema.SealedTraitEnum.AnnotatedEnum",
@@ -25,7 +28,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
       schemaAsString[AnnotatedEnumCC] shouldBe expected
     }
     "handle nested enums" in {
-
+      implicit val schema = AvroSchema.toSchema[MultipleEnumRecord]
       val expected =
         """{"type":"record","name":"MultipleEnumRecord","namespace":"unit.schema.SealedTraitEnum","doc":"",
           |"fields":[{"name":"s","type":"string"},{"name":"er","type":{"type":"enum","name":"Cup","namespace":
