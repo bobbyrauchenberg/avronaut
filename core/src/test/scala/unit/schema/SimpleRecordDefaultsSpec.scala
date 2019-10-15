@@ -11,30 +11,37 @@ class SimpleRecordDefaultsSpec extends UnitSpecBase {
   "schema" should {
 
     "have a default for a basic boolean record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[BoolWithDefault]
       runAssert[BoolWithDefault, Boolean]("BoolWithDefault", "boolean", true)
     }
 
     "have a default for a basic string record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[StringWithDefault]
       runAssert[StringWithDefault, String]("StringWithDefault", "string", "\"cupcat\"")
     }
 
     "have a default for a basic int record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[IntWithDefault]
       runAssert[IntWithDefault, Int]("IntWithDefault", "int", 5)
     }
 
     "have a default for a basic long record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[LongWithDefault]
       runAssert[LongWithDefault, Long]("LongWithDefault", "long", 5l)
     }
 
     "have a default for a basic float record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[FloatWithDefault]
       runAssert[FloatWithDefault, Float]("FloatWithDefault", "float", 5f)
     }
 
     "have a default for a basic double record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[DoubleWithDefault]
       runAssert[DoubleWithDefault, Double]("DoubleWithDefault", "double", 5d)
     }
 
     "have a default for a bytes record" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[ByteWithDefault]
       runAssert[ByteWithDefault, String]("ByteWithDefault", "bytes", "\"cupcat\"")
     }
 

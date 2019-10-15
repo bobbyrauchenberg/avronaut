@@ -1,12 +1,14 @@
 package unit.schema
 
 import cats.syntax.option._
+import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
 
 class OptionUnionSpec extends UnitSpecBase {
 
   "schema" should {
     "create a union from an Option" in {
+      implicit val schema = AvroSchema.toSchema[Union]
       val expected =
         """
           |{"type":"record","name":"Union","namespace":"unit.schema.OptionUnionSpec",
@@ -16,6 +18,7 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "create a union from an Option with a string default" in {
+      implicit val schema = AvroSchema.toSchema[UnionWithStringDefault]
       val expected =
         """
           |{"type":"record","name":"UnionWithStringDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
@@ -26,6 +29,7 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "create a union from an Option with an int default" in {
+      implicit val schema = AvroSchema.toSchema[UnionWithIntDefault]
       val expected =
         """
           |{"type":"record","name":"UnionWithIntDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
@@ -35,6 +39,7 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "create a union from an Option with a Byte Array default" in {
+      implicit val schema = AvroSchema.toSchema[UnionWithByteArrayDefault]
       val expected =
         """
           |{"type":"record","name":"UnionWithByteArrayDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
@@ -45,6 +50,7 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "create a union from an Option with None as default" in {
+      implicit val schema = AvroSchema.toSchema[UnionWithDefaultNone]
       val expected =
         """
           |{"type":"record","name":"UnionWithDefaultNone","namespace":"unit.schema.OptionUnionSpec","doc":"",
@@ -55,6 +61,7 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "create a union from an Option with a default case class" in {
+      implicit val schema = AvroSchema.toSchema[UnionWithCaseClassDefault]
       val expected =
         """
           |{"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.schema.OptionUnionSpec","doc":"",
@@ -66,6 +73,7 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "create a union from an Option with a default optional case class" in {
+      implicit val schema = AvroSchema.toSchema[UnionWithOptionalCaseClassDefault]
       val expected =
         """{"type":"record","name":"UnionWithOptionalCaseClassDefault","namespace":"unit.schema.OptionUnionSpec",
           |"doc":"","fields":[{"name":"cupcat","type":[{"type":"record","name":"Default","doc":"",
@@ -76,6 +84,7 @@ class OptionUnionSpec extends UnitSpecBase {
     }
 
     "flatten a nested structure of types that are encoded as unions" in {
+      implicit val schema = AvroSchema.toSchema[NestedUnion]
       val expected =
         """
           |{"type":"record","name":"NestedUnion","namespace":"unit.schema.OptionUnionSpec","doc":"",

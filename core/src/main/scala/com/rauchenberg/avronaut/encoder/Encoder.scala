@@ -8,7 +8,7 @@ import cats.implicits._
 import com.rauchenberg.avronaut.common.Avro._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
-import com.rauchenberg.avronaut.schema.SchemaData
+import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.GenericData
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr}
@@ -29,9 +29,10 @@ object Encoder {
 
   implicit def gen[A]: Typeclass[A] = macro Magnolia.gen[A]
 
-  def encode[A](a: A, schemaData: SchemaData)(implicit encoder: Encoder[A]): Either[Error, GenericData.Record] =
+  def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericData.Record] =
     for {
-      encoded <- encoder.apply(a)(schemaData)
+      schemaData <- schema.data
+      encoded    <- encoder.apply(a)(schemaData)
       genRec <- encoded match {
                  case AvroRecord(schema, values) =>
                    Parser(new GenericData.Record(schemaData.schema)).parse(AvroRoot(schema, values))

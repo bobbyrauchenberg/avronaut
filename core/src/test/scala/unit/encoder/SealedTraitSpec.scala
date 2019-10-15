@@ -11,34 +11,38 @@ class SealedTraitSpec extends UnitSpecBase {
 
   "encoder" should {
 
-    "handle sealed trait enums" in {
+    "handle sealed trait enums" in new TestContext {
       forAll { record: EnumRecord =>
-        val schema           = AvroSchema.toSchema[EnumRecord].value
         implicit val encoder = Encoder[EnumRecord]
 
-        val gr = new GenericData.Record(schema.schema)
+        val gr = new GenericData.Record(enumRecordSchema.data.value.schema)
         gr.put(0, record.field.toString)
 
-        Encoder.encode(record, schema) should beRight(gr)
+        Encoder.encode(record) should beRight(gr)
       }
     }
 
-    "handle sealed trait enums with defaults" in {
+    "handle sealed trait enums with defaults" in new TestContext {
       val record           = SealedTraitEnumWithDefault()
-      val schema           = AvroSchema.toSchema[SealedTraitEnumWithDefault].value
       implicit val encoder = Encoder[SealedTraitEnumWithDefault]
 
-      val gr = new GenericData.Record(schema.schema)
+      val gr = new GenericData.Record(sealedTraitEnumWithDefaultSchema.data.value.schema)
       gr.put(0, record.field.toString)
 
-      Encoder.encode(SealedTraitEnumWithDefault(), schema) should beRight(gr)
+      Encoder.encode(SealedTraitEnumWithDefault()) should beRight(gr)
     }
 
   }
 
+  trait TestContext {
+    implicit val enumRecordSchema: AvroSchema[EnumRecord] = AvroSchema.toSchema[EnumRecord]
+    implicit val sealedTraitEnumWithDefaultSchema: AvroSchema[SealedTraitEnumWithDefault] =
+      AvroSchema.toSchema[SealedTraitEnumWithDefault]
+  }
+
 }
 
-private[this] object SealedTraitSpec {
+object SealedTraitSpec {
 
   sealed trait A
   case object B extends A

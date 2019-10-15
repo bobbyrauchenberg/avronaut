@@ -16,54 +16,54 @@ class LogicalTypeSpec extends UnitSpecBase {
 
     "encode UUID" in {
       forAll { record: RecordWithUUID =>
-        val schema  = AvroSchema.toSchema[RecordWithUUID].value
-        val encoder = Encoder[RecordWithUUID]
+        implicit val schema  = AvroSchema.toSchema[RecordWithUUID]
+        implicit val encoder = Encoder[RecordWithUUID]
 
-        val genericRecord = new GenericData.Record(schema.schema)
+        val genericRecord = new GenericData.Record(schema.data.value.schema)
         genericRecord.put(0, record.writerField1)
         genericRecord.put(1, record.field.toString)
         genericRecord.put(2, record.writerField2)
 
-        Encoder.encode[RecordWithUUID](record, schema)(encoder) should beRight(genericRecord)
+        Encoder.encode[RecordWithUUID](record) should beRight(genericRecord)
       }
     }
 
     "encode OffsetDateTime" in {
       forAll { record: RecordWithDateTime =>
-        val schema  = AvroSchema.toSchema[RecordWithDateTime].value
-        val encoder = Encoder[RecordWithDateTime]
+        implicit val schema  = AvroSchema.toSchema[RecordWithDateTime]
+        implicit val encoder = Encoder[RecordWithDateTime]
 
-        val genericRecord = new GenericData.Record(schema.schema)
+        val genericRecord = new GenericData.Record(schema.data.value.schema)
         genericRecord.put(0, record.writerField1)
         genericRecord.put(1, record.writerField2)
         genericRecord.put(2, record.field.toInstant.toEpochMilli)
 
-        Encoder.encode[RecordWithDateTime](record, schema)(encoder) should beRight(genericRecord)
+        Encoder.encode[RecordWithDateTime](record) should beRight(genericRecord)
       }
     }
 
     "encode Instant" in {
       forAll { record: RecordWithInstant =>
-        val schema  = AvroSchema.toSchema[RecordWithInstant].value
-        val encoder = Encoder[RecordWithInstant]
+        implicit val schema  = AvroSchema.toSchema[RecordWithInstant]
+        implicit val encoder = Encoder[RecordWithInstant]
 
-        val genericRecord = new GenericData.Record(schema.schema)
+        val genericRecord = new GenericData.Record(schema.data.value.schema)
         genericRecord.put(0, record.writerField1)
         genericRecord.put(1, record.writerField2)
         genericRecord.put(2, record.field.toEpochMilli)
 
-        Encoder.encode[RecordWithInstant](record, schema)(encoder)
+        Encoder.encode[RecordWithInstant](record)
       }
     }
 
     "encode with an OffsetDateTime default" in {
-      val schema              = AvroSchema.toSchema[RecordWithDateTimeDefault].value
+      implicit val schema     = AvroSchema.toSchema[RecordWithDateTimeDefault]
       val defaultDateTimeLong = defaultDateTime.toInstant.toEpochMilli
 
-      val genericRecord = new GenericData.Record(schema.schema)
+      val genericRecord = new GenericData.Record(schema.data.value.schema)
       genericRecord.put(0, defaultDateTimeLong)
 
-      Encoder.encode(RecordWithDateTimeDefault(), schema) should beRight(genericRecord)
+      Encoder.encode(RecordWithDateTimeDefault()) should beRight(genericRecord)
     }
   }
 

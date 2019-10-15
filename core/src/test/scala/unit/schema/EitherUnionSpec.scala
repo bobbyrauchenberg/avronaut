@@ -1,6 +1,7 @@
 package unit.schema
 
 import cats.syntax.either._
+import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
 
 class EitherUnionSpec extends UnitSpecBase {
@@ -8,6 +9,7 @@ class EitherUnionSpec extends UnitSpecBase {
   "schema" should {
 
     "create a union from an Either" in {
+      implicit val schema = AvroSchema.toSchema[EitherUnion]
       val expected =
         """
           |{"type":"record","name":"EitherUnion","namespace":"unit.schema.EitherUnionSpec",
@@ -17,6 +19,7 @@ class EitherUnionSpec extends UnitSpecBase {
     }
 
     "create a union from an Either with a Left default" in {
+      implicit val schema = AvroSchema.toSchema[EitherUnionWithLeftDefault]
       val expected =
         """
           |{"type":"record","name":"EitherUnionWithLeftDefault","namespace":"unit.schema.EitherUnionSpec",
@@ -27,6 +30,7 @@ class EitherUnionSpec extends UnitSpecBase {
     }
 
     "create a union from an Either with a Right default" in {
+      implicit val schema = AvroSchema.toSchema[EitherUnionWithRightDefault]
       val expected =
         """
           |{"type":"record","name":"EitherUnionWithRightDefault","namespace":"unit.schema.EitherUnionSpec",
@@ -37,6 +41,7 @@ class EitherUnionSpec extends UnitSpecBase {
     }
 
     "flatten a nested structure of types that map to unions" in {
+      implicit val schema = AvroSchema.toSchema[NestedUnion]
       val expected =
         """
           |{"type":"record","name":"NestedUnion","namespace":"unit.schema.EitherUnionSpec",
