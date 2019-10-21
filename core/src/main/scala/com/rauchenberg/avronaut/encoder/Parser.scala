@@ -22,6 +22,7 @@ case class Parser(genericRecord: GenericData.Record) {
   }
 
   val toAvroF: FCoalgebraM[Result, AvroF, Avro] = {
+    case AvroPrimitiveArray(value) => AvroPrimitiveArrayF(value).asRight
     case AvroNull                  => AvroNullF.asRight
     case AvroInt(value)            => AvroIntF(value).asRight
     case AvroDouble(value)         => AvroDoubleF(value).asRight
@@ -38,16 +39,18 @@ case class Parser(genericRecord: GenericData.Record) {
     case AvroRecord(schema, value) => AvroRecordF(schema, value).asRight
     case AvroRoot(schema, value)   => AvroRootF(schema, value).asRight
     case AvroDecode                => Error("should never encode an AvroDecode").asLeft
+    case AvroError(msg)            => Error(s"got an error during encoding, '$msg'").asLeft
   }
 
   val populateGenericRecord: FAlgebraM[Result, AvroF, Any] = {
-    case AvroNullF           => Right(null)
-    case AvroIntF(value)     => value.asRight
-    case AvroDoubleF(value)  => value.asRight
-    case AvroFloatF(value)   => value.asRight
-    case AvroLongF(value)    => value.asRight
-    case AvroBooleanF(value) => value.asRight
-    case AvroStringF(value)  => value.asRight
+    case AvroPrimitiveArrayF(value) => value.asRight
+    case AvroNullF                  => Right(null)
+    case AvroIntF(value)            => value.asRight
+    case AvroDoubleF(value)         => value.asRight
+    case AvroFloatF(value)          => value.asRight
+    case AvroLongF(value)           => value.asRight
+    case AvroBooleanF(value)        => value.asRight
+    case AvroStringF(value)         => value.asRight
     case AvroRecordF(schema, values) =>
       val genericRecord = new GenericData.Record(schema)
       addToRecord(schema, genericRecord, values).map(_ => genericRecord)
@@ -59,6 +62,7 @@ case class Parser(genericRecord: GenericData.Record) {
     case AvroMapF(value)     => value.toMap.asJava.asRight
     case AvroBytesF(value)   => value.asRight
     case AvroLogicalF(value) => value.asRight
+    case AvroErrorF(_)       => throw new RuntimeException("this is just for testing")
   }
 
   private def addToRecord[A](schema: Schema, genericRecord: GenericData.Record, values: List[A]): Result[List[Unit]] =

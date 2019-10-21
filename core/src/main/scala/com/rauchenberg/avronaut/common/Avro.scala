@@ -7,22 +7,36 @@ import cats.syntax.either._
 import org.apache.avro.Schema
 
 sealed trait Avro
-final case object AvroNull                                     extends Avro
-final case class AvroInt(value: Int)                           extends Avro
-final case class AvroFloat(value: Float)                       extends Avro
-final case class AvroDouble(value: Double)                     extends Avro
-final case class AvroLong(value: Long)                         extends Avro
-final case class AvroBoolean(value: Boolean)                   extends Avro
-final case class AvroString(value: String)                     extends Avro
-final case class AvroEnum[A](value: A)                         extends Avro
-final case class AvroUnion(value: Avro)                        extends Avro
-final case class AvroArray(value: List[Avro])                  extends Avro
-final case class AvroMap(value: List[(String, Avro)])          extends Avro
-final case class AvroBytes(value: Array[Byte])                 extends Avro
-final case class AvroLogical(value: Avro)                      extends Avro
-final case class AvroRecord(schema: Schema, value: List[Avro]) extends Avro
-final case class AvroRoot(schema: Schema, value: List[Avro])   extends Avro
-final case object AvroDecode                                   extends Avro
+final case object AvroNull                                                    extends Avro
+final case class AvroInt(value: Int)                                          extends Avro
+final case class AvroFloat(value: Float)                                      extends Avro
+final case class AvroDouble(value: Double)                                    extends Avro
+final case class AvroLong(value: Long)                                        extends Avro
+final case class AvroBoolean(value: Boolean)                                  extends Avro
+final case class AvroString(value: String)                                    extends Avro
+final case class AvroEnum[A](value: A)                                        extends Avro
+final case class AvroUnion(value: Avro)                                       extends Avro
+final case class AvroArray(value: List[Avro])                                 extends Avro
+final case class AvroPrimitiveArray[@specialized A](value: java.util.List[A]) extends Avro
+final case class AvroMap(value: List[(String, Avro)])                         extends Avro
+final case class AvroBytes(value: Array[Byte])                                extends Avro
+final case class AvroLogical(value: Avro)                                     extends Avro
+final case class AvroRecord(schema: Schema, value: List[Avro])                extends Avro
+final case class AvroRoot(schema: Schema, value: List[Avro])                  extends Avro
+final case class AvroError(msg: String)                                       extends Avro
+final case object AvroDecode                                                  extends Avro
+
+sealed trait AvroType
+final case object AvroPrimitive           extends AvroType
+final case object AvroPrimitiveNoCompress extends AvroType
+final case object AvroString              extends AvroType
+final case object AvroList                extends AvroType
+final case object AvroMap                 extends AvroType
+final case object AvroRecord              extends AvroType
+final case object AvroCoproduct           extends AvroType
+final case object AvroSealed              extends AvroType
+final case object AvroLogical             extends AvroType
+final case object Ignore                  extends AvroType
 
 object Avro {
 
@@ -54,6 +68,11 @@ object Avro {
   final def toAvroLong[A](value: A): Result[Avro] = value match {
     case v: java.lang.Long => AvroLong(v).asRight
     case _                 => Error(s"'$value' is not a Long").asLeft
+  }
+
+  final def fromAvroInt(value: Avro): Result[Int] = value match {
+    case AvroInt(v) => v.asRight
+    case _          => Error(s"$value is not an AvroInt").asLeft
   }
 
   final def fromAvroLong(value: Avro): Result[Long] = value match {
