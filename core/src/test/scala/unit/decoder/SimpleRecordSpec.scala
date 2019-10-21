@@ -14,16 +14,17 @@ class SimpleRecordSpec extends UnitSpecBase {
   "decoder" should {
     "decode a record with a string field" in {
       forAll { recordWithMultipleFields: RecordWithMultipleFields =>
-        val schemaData            = AvroSchema.toSchema[RecordWithMultipleFields]
-        val writerSchema          = schemaData.data.value.schema
-        implicit val readerSchema = AvroSchema.toSchema[ReaderStringRecord]
+        val schemaData   = AvroSchema.toSchema[RecordWithMultipleFields]
+        val writerSchema = schemaData.data.value.schema
+        val decoder      = Decoder[ReaderStringRecord]
 
         val record = new GenericData.Record(writerSchema)
         record.put(0, recordWithMultipleFields.field1)
         record.put(1, recordWithMultipleFields.field2)
         record.put(2, recordWithMultipleFields.field3)
 
-        Decoder.decode[ReaderStringRecord](record) should beRight(ReaderStringRecord(recordWithMultipleFields.field2))
+        Decoder.decode[ReaderStringRecord](record, decoder) should beRight(
+          ReaderStringRecord(recordWithMultipleFields.field2))
       }
     }
     "decode a record with a boolean field" in {
@@ -35,15 +36,16 @@ class SimpleRecordSpec extends UnitSpecBase {
 
     "decode a record with a boolean field with a reader schema" in {
       forAll { recordWithMultipleFields: RecordWithMultipleFields =>
-        val writerSchema          = AvroSchema.toSchema[RecordWithMultipleFields].data.value
-        implicit val readerSchema = AvroSchema.toSchema[ReaderBooleanRecord]
+        val writerSchema = AvroSchema.toSchema[RecordWithMultipleFields].data.value
+        val decoder      = Decoder[ReaderBooleanRecord]
 
         val record = new GenericData.Record(writerSchema.schema)
         record.put(0, recordWithMultipleFields.field1)
         record.put(1, recordWithMultipleFields.field2)
         record.put(2, recordWithMultipleFields.field3)
 
-        Decoder.decode[ReaderBooleanRecord](record) should beRight(ReaderBooleanRecord(recordWithMultipleFields.field1))
+        Decoder.decode[ReaderBooleanRecord](record, decoder) should beRight(
+          ReaderBooleanRecord(recordWithMultipleFields.field1))
       }
     }
 
@@ -76,6 +78,7 @@ class SimpleRecordSpec extends UnitSpecBase {
       forAll { outer: Outer =>
         implicit val schema = AvroSchema.toSchema[Outer]
         val innerSchema     = AvroSchema.toSchema[Inner].data.value
+        val decoder         = Decoder[Outer]
 
         val outRec = new GenericData.Record(schema.data.value.schema)
         val inRec  = new GenericData.Record(innerSchema.schema)
@@ -88,29 +91,29 @@ class SimpleRecordSpec extends UnitSpecBase {
         outRec.put(1, inRec)
         outRec.put(2, outer.duplicateFieldName)
 
-        Decoder.decode[Outer](outRec) should beRight(outer)
+        Decoder.decode[Outer](outRec, decoder) should beRight(outer)
       }
 
     }
 
     "handle defaults" in {
-      val writerSchema          = AvroSchema.toSchema[WriterRecordWithDefault].data.value
-      implicit val readerSchema = AvroSchema.toSchema[ReaderRecordWithDefault]
+      val writerSchema = AvroSchema.toSchema[WriterRecordWithDefault].data.value
+      val decoder      = Decoder[ReaderRecordWithDefault]
 
       val genericRecord = new GenericData.Record(writerSchema.schema)
 
-      Decoder.decode[ReaderRecordWithDefault](genericRecord) should beRight(ReaderRecordWithDefault())
+      Decoder.decode[ReaderRecordWithDefault](genericRecord, decoder) should beRight(ReaderRecordWithDefault())
     }
 
     "handle nested case class defaults" in {
       forAll { i: Int =>
-        val writerSchema          = AvroSchema.toSchema[WriterRecordWithNestedDefault].data.value
-        implicit val readerSchema = AvroSchema.toSchema[ReaderRecordWithNestedDefault]
+        val writerSchema = AvroSchema.toSchema[WriterRecordWithNestedDefault].data.value
+        val decoder      = Decoder[ReaderRecordWithNestedDefault]
 
         val genericRecord = new GenericData.Record(writerSchema.schema)
         genericRecord.put("field3", i)
 
-        Decoder.decode[ReaderRecordWithNestedDefault](genericRecord) should beRight(
+        Decoder.decode[ReaderRecordWithNestedDefault](genericRecord, decoder) should beRight(
           ReaderRecordWithNestedDefault(field3 = i))
       }
 

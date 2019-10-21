@@ -8,10 +8,10 @@ import unit.utils.UnitSpecBase
 
 object RunRoundTripAssert extends UnitSpecBase {
 
-  def runRoundTrip[A : Arbitrary : Encoder : Decoder](implicit schema: AvroSchema[A]) =
+  def runRoundTrip[A : Arbitrary](implicit encoder: Encoder[A], schema: AvroSchema[A], decoder: Decoder[A]) =
     forAll { record: A =>
-      Encoder.encode(record).flatMap { genericRecord =>
-        Decoder.decode[A](genericRecord)
+      Encoder.encode(record, encoder, schema.data).flatMap { genericRecord =>
+        Decoder.decode[A](genericRecord, decoder)
       } should beRight(record)
     }
 

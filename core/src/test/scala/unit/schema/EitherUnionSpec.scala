@@ -58,4 +58,8 @@ class EitherUnionSpec extends UnitSpecBase {
   case class NestedUnion(cupcat: Either[Boolean, Either[Int, String]])
   case class IllegalDuplicateUnion(cupcat: Either[Boolean, Either[String, String]])
 
+  case class Cupcat(field1: Boolean, field2: Float)
+  case class Rendal(field1: Boolean, field2: String)
+  case class UnionOfRecords(field: Either[Cupcat, Rendal])
+
 }

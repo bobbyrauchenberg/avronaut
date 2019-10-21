@@ -3,7 +3,7 @@ package unit.encoder
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
-import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
+import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import org.apache.avro.{Schema, SchemaBuilder}
 import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
@@ -20,7 +20,8 @@ class OptionUnionSpec extends UnitSpecBase {
 
         genericRecord.put(0, record.field.orNull)
 
-        Encoder.encode[RecordWithUnion](record) should beRight(genericRecord)
+        Encoder.encode[RecordWithUnion](record, recordWithUnionEncoder, recordWithUnionSchema.data) should beRight(
+          genericRecord.asInstanceOf[GenericRecord])
       }
     }
 
@@ -41,8 +42,10 @@ class OptionUnionSpec extends UnitSpecBase {
         recordBuilder.set("field", innerRecord)
 
         Encoder
-          .encode[RecordWithUnionOfCaseclass](RecordWithUnionOfCaseclass(Some(record))) should beRight(
-          recordBuilder.build)
+          .encode[RecordWithUnionOfCaseclass](RecordWithUnionOfCaseclass(Some(record)),
+                                              recordWithUnionOfCaseClassEncoder,
+                                              recordWithUnionOfCaseClassSchema.data) should beRight(
+          recordBuilder.build.asInstanceOf[GenericRecord])
       }
     }
 
@@ -57,7 +60,9 @@ class OptionUnionSpec extends UnitSpecBase {
           case None       => builder.set("field", null)
         }
 
-        Encoder.encode[RecordWithOptionalListCaseClass](r) should beRight(builder.build())
+        Encoder
+          .encode[RecordWithOptionalListCaseClass](r, unionWithListEncoder, unionWithListSchema.data) should beRight(
+          builder.build.asInstanceOf[GenericRecord])
       }
     }
 
@@ -74,10 +79,15 @@ class OptionUnionSpec extends UnitSpecBase {
   case class RecordWithOptionalListCaseClass(field: Option[List[String]])
 
   trait TestContext {
-    implicit val recordWithUnionSchema: AvroSchema[RecordWithUnion] = AvroSchema.toSchema[RecordWithUnion]
-    implicit val recordWithUnionOfCaseClassSchema: AvroSchema[RecordWithUnionOfCaseclass] =
+    implicit val recordWithUnionEncoder = Encoder[RecordWithUnion]
+    implicit val recordWithUnionSchema  = AvroSchema.toSchema[RecordWithUnion]
+
+    implicit val recordWithUnionOfCaseClassEncoder = Encoder[RecordWithUnionOfCaseclass]
+    implicit val recordWithUnionOfCaseClassSchema =
       AvroSchema.toSchema[RecordWithUnionOfCaseclass]
-    implicit val unionWithListSchema: AvroSchema[RecordWithOptionalListCaseClass] =
+
+    implicit val unionWithListEncoder = Encoder[RecordWithOptionalListCaseClass]
+    implicit val unionWithListSchema =
       AvroSchema.toSchema[RecordWithOptionalListCaseClass]
   }
 }

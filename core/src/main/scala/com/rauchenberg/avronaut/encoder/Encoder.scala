@@ -1,23 +1,28 @@
 package com.rauchenberg.avronaut.encoder
 
 import java.time.{Instant, OffsetDateTime}
+import java.util
 import java.util.UUID
 
-import cats.data.Reader
-import cats.implicits._
-import com.rauchenberg.avronaut.common.Avro._
-import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
-import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
+import com.rauchenberg.avronaut.common.{Error, Result}
+import com.rauchenberg.avronaut.schema.SchemaData
 import magnolia.{CaseClass, Magnolia, SealedTrait}
-import org.apache.avro.generic.GenericData
+import org.apache.avro.generic.{GenericData, GenericRecord}
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
+import scala.reflect.runtime.universe._
 
 trait Encoder[A] {
 
-  def apply(value: A): Reader[SchemaData, Result[Avro]]
+  type Ret
+
+  def isRecord: Boolean = false
+
+  def apply(value: A, schemaData: SchemaData, failFast: Boolean): Ret
 
 }
 
@@ -27,113 +32,237 @@ object Encoder {
 
   type Typeclass[A] = Encoder[A]
 
-  implicit def gen[A]: Typeclass[A] = macro Magnolia.gen[A]
+  implicit def gen[A]: Encoder[A] = macro Magnolia.gen[A]
 
-  def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericData.Record] =
-    for {
-      schemaData <- schema.data
-      encoded    <- encoder.apply(a)(schemaData)
-      genRec <- encoded match {
-                 case AvroRecord(schema, values) =>
-                   Parser(new GenericData.Record(schemaData.schema)).parse(AvroRoot(schema, values))
-                 case _ => Error(s"Can only encode records, got $encoded").asLeft
-               }
-    } yield genRec
+  def encode[A](a: A, encoder: Encoder[A], schemaData: Result[SchemaData]): Either[Error, GenericRecord] =
+    schemaData.flatMap { schema =>
+      val res = encoder.apply(a, schema, true)
+      res match {
+        case Right(gr: GenericData.Record) => Right(gr)
+        case _                             => Left(Error("should have got a GenericData.Record from encoder"))
+      }
+    }
 
-  def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] =
-    new Typeclass[A] {
+  def encodeAccumulating = ???
+
+  def combine[A](ctx: CaseClass[Typeclass, A]): Encoder[A] =
+    new Encoder[A] {
+
+      override def isRecord = true
 
       val annotations       = getAnnotations(ctx.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
-      override def apply(value: A): Reader[SchemaData, Result[Avro]] =
-        Reader[SchemaData, Result[Avro]] { schemaData =>
-          schemaData.schemaMap.get(s"$namespace.$name") match {
-            case None => Error(s"found no schema for type $namespace.$name").asLeft
-            case Some(schema) =>
-              val record = AvroRecord(schema, _)
-              schema.getFields.asScala.toList.traverse { field =>
-                ctx.parameters.toList
-                  .find(_.label == field.name)
-                  .map(_.asRight)
-                  .getOrElse(Error(s"couldn't find param for schema field ${field.name}").asLeft)
-                  .flatMap { param =>
-                    param.typeclass.apply(param.dereference(value)).apply(schemaData)
+      type Ret = Either[List[Error], GenericRecord]
+      val DOT        = "."
+      val recordName = namespace.concat(DOT).concat(name)
+
+      override def apply(value: A, sd: SchemaData, failFast: Boolean): Either[List[Error], GenericRecord] =
+        sd.schemaMap.get(recordName) match {
+          case None => Left(List(Error(s"couldn't find a schema field for " + recordName)))
+          case Some(schema) =>
+            val gr        = new GenericData.Record(schema)
+            var cnt       = 0
+            val fields    = schema.getFields.asScala.map(_.name)
+            var hasErrors = false
+            val errors    = ListBuffer[Error]()
+            if (!failFast) {
+              ctx.parameters.foreach { param =>
+                if (fields.contains(param.label)) {
+                  fields -= (param.label)
+                  fields.length
+                  val paramValue = param.dereference(value)
+                  try {
+                    param.typeclass.apply(param.dereference(value), sd, failFast) match {
+                      case Left(v)  => gr.put(cnt, v)
+                      case Right(v) => gr.put(cnt, v)
+                      case Error(_) => ()
+                      case other    => gr.put(cnt, other)
+                    }
+                  } catch {
+                    case scala.util.control.NonFatal(_) =>
+                      errors += Error("Encoding failed for param:" + param.label + " with value:" + paramValue)
+                      hasErrors = true
                   }
-              }.map(record)
-          }
+                  cnt = cnt + 1
+                }
+              }
+            } else {
+              val it = ctx.parameters.iterator
+              while (it.hasNext && !hasErrors) {
+                val param = it.next
+                if (fields.contains(param.label)) {
+                  fields -= (param.label)
+                  fields.length
+                  val paramValue = param.dereference(value)
+                  try {
+                    param.typeclass.apply(param.dereference(value), sd, failFast) match {
+                      case Left(v)  => gr.put(cnt, v)
+                      case Right(v) => gr.put(cnt, v)
+                      case Error(_) => ()
+                      case other    => gr.put(cnt, other)
+                    }
+                  } catch {
+                    case scala.util.control.NonFatal(_) =>
+                      errors += Error("Encoding failed for param:" + param.label + " with value:" + paramValue)
+                      hasErrors = true
+                  }
+                  cnt = cnt + 1
+                }
+              }
+            }
+            if (hasErrors) {
+              Left(errors.toList)
+            } else Right(gr)
+
         }
     }
 
-  def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Encoder[A] {
-    override def apply(value: A): Reader[SchemaData, Result[Avro]] = {
-      if (ctx.subtypes.isEmpty) true else false //just here to keep compiler flags happy until i use this
-      val res: Result[Avro] = toAvroEnum(value.toString)
-      res.liftR
-    }
+  def dispatch[A : WeakTypeTag](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Encoder[A] {
+    override type Ret = Any
+    import com.rauchenberg.avronaut.common.ReflectionHelpers._
+
+    override def apply(value: A, schemaData: SchemaData, failFast: Boolean): Ret =
+      ctx.dispatch(value) { subtype =>
+        if (isEnum) value.toString
+        else {
+          value match {
+            case p: Product if p.productArity == 0 => p.toString
+            case _                                 => subtype.typeclass(value.asInstanceOf[subtype.SType], schemaData, failFast)
+          }
+        }
+      }
   }
 
-  implicit val stringEncoder: Encoder[String] = (value: String) => toAvroString(value).liftR
+  implicit val stringEncoder: Encoder[String] = new Encoder[String] {
+    type Ret = String
+    override def apply(value: String, schemaData: SchemaData, failFast: Boolean): String = value
+  }
 
-  implicit val booleanEncoder: Encoder[Boolean] = (value: Boolean) => toAvroBoolean(value).liftR
+  implicit val boolEncoder: Encoder[Boolean] = new Encoder[Boolean] {
+    type Ret = Boolean
+    override def apply(value: Boolean, schemaData: SchemaData, failFast: Boolean): Boolean = value
+  }
 
-  implicit val intEncoder: Encoder[Int] = (value: Int) => toAvroInt(value).liftR
+  implicit val intEncoder: Encoder[Int] = new Encoder[Int] {
+    type Ret = Int
+    override def apply(value: Int, schemaData: SchemaData, failFast: Boolean): Int = java.lang.Integer.valueOf(value)
+  }
 
-  implicit val longEncoder: Encoder[Long] = (value: Long) => toAvroLong(value).liftR
+  implicit val floatEncoder: Encoder[Float] = new Encoder[Float] {
+    type Ret = Float
+    override def apply(value: Float, schemaData: SchemaData, failFast: Boolean): Float = value
+  }
 
-  implicit val floatEncoder: Encoder[Float] = (value: Float) => toAvroFloat(value).liftR
+  implicit val doubleEncoder: Encoder[Double] = new Encoder[Double] {
+    type Ret = Double
+    override def apply(value: Double, schemaData: SchemaData, failFast: Boolean): Double = value
+  }
 
-  implicit val doubleEncoder: Encoder[Double] = (value: Double) => toAvroDouble(value).liftR
+  implicit val longEncoder: Encoder[Long] = new Encoder[Long] {
+    type Ret = Long
+    override def apply(value: Long, schemaData: SchemaData, failFast: Boolean): Long = value
+  }
 
-  implicit val bytesEncoder: Encoder[Array[Byte]] = (value: Array[Byte]) => toAvroBytes(value).liftR
+  implicit val bytesEncoder: Encoder[Array[Byte]] = new Encoder[Array[Byte]] {
+    override type Ret = Array[Byte]
 
-  implicit def listEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[List[A]] =
-    (value: List[A]) => value.traverse(elementEncoder.apply(_)).map(_.sequence.map(AvroArray(_)))
+    override def apply(value: Array[Byte], schemaData: SchemaData, failFast: Boolean): Array[Byte] = value
+  }
 
-  implicit def optionEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[Option[A]] =
-    (value: Option[A]) =>
-      Reader { sd =>
-        value.fold[Result[Avro]](toAvroNull(null))(v => elementEncoder.apply(v).apply(sd)).map(AvroUnion(_))
+  implicit def mapEncoder[A](implicit aEncoder: Encoder[A]): Encoder[Map[String, A]] =
+    new Encoder[Map[String, A]] {
+      override type Ret = java.util.Map[String, Any]
+      override def apply(value: Map[String, A], schemaData: SchemaData, failFast: Boolean): Ret = {
+        val it = value.iterator
+        val hm = new java.util.HashMap[String, Any](value.size)
+        if (aEncoder.isRecord) {
+          while (it.hasNext) {
+            val (k, v) = it.next
+            hm.put(k, (aEncoder(v, schemaData, failFast) match { case Right(v) => v }))
+          }
+          hm
+        } else {
+          while (it.hasNext) {
+            val (k, v) = it.next
+            hm.put(k, (aEncoder(v, schemaData, failFast)))
+          }
+          hm
+        }
+      }
+
     }
 
-  implicit def mapEncoder[A](implicit elementEncoder: Encoder[A]): Encoder[Map[String, A]] =
-    (value: Map[String, A]) =>
-      Reader { sd =>
-        value.toList.traverse {
-          case (k, v) =>
-            elementEncoder.apply(v)(sd).map((k -> _))
-        }.map(AvroMap(_))
+  implicit def listEncoder[A : ClassTag](implicit aEncoder: Encoder[A]): Encoder[List[A]] = new Encoder[List[A]] {
+
+    type Ret = java.util.List[Any]
+
+    override def apply(value: List[A], schemaData: SchemaData, failFast: Boolean): Ret = {
+      val arr = new util.ArrayList[Any](value.size)
+      val it  = value.iterator
+      if (aEncoder.isRecord) {
+        while (it.hasNext) {
+          arr.add(aEncoder(it.next, schemaData, failFast) match {
+            case Right(v) => v
+          })
+        }
+      } else {
+        while (it.hasNext) {
+          arr.add(aEncoder(it.next, schemaData, failFast))
+        }
+      }
+      arr
     }
 
-  implicit def eitherEncoder[A, B](implicit lEncoder: Encoder[A], rEncoder: Encoder[B]): Encoder[Either[A, B]] =
-    (value: Either[A, B]) => value.fold(lEncoder.apply, rEncoder.apply)
+  }
 
-  implicit def cnilEncoder: Encoder[CNil] =
-    _ => Error("encoding CNil should never happen").asLeft[Avro].liftR
+  implicit def optionEncoder[A](implicit aEncoder: Encoder[A]): Encoder[Option[A]] = new Encoder[Option[A]] {
 
-  implicit def coproductEncoder[H, T <: Coproduct](implicit hEncoder: Encoder[H],
-                                                   tEncoder: Encoder[T]): Encoder[H :+: T] =
-    (value: H :+: T) =>
+    type Ret = Any
+
+    override def apply(value: Option[A], schemaData: SchemaData, failFast: Boolean): Ret =
+      value.fold[Any](null)(v => aEncoder(v, schemaData, failFast))
+  }
+
+  implicit def eitherEncoder[A, B](implicit aEncoder: Encoder[A], bEncoder: Encoder[B]) =
+    new Encoder[Either[A, B]] {
+      override type Ret = Any
+
+      override def apply(value: Either[A, B], schemaData: SchemaData, failFast: Boolean): Ret =
+        value.fold(aEncoder(_, schemaData, failFast), bEncoder(_, schemaData, failFast))
+    }
+
+  implicit val cnilEncoder: Encoder[CNil] = new Encoder[CNil] {
+    override type Ret = Error
+
+    override def apply(value: CNil, schemaData: SchemaData, failFast: Boolean): Error = Error("should never get a CNil")
+  }
+
+  implicit def coproductEncoder[A, B <: Coproduct](implicit aEncoder: Encoder[A],
+                                                   bEncoder: Encoder[B]): Encoder[A :+: B] = new Encoder[A :+: B] {
+    override type Ret = Any
+
+    override def apply(value: A :+: B, schemaData: SchemaData, failFast: Boolean): Ret =
       value match {
-        case Inl(h) => hEncoder(h)
-        case Inr(v) => tEncoder(v)
-    }
-
-  implicit val uuidEncoder: Encoder[UUID] = (value: UUID) => {
-    val avroUUID: Result[Avro] = uuidToAvroLogical(value)
-    avroUUID.liftR
+        case Inl(a) => aEncoder(a, schemaData, failFast)
+        case Inr(b) => bEncoder(b, schemaData, failFast)
+      }
   }
 
-  implicit val dateTimeEncoder: Encoder[OffsetDateTime] = (value: OffsetDateTime) => {
-    val avroDateTime: Result[Avro] = dateTimeToAvroLogical(value)
-    avroDateTime.liftR
+  implicit val uuidEncoder: Encoder[UUID] = new Encoder[UUID] {
+    override type Ret = String
+    override def apply(value: UUID, schemaData: SchemaData, failFast: Boolean): String = value.toString
   }
 
-  implicit val instantEncoder = new Encoder[Instant] {
-    override def apply(value: Instant): Reader[SchemaData, Result[Avro]] = {
-      val avroInstant: Result[Avro] = instantToAvroLogical(value)
-      avroInstant.liftR
-    }
+  implicit val instantEncoder: Encoder[Instant] = new Encoder[Instant] {
+    override type Ret = Long
+    override def apply(value: Instant, schemaData: SchemaData, failFast: Boolean): Long = value.toEpochMilli
+  }
+
+  implicit val dateTimeEncoder: Encoder[OffsetDateTime] = new Encoder[OffsetDateTime] {
+    override type Ret = Long
+    override def apply(value: OffsetDateTime, schemaData: SchemaData, failFast: Boolean): Long =
+      value.toInstant.toEpochMilli
   }
 
 }

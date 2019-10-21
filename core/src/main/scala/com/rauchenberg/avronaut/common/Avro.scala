@@ -6,23 +6,60 @@ import java.util.UUID
 import cats.syntax.either._
 import org.apache.avro.Schema
 
-sealed trait Avro
-final case object AvroNull                                     extends Avro
-final case class AvroInt(value: Int)                           extends Avro
-final case class AvroFloat(value: Float)                       extends Avro
-final case class AvroDouble(value: Double)                     extends Avro
-final case class AvroLong(value: Long)                         extends Avro
-final case class AvroBoolean(value: Boolean)                   extends Avro
-final case class AvroString(value: String)                     extends Avro
-final case class AvroEnum[A](value: A)                         extends Avro
-final case class AvroUnion(value: Avro)                        extends Avro
-final case class AvroArray(value: List[Avro])                  extends Avro
-final case class AvroMap(value: List[(String, Avro)])          extends Avro
-final case class AvroBytes(value: Array[Byte])                 extends Avro
-final case class AvroLogical(value: Avro)                      extends Avro
-final case class AvroRecord(schema: Schema, value: List[Avro]) extends Avro
-final case class AvroRoot(schema: Schema, value: List[Avro])   extends Avro
-final case object AvroDecode                                   extends Avro
+sealed trait Avro {
+  type Ret
+  val value: Ret
+}
+final case object AvroNull extends Avro {
+  type Ret = Null
+  override val value: Ret = null
+}
+final case class AvroInt(value: Int) extends Avro {
+  type Ret = Int
+}
+final case class AvroFloat(value: Float) extends Avro {
+  type Ret = Float
+}
+final case class AvroDouble(value: Double) extends Avro {
+  type Ret = Double
+}
+final case class AvroLong(value: Long) extends Avro {
+  type Ret = Long
+}
+final case class AvroBoolean(value: Boolean) extends Avro {
+  type Ret = Boolean
+}
+final case class AvroString(value: String) extends Avro {
+  type Ret = String
+}
+final case class AvroEnum[A](value: A) extends Avro {
+  type Ret = A
+}
+final case class AvroUnion(value: Avro) extends Avro {
+  type Ret = Avro
+}
+final case class AvroArray(value: List[Avro]) extends Avro {
+  type Ret = List[Avro]
+}
+final case class AvroMap(value: List[(String, Avro)]) extends Avro {
+  type Ret = List[(String, Avro)]
+}
+final case class AvroBytes(value: Array[Byte]) extends Avro {
+  type Ret = Array[Byte]
+}
+final case class AvroLogical(value: Avro) extends Avro {
+  type Ret = Avro
+}
+final case class AvroRecord(schema: Schema, value: List[Avro]) extends Avro {
+  type Ret = List[Avro]
+}
+final case class AvroRoot(schema: Schema, value: List[Avro]) extends Avro {
+  type Ret = List[Avro]
+}
+final case object AvroDecode extends Avro {
+  type Ret = String
+  override val value = ""
+}
 
 object Avro {
 

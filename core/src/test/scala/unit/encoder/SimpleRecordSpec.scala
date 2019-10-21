@@ -21,7 +21,11 @@ class SimpleRecordSpec extends UnitSpecBase {
         expected.put("long", record.long)
         expected.put("bytes", record.bytes)
 
-        Encoder.encode[TestRecord](record) should beRight(expected.asInstanceOf[GenericRecord])
+        Encoder.encode[TestRecord](
+          record,
+          testRecordEncoder,
+          testRecordSchema.data
+        ) should beRight(expected.asInstanceOf[GenericRecord])
       }
     }
 
@@ -36,7 +40,11 @@ class SimpleRecordSpec extends UnitSpecBase {
         expected.put(1, record.boolean)
         expected.put(2, innerRecord)
 
-        Encoder.encode[NestedRecord](record) should beRight(expected.asInstanceOf[GenericRecord])
+        Encoder.encode[NestedRecord](
+          record,
+          nestedRecordEncoder,
+          nestedRecordSchema.data
+        ) should beRight(expected.asInstanceOf[GenericRecord])
       }
     }
 
@@ -47,8 +55,11 @@ class SimpleRecordSpec extends UnitSpecBase {
   }
 
   trait TestContext {
-    implicit val testRecordSchema: AvroSchema[TestRecord]     = AvroSchema.toSchema[TestRecord]
-    implicit val nestedRecordSchema: AvroSchema[NestedRecord] = AvroSchema.toSchema[NestedRecord]
+    implicit val testRecordEncoder = Encoder[TestRecord]
+    implicit val testRecordSchema  = AvroSchema.toSchema[TestRecord]
+
+    implicit val nestedRecordEncoder = Encoder[NestedRecord]
+    implicit val nestedRecordSchema  = AvroSchema.toSchema[NestedRecord]
   }
 
   case class TestRecord(string: String,

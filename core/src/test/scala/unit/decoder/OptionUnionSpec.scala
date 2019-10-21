@@ -25,6 +25,7 @@ class OptionUnionSpec extends UnitSpecBase {
         val writerSchema = AvroSchema.toSchema[SimpleRecord].data.value
 
         implicit val outerSchema = AvroSchema.toSchema[UnionRecord]
+        val decoder              = Decoder[UnionRecord]
 
         val unionSchema = Schema.createUnion(List(SchemaBuilder.builder.nullType, writerSchema.schema): _*)
 
@@ -39,7 +40,7 @@ class OptionUnionSpec extends UnitSpecBase {
 
         recordBuilder.set("field", innerRecord)
 
-        Decoder.decode[UnionRecord](recordBuilder.build) should beRight(
+        Decoder.decode[UnionRecord](recordBuilder.build, decoder) should beRight(
           UnionRecord(Some(SimpleRecord(record.cup, record.cat))))
       }
 
@@ -47,32 +48,36 @@ class OptionUnionSpec extends UnitSpecBase {
 
     "decode a union to None when the record value is null" in {
       implicit val unionSchema = AvroSchema.toSchema[Union]
+      val decoder              = Decoder[Union]
 
       val record = new GenericData.Record(unionSchema.data.value.schema)
       record.put("field", null)
 
-      Decoder.decode[Union](record) should beRight(Union(None))
+      Decoder.decode[Union](record, decoder) should beRight(Union(None))
     }
 
     "decode a union with a default" in new TestContext {
-      implicit val schema = AvroSchema.toSchema[UnionWithDefault]
-      assertHasDefault[UnionWithDefault](UnionWithDefault())
+      val schema  = AvroSchema.toSchema[UnionWithDefault]
+      val decoder = Decoder[UnionWithDefault]
+      assertHasDefault[UnionWithDefault](UnionWithDefault(), schema, decoder)
     }
 
     "decode an option with a record default" in new TestContext {
-      implicit val schema = AvroSchema.toSchema[UnionWithCaseClassDefault]
-      assertHasDefault[UnionWithCaseClassDefault](UnionWithCaseClassDefault())
+      val schema  = AvroSchema.toSchema[UnionWithCaseClassDefault]
+      val decoder = Decoder[UnionWithCaseClassDefault]
+      assertHasDefault[UnionWithCaseClassDefault](UnionWithCaseClassDefault(), schema, decoder)
     }
 
     "decode an union with null as default" in new TestContext {
       implicit val schema = AvroSchema.toSchema[UnionWithNoneAsDefault]
-      assertHasDefault[UnionWithNoneAsDefault](UnionWithNoneAsDefault(None))
+      val decoder         = Decoder[UnionWithNoneAsDefault]
+      assertHasDefault[UnionWithNoneAsDefault](UnionWithNoneAsDefault(None), schema, decoder)
     }
 
     "decode a union with a list of records" in {
       forAll { writerRecord: Option[List[String]] =>
-        val writerSchema          = AvroSchema.toSchema[RecordWithOptionalListCaseClass].data.value
-        implicit val readerSchema = AvroSchema.toSchema[RecordWithOptionalListCaseClass]
+        val writerSchema = AvroSchema.toSchema[RecordWithOptionalListCaseClass].data.value
+        val decoder      = Decoder[RecordWithOptionalListCaseClass]
 
         val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema.schema))
 
@@ -83,7 +88,7 @@ class OptionUnionSpec extends UnitSpecBase {
           case None       => builder.set("field", null)
         }
 
-        Decoder.decode[RecordWithOptionalListCaseClass](builder.build) should beRight(r)
+        Decoder.decode[RecordWithOptionalListCaseClass](builder.build, decoder) should beRight(r)
       }
     }
 
@@ -91,8 +96,8 @@ class OptionUnionSpec extends UnitSpecBase {
 
     "decode a union of null and enum" in {
       forAll { writerRecord: WriterRecordWithEnum =>
-        val writerSchema          = AvroSchema.toSchema[WriterRecordWithEnum].data.value
-        implicit val readerSchema = AvroSchema.toSchema[ReaderRecordWithEnum]
+        val writerSchema = AvroSchema.toSchema[WriterRecordWithEnum].data.value
+        val decoder      = Decoder[ReaderRecordWithEnum]
 
         val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema.schema))
 
@@ -105,17 +110,17 @@ class OptionUnionSpec extends UnitSpecBase {
 
         val expected = ReaderRecordWithEnum(writerRecord.field2, writerRecord.field1)
 
-        Decoder.decode[ReaderRecordWithEnum](builder.build) should beRight(expected)
+        Decoder.decode[ReaderRecordWithEnum](builder.build, decoder) should beRight(expected)
       }
     }
 
     trait TestContext {
-      def assertHasDefault[B : Decoder](expected: B)(implicit schema: AvroSchema[B]) = {
+      def assertHasDefault[B](expected: B, schema: AvroSchema[B], decoder: Decoder[B]) = {
 
         val record = new GenericData.Record(schema.data.value.schema)
         record.put("field", "value i don't recognise")
 
-        Decoder.decode[B](record) should beRight(expected)
+        Decoder.decode[B](record, decoder) should beRight(expected)
       }
 
     }
