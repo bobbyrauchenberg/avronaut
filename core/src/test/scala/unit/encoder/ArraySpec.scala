@@ -4,8 +4,8 @@ import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
-import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
+import RunRoundTripAssert._
 
 import scala.collection.JavaConverters._
 
@@ -15,17 +15,21 @@ class ArraySpec extends UnitSpecBase {
 
     "encode a record with a list of primitives" in {
       implicit val writerSchema = AvroSchema.toSchema[TestRecord]
+      implicit val encoder      = Encoder[TestRecord]
+
       forAll { record: TestRecord =>
         val expected = new GenericRecordBuilder(new GenericData.Record(writerSchema.data.value.schema))
         expected.set("field", record.field.asJava)
 
-        Encoder.encode[TestRecord](record) should beRight(expected.build.asInstanceOf[GenericRecord])
+        Encoder.encode[TestRecord](record)(encoder, writerSchema) should beRight(
+          expected.build.asInstanceOf[GenericRecord])
       }
     }
 
     "encode a record with a list of caseclass" in {
 
       implicit val writerSchema = AvroSchema.toSchema[RecordWithListOfCaseClass]
+      implicit val encoder      = Encoder[RecordWithListOfCaseClass]
 
       forAll { record: RecordWithListOfCaseClass =>
         val outerSchema = AvroSchema.toSchema[Nested].data.value
@@ -49,8 +53,9 @@ class ArraySpec extends UnitSpecBase {
         }.asJava
         recordBuilder.set("field", recordList)
 
-        Encoder.encode[RecordWithListOfCaseClass](record) should beRight(
-          recordBuilder.build.asInstanceOf[GenericRecord])
+        Encoder.encode[RecordWithListOfCaseClass](record)(encoder, writerSchema) should beRight(
+          recordBuilder.build
+            .asInstanceOf[GenericRecord])
       }
     }
 
@@ -77,13 +82,14 @@ class ArraySpec extends UnitSpecBase {
 
     "encode a record with a nested list" in {
       implicit val writerSchema = AvroSchema.toSchema[RecordWithListOfList]
+      implicit val encoder      = Encoder[RecordWithListOfList]
       forAll { record: RecordWithListOfList =>
         val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema.data.value.schema))
 
         val l = record.field.map(_.asJava).asJava
         builder.set("field", l)
 
-        Encoder.encode[RecordWithListOfList](record) should beRight(builder.build())
+        Encoder.encode[RecordWithListOfList](record) should beRight(builder.build().asInstanceOf[GenericRecord])
       }
     }
 
