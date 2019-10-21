@@ -3,6 +3,7 @@ package unit.schema
 import cats.syntax.either._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
+import unit.common._
 
 class EitherUnionSpec extends UnitSpecBase {
 
@@ -57,5 +58,9 @@ class EitherUnionSpec extends UnitSpecBase {
   case class EitherUnionWithRightDefault(cupcat: Either[Boolean, String] = "cupcat".asRight)
   case class NestedUnion(cupcat: Either[Boolean, Either[Int, String]])
   case class IllegalDuplicateUnion(cupcat: Either[Boolean, Either[String, String]])
+
+  case class Cupcat(field1: Boolean, field2: Float)
+  case class Rendal(field1: Boolean, field2: String)
+  case class UnionOfRecords(field: Either[Cupcat, Rendal])
 
 }

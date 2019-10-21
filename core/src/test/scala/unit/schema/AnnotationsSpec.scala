@@ -3,6 +3,7 @@ package unit.schema
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
+import unit.common._
 
 class AnnotationsSpec extends UnitSpecBase {
 
@@ -50,7 +51,7 @@ class AnnotationsSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[AnnotatedEnum]
       val expected =
         """{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
-                       |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat","namespace":"unit.schema.Annotated",
+                       |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat",
                        |"symbols":["AnnotatedCup","AnnotatedCat"]}}]}""".stripMargin.replace("\n", "")
 
       runAssert[AnnotatedEnum](expected)

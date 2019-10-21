@@ -5,24 +5,23 @@ import java.util.UUID
 
 import cats.data.NonEmptyList
 import cats.implicits._
-import com.rauchenberg.avronaut.common
 import com.rauchenberg.avronaut.common.ReflectionHelpers.isEnum
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations._
-import com.rauchenberg.avronaut.common.{Error, Result}
+import com.rauchenberg.avronaut.common.{Error, Results}
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import shapeless.{:+:, CNil, Coproduct}
 
 import scala.reflect.runtime.universe._
 
-protected trait SchemaBuilder[A] {
-  def schema: Result[AvroSchemaADT]
+trait SchemaBuilder[A] {
+  def schema: Results[AvroSchemaADT]
 }
 
-protected object SchemaBuilder {
+object SchemaBuilder {
 
   def apply[A](implicit avroSchema: SchemaBuilder[A]) = avroSchema
 
-  def toSchema[A](implicit avroSchema: SchemaBuilder[A]): Either[common.Error, SchemaData] =
+  def toSchema[A](implicit avroSchema: SchemaBuilder[A]): Results[SchemaData] =
     avroSchema.schema.flatMap(Parser(_).parse)
 
   type Typeclass[A] = SchemaBuilder[A]
@@ -35,7 +34,7 @@ protected object SchemaBuilder {
     val doc               = annotations.doc
     val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
-    override def schema: Result[AvroSchemaADT] =
+    override def schema: Results[AvroSchemaADT] =
       ctx.parameters.toList.traverse { param =>
         val paramAnnotations = getAnnotations(param.annotations)
         val paramName        = paramAnnotations.name(param.label)
@@ -45,7 +44,7 @@ protected object SchemaBuilder {
         (sch, ns) match {
           case (Right(s @ SchemaRecord(_, _, _, _)), Some(ns)) =>
             SchemaNamedField(paramName, paramAnnotations.doc, param.default, s.copy(namespace = ns)).asRight
-          case (Right(s @ SchemaEnum(_, _, _, _)), Some(ns)) =>
+          case (Right(s @ SchemaEnum(_, _, _, _, _)), Some(ns)) =>
             SchemaNamedField(paramName, paramAnnotations.doc, param.default, s.copy(namespace = ns)).asRight
           case (other, _) => other.map(SchemaNamedField(paramName, paramAnnotations.doc, param.default, _))
         }
@@ -55,101 +54,108 @@ protected object SchemaBuilder {
   def dispatch[A : WeakTypeTag](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
     val anno              = getAnnotations(ctx.annotations)
-    val (name, namespace) = getNameAndNamespace(anno, ctx.typeName.short, ctx.typeName.full)
+    val lastDot           = ctx.typeName.full.lastIndexOf(".")
+    val fullName          = ctx.typeName.full.substring(0, lastDot)
+    val (name, namespace) = getNameAndNamespace(anno, ctx.typeName.short, fullName)
 
     val subtypes = ctx.subtypes.toList.toNel
 
-    override def schema: Result[AvroSchemaADT] =
-      subtypes.fold[Result[AvroSchemaADT]](Error("Got an empty list of symbols building Enum or Union").asLeft)(
+    override def schema: Results[AvroSchemaADT] =
+      subtypes.fold[Results[AvroSchemaADT]](List(Error("Got an empty list of symbols building Enum or Union")).asLeft)(
         st =>
           if (isEnum)
-            SchemaEnum(name, namespace, anno.doc, st.map(_.typeName.short)).asRight
-          else
-            st.traverse(_.typeclass.schema).map(SchemaCoproduct(_)))
+            SchemaEnum(name, namespace, anno.doc, st.map(_.typeName.short), st.map(_.typeName.full)).asRight
+          else {
+            st.traverse(_.typeclass.schema).map(SchemaCoproduct(_))
+        })
 
   }
 
   implicit val intSchema = new SchemaBuilder[Int] {
-    override def schema: Result[AvroSchemaADT] = SchemaInt.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaInt.asRight
   }
 
   implicit val longSchema = new SchemaBuilder[Long] {
-    override def schema: Result[AvroSchemaADT] = SchemaLong.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaLong.asRight
   }
 
   implicit val floatSchema = new SchemaBuilder[Float] {
-    override def schema: Result[AvroSchemaADT] = SchemaFloat.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaFloat.asRight
   }
 
   implicit val doubleSchema = new SchemaBuilder[Double] {
-    override def schema: Result[AvroSchemaADT] = SchemaDouble.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaDouble.asRight
   }
 
   implicit val stringSchema = new SchemaBuilder[String] {
-    override def schema: Result[AvroSchemaADT] = SchemaString.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaString.asRight
   }
 
   implicit val booleanSchema = new SchemaBuilder[Boolean] {
-    override def schema: Result[AvroSchemaADT] = SchemaBoolean.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaBoolean.asRight
   }
 
   implicit val bytesSchema = new SchemaBuilder[Array[Byte]] {
-    override def schema: Result[AvroSchemaADT] = SchemaBytes.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaBytes.asRight
   }
 
   implicit val nullSchema = new SchemaBuilder[Null] {
-    override def schema: Result[AvroSchemaADT] = SchemaNull.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaNull.asRight
   }
 
   implicit def listSchema[A](implicit elementSchema: SchemaBuilder[A]) = new SchemaBuilder[List[A]] {
-    override def schema: Result[AvroSchemaADT] = elementSchema.schema.map(SchemaList(_))
+    override def schema: Results[AvroSchemaADT] = elementSchema.schema.map(SchemaList(_))
+  }
+
+  implicit def setSchema[A](implicit elementSchema: SchemaBuilder[A]) = new SchemaBuilder[Set[A]] {
+    override def schema: Results[AvroSchemaADT] = listSchema[A].schema
   }
 
   implicit def seqSchema[A](implicit elementSchema: SchemaBuilder[A]) = new SchemaBuilder[Seq[A]] {
-    override def schema: Result[AvroSchemaADT] = elementSchema.schema.map(SchemaList(_))
+    override def schema: Results[AvroSchemaADT] = elementSchema.schema.map(SchemaList(_))
   }
 
   implicit def vectorSchema[A](implicit elementSchema: SchemaBuilder[A]) = new SchemaBuilder[Vector[A]] {
-    override def schema: Result[AvroSchemaADT] = elementSchema.schema.map(SchemaList(_))
+    override def schema: Results[AvroSchemaADT] = elementSchema.schema.map(SchemaList(_))
   }
 
   implicit def mapSchema[A](implicit elementSchema: SchemaBuilder[A]) = new SchemaBuilder[Map[String, A]] {
-    override def schema: Result[AvroSchemaADT] = elementSchema.schema.map(SchemaMap(_))
+    override def schema: Results[AvroSchemaADT] = elementSchema.schema.map(SchemaMap(_))
   }
 
   implicit def optionSchema[A](implicit elementSchema: SchemaBuilder[A]) = new SchemaBuilder[Option[A]] {
-    override def schema: Result[AvroSchemaADT] =
+    override def schema: Results[AvroSchemaADT] =
       elementSchema.schema.map(SchemaOption(_))
   }
 
   implicit def eitherSchema[A, B](implicit lElementSchema: SchemaBuilder[A], rElementSchema: SchemaBuilder[B]) =
     new SchemaBuilder[Either[A, B]] {
-      override def schema: Result[AvroSchemaADT] = lElementSchema.schema.map2(rElementSchema.schema) {
+      override def schema: Results[AvroSchemaADT] = lElementSchema.schema.map2(rElementSchema.schema) {
         case (r, l) =>
           SchemaCoproduct(NonEmptyList.of(r, l))
       }
     }
 
   implicit def uuidSchema[A] = new Typeclass[UUID] {
-    override def schema: Result[AvroSchemaADT] = SchemaUUID.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaUUID.asRight
   }
 
   implicit def offsetDateTimeSchema[A] = new Typeclass[OffsetDateTime] {
-    override def schema: Result[AvroSchemaADT] = SchemaTimestampMillis.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaTimestampMillis.asRight
   }
 
   implicit def instantDateTimeSchema[A] = new Typeclass[Instant] {
-    override def schema: Result[AvroSchemaADT] = SchemaTimestampMillis.asRight
+    override def schema: Results[AvroSchemaADT] = SchemaTimestampMillis.asRight
   }
 
   implicit def cnilSchema[H](implicit hSchema: SchemaBuilder[H]) = new SchemaBuilder[H :+: CNil] {
-    override def schema: Result[AvroSchemaADT] = hSchema.schema.map(v => SchemaCoproduct(NonEmptyList.of(v)))
+    override def schema: Results[AvroSchemaADT] = hSchema.schema.map(v => SchemaCoproduct(NonEmptyList.of(v)))
 
   }
 
   implicit def coproductSchema[H, T <: Coproduct](implicit hSchema: SchemaBuilder[H], tSchema: SchemaBuilder[T]) =
     new SchemaBuilder[H :+: T] {
-      override def schema: Result[AvroSchemaADT] =
+      override def schema: Results[AvroSchemaADT] =
         hSchema.schema
           .map2(tSchema.schema) {
             case (h, t) =>

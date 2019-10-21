@@ -1,7 +1,7 @@
 package com.rauchenberg.avronaut.schema
 
 import cats.implicits._
-import com.rauchenberg.avronaut.common.{safe, Error, Result}
+import com.rauchenberg.avronaut.common.{safeL, Error, Results}
 import com.rauchenberg.avronaut.schema.AvroSchemaF._
 import com.rauchenberg.avronaut.schema.helpers.SchemaHelper.{moveDefaultToHead, transformDefault}
 import japgolly.microlibs.recursion.Recursion._
@@ -18,25 +18,26 @@ case class Parser(record: AvroSchemaADT) {
 
   val empty = Map.empty[String, Schema]
 
-  def parse: Either[Error, SchemaData] =
-    hyloM[Result, AvroSchemaF, AvroSchemaADT, Either[(Registry, Schema.Field), (Registry, Schema)]](
+  def parse: Either[List[Error], SchemaData] =
+    hyloM[Results, AvroSchemaF, AvroSchemaADT, Either[(Registry, Schema.Field), (Registry, Schema)]](
       toSchemaF,
       toAvroSchema)(record).flatMap {
-      _.leftMap(f => Error(s"expected a Schema, got a field $f"))
+      _.leftMap(f => List(Error(s"expected a Schema, got a field $f")))
     }.map(SchemaData.tupled(_))
 
-  val toSchemaF: FCoalgebraM[Result, AvroSchemaF, AvroSchemaADT] = {
-    case SchemaInt                                   => SchemaIntF.asRight
-    case SchemaLong                                  => SchemaLongF.asRight
-    case SchemaFloat                                 => SchemaFloatF.asRight
-    case SchemaDouble                                => SchemaDoubleF.asRight
-    case SchemaBoolean                               => SchemaBooleanF.asRight
-    case SchemaString                                => SchemaStringF.asRight
-    case SchemaNull                                  => SchemaNullF.asRight
-    case SchemaBytes                                 => SchemaBytesF.asRight
-    case SchemaUUID                                  => SchemaUUIDF.asRight
-    case SchemaTimestampMillis                       => SchemaTimestampMillisF.asRight
-    case SchemaEnum(name, namespace, doc, values)    => SchemaEnumF(name, namespace, doc, values).asRight
+  val toSchemaF: FCoalgebraM[Results, AvroSchemaF, AvroSchemaADT] = {
+    case SchemaInt             => SchemaIntF.asRight
+    case SchemaLong            => SchemaLongF.asRight
+    case SchemaFloat           => SchemaFloatF.asRight
+    case SchemaDouble          => SchemaDoubleF.asRight
+    case SchemaBoolean         => SchemaBooleanF.asRight
+    case SchemaString          => SchemaStringF.asRight
+    case SchemaNull            => SchemaNullF.asRight
+    case SchemaBytes           => SchemaBytesF.asRight
+    case SchemaUUID            => SchemaUUIDF.asRight
+    case SchemaTimestampMillis => SchemaTimestampMillisF.asRight
+    case SchemaEnum(name, namespace, doc, values, fullyQualifiedTypes) =>
+      SchemaEnumF(name, namespace, doc, values, fullyQualifiedTypes).asRight
     case SchemaList(values)                          => SchemaListF(values).asRight
     case SchemaMap(values)                           => SchemaMapF(values).asRight
     case SchemaOption(value)                         => SchemaOptionF(value).asRight
@@ -45,7 +46,7 @@ case class Parser(record: AvroSchemaADT) {
     case SchemaRecord(name, namespace, doc, values)  => SchemaRecordF(name, namespace, doc, values).asRight
   }
 
-  val toAvroSchema: FAlgebraM[Result, AvroSchemaF, Either[(Registry, Schema.Field), (Registry, Schema)]] = {
+  val toAvroSchema: FAlgebraM[Results, AvroSchemaF, Either[(Registry, Schema.Field), (Registry, Schema)]] = {
     case SchemaIntF     => (empty, AvroSchemaBuilder.builder.intType).asRight.asRight
     case SchemaLongF    => (empty, AvroSchemaBuilder.builder.longType).asRight.asRight
     case SchemaDoubleF  => (empty, AvroSchemaBuilder.builder.doubleType).asRight.asRight
@@ -57,26 +58,33 @@ case class Parser(record: AvroSchemaADT) {
     case SchemaUUIDF    => (empty, LogicalTypes.uuid.addToSchema(AvroSchemaBuilder.builder.stringType)).asRight.asRight
     case SchemaTimestampMillisF =>
       (empty, LogicalTypes.timestampMillis.addToSchema(AvroSchemaBuilder.builder.longType)).asRight.asRight
-    case SchemaEnumF(name, namespace, doc, values) =>
-      schemaEnum(name, namespace, doc, values).map(s => (empty -> s).asRight)
+    case SchemaEnumF(name, namespace, doc, values, fullyQualifiedTypes) =>
+      schemaEnum(name, namespace, doc, values).map { s =>
+        val mapNamespace = empty + (namespace -> s)
+        val withSubtypes = fullyQualifiedTypes.foldLeft(mapNamespace) { (acc, st) =>
+          acc + (st -> s)
+        }
+        (withSubtypes -> s).asRight
+      }
     case SchemaListF(value) =>
       value match {
         case Left((_, v))    => error("Array", v).asLeft
-        case Right((reg, v)) => safe(Schema.createArray(v)).map(schema => (reg -> schema).asRight)
+        case Right((reg, v)) => safeL(Schema.createArray(v)).map(schema => (reg -> schema).asRight)
       }
     case SchemaMapF(value) =>
       value match {
         case Left((_, v))    => error("Map", v).asLeft
-        case Right((reg, v)) => safe(Schema.createMap(v)).map(schema => (reg -> schema).asRight)
+        case Right((reg, v)) => safeL(Schema.createMap(v)).map(schema => (reg -> schema).asRight)
       }
     case SchemaOptionF(value) =>
       value match {
         case Left((_, v)) => error("Option", v).asLeft
         case Right((reg, s)) if (s.getType == UNION) =>
-          safe(Schema.createUnion((AvroSchemaBuilder.builder.nullType +: s.getTypes.asScala.toList): _*)).map(s =>
-            (reg -> s).asRight)
+          safeL(
+            Schema.createUnion(((AvroSchemaBuilder.builder.nullType +: s.getTypes.asScala.toList).toSet.toList): _*))
+            .map(s => (reg -> s).asRight)
         case Right((reg, s)) =>
-          safe(Schema.createUnion(List(AvroSchemaBuilder.builder.nullType, s).asJava)).map(s => (reg, s).asRight)
+          safeL(Schema.createUnion(List(AvroSchemaBuilder.builder.nullType, s).asJava)).map(s => (reg, s).asRight)
       }
     case SchemaCoproductF(values) =>
       values.sequence.traverse { values =>
@@ -88,32 +96,40 @@ case class Parser(record: AvroSchemaADT) {
           case (acc, (reg, _)) =>
             acc ++ reg
         }
-        safe(Schema.createUnion(flattenNestedUnions: _*)).map(v => (updateRegistry -> v))
+        safeL(Schema.createUnion(flattenNestedUnions: _*)).map(v => (updateRegistry -> v))
       }
     case SchemaNamedFieldF(name, doc, Some(default), Right((registry, schema))) =>
       fieldWithDefault(name, doc, default, schema).map(v => (registry -> v).asLeft)
     case SchemaNamedFieldF(name, doc, None, Right((registry, schema))) =>
       schemaField(name, schema, doc).map(v => (registry -> v).asLeft)
     case SchemaNamedFieldF(_, _, _, Left((_, field))) =>
-      Error(s"building a Field, expected a Schema, not Schema.Field ${field.schema}").asLeft
-    case SchemaRecordF(name, namespace, doc, values) =>
-      values
-        .map(_.swap)
-        .sequence
-        .map { v =>
-          val schema = Schema.createRecord(name, doc.getOrElse(""), namespace, false, v.map(_._2).asJava)
-          val updated = v.foldLeft(empty) {
-            case (acc, (reg, _)) => acc ++ reg + (s"$namespace.$name" -> schema)
+      List(Error(s"building a Field, expected a Schema, not Schema.Field ${field.schema}")).asLeft
+    case SchemaRecordF(name, namespace, doc, values) => {
+      if (values.isEmpty) {
+        val schema = Schema.createRecord(name, doc.getOrElse(""), namespace, false, Nil.asJava)
+        schema.asRight[(Registry, Schema.Field)].map(v => (Map(s"$namespace.$name" -> schema), v)).asRight
+      } else
+        values
+          .map(_.swap)
+          .sequence
+          .map { v =>
+            val schema = Schema.createRecord(name, doc.getOrElse(""), namespace, false, v.map(_._2).asJava)
+            val updated = v.foldLeft(empty) {
+              case (acc, (reg, _)) => acc ++ reg + (s"$namespace.$name" -> schema)
+            }
+            schema.asRight.map(v => (updated -> v))
           }
-          schema.asRight.map(v => (updated -> v))
-        }
-        .leftMap(e => Error(s"building a Record, got error for Schema $e"))
+          .leftMap(e => List(Error(s"building a Record, got error for Schema $e")))
+    }
   }
 
   private def error(schemaType: String, field: Schema.Field) =
-    Error(s"building $schemaType, expected a Schema got a Schema.Field ${field.schema()}")
+    List(Error(s"building $schemaType, expected a Schema got a Schema.Field ${field.schema()}"))
 
-  private def fieldWithDefault[A](name: String, doc: Option[String], default: A, schema: Schema): Result[Schema.Field] =
+  private def fieldWithDefault[A](name: String,
+                                  doc: Option[String],
+                                  default: A,
+                                  schema: Schema): Results[Schema.Field] =
     (schema.getType match {
       case UNION => moveDefaultToHead(schema, default)
       case _     => schema.asRight

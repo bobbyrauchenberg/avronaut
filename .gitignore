@@ -63,3 +63,5 @@ build/
 .gradle/
 
 activemq-data/
+
+.metals/

@@ -3,6 +3,7 @@ package unit.schema
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
 import unit.schema.SealedTraitUnion._
+import unit.common._
 
 class SealedTraitUnionSpec extends UnitSpecBase {
 

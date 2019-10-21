@@ -2,6 +2,7 @@ package unit.schema
 
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
+import unit.common._
 
 class ArraySpec extends UnitSpecBase {
 

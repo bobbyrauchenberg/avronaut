@@ -3,6 +3,7 @@ package unit.schema
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{Namespace, SchemaMetadata}
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
+import unit.common._
 
 class SimpleRecordSpec extends UnitSpecBase {
 

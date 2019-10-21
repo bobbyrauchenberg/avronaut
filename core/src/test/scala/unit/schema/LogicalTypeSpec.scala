@@ -5,6 +5,7 @@ import java.util.UUID
 
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
+import unit.common._
 
 class LogicalTypeSpec extends UnitSpecBase {
 

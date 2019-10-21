@@ -1,32 +1,36 @@
 package unit.utils
 
 import cats.scalatest.{EitherMatchers, EitherValues}
+import com.rauchenberg.avronaut.Codec
 import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
-import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaBuilder}
-import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
+import com.rauchenberg.avronaut.schema.AvroSchema
+import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import org.scalatest.Matchers
+import Codec._
 
 import scala.collection.JavaConverters._
 
 object RunAssert extends Matchers with EitherMatchers with EitherValues {
 
-  def runDecodeAssert[A, B : Decoder](fieldValue: A, expected: B)(implicit schema: AvroSchema[B]) = {
+  def runDecodeAssert[A, B](fieldValue: A, expected: B)(implicit codec: Codec[B]) = {
 
-    val record = new GenericData.Record(schema.data.value.schema)
+    val schema = Codec.schema[B].value
+    val record = new GenericData.Record(schema)
     record.put("field", fieldValue)
 
-    Decoder.decode[B](record) should beRight(expected)
+    record.decode[B] should beRight(expected)
   }
 
-  def runEncodeAssert[A : Encoder](value: A, expected: GenericData.Record)(implicit schema: AvroSchema[A]) =
-    Encoder.encode(value) should beRight(expected)
+  def runEncodeAssert[A](value: A, expected: GenericRecord)(implicit encoder: Encoder[A]) =
+    Encoder.encode(value, encoder) should beRight(expected)
 
-  def runListAssert[A, B : Decoder : SchemaBuilder](fieldValue: Seq[A], expected: B)(implicit schema: AvroSchema[B]) = {
+  def runListAssert[A, B](fieldValue: Seq[A], expected: B)(implicit
+                                                           codec: Codec[B]) = {
 
-    val recordBuilder = new GenericRecordBuilder(schema.data.value.schema)
+    val schema        = Codec.schema[B].value
+    val recordBuilder = new GenericRecordBuilder(schema)
     recordBuilder.set("field", fieldValue.asJava)
-
-    Decoder.decode[B](recordBuilder.build) should beRight(expected)
+    recordBuilder.build.decode[B] should beRight(expected)
   }
 }
