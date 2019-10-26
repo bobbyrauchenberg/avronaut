@@ -107,6 +107,45 @@ class ArraySpec extends UnitSpecBase {
       }
     }
 
+    "encode a record with a list of either" in {
+      implicit val writerSchema = AvroSchema.toSchema[RecordWithListOfEither]
+      implicit val encoder      = Encoder[RecordWithListOfEither]
+      forAll { record: RecordWithListOfEither =>
+        val builder = new GenericRecordBuilder(writerSchema.data.value.schema)
+
+        val values = record.field.map { value =>
+          value match {
+            case Left(v)  => v
+            case Right(v) => v
+          }
+        }.asJava
+
+        builder.set("field", values)
+
+        val result = Encoder.encode[RecordWithListOfEither](record)
+
+        result should beRight(builder.build().asInstanceOf[GenericRecord])
+
+      }
+    }
+
+//    "encode a record with deeply nested unions" in {
+//      implicit val schema  = AvroSchema.toSchema[RecordWithNestedUnions]
+//      implicit val encoder = Encoder[RecordWithNestedUnions]
+//
+//      forAll { record: RecordWithNestedUnions =>
+//        val field = record.field.map(_.flatten.flatten).flatten.asJava
+//
+//        val recordBuilder = new GenericRecordBuilder(schema.data.value.schema)
+//        recordBuilder.set("field", field)
+//
+//        println("encoded : " + Encoder.encode(record))
+//
+//        Encoder.encode(record) should beRight(recordBuilder.build().asInstanceOf[GenericRecord])
+//      }
+//
+//    }
+
     "do a roundtrip encode and decode" in {
       implicit val testRecordSchema                = AvroSchema.toSchema[TestRecord]
       implicit val recordWithListOfCaseClassSchema = AvroSchema.toSchema[RecordWithListOfCaseClass]
@@ -129,5 +168,7 @@ class ArraySpec extends UnitSpecBase {
   case class RecordWithOptionalListCaseClass(field: Option[List[String]])
   case class RecordWithListOfList(field: List[List[Int]])
   case class RecordWithManyListsOfList(field: List[List[List[List[List[Int]]]]])
+  case class RecordWithListOfEither(field: List[Either[String, Int]])
+  case class RecordWithNestedUnions(field: List[Option[Option[Option[Int]]]])
 
 }

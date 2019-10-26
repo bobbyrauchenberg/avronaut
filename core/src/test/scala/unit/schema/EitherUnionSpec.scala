@@ -50,6 +50,12 @@ class EitherUnionSpec extends UnitSpecBase {
       schemaAsString[NestedUnion] shouldBe expected
     }
 
+    "encode a union of records" in {
+      implicit val schema = AvroSchema.toSchema[UnionOfRecords]
+
+      println(schemaAsString[UnionOfRecords])
+    }
+
   }
 
   case class EitherUnion(cupcat: Either[Boolean, String])
@@ -57,5 +63,9 @@ class EitherUnionSpec extends UnitSpecBase {
   case class EitherUnionWithRightDefault(cupcat: Either[Boolean, String] = "cupcat".asRight)
   case class NestedUnion(cupcat: Either[Boolean, Either[Int, String]])
   case class IllegalDuplicateUnion(cupcat: Either[Boolean, Either[String, String]])
+
+  case class Cupcat(field1: Boolean, field2: Float)
+  case class Rendal(field1: Boolean, field2: String)
+  case class UnionOfRecords(field: Either[Cupcat, Rendal])
 
 }

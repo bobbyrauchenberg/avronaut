@@ -73,8 +73,8 @@ case class Parser(record: AvroSchemaADT) {
       value match {
         case Left((_, v)) => error("Option", v).asLeft
         case Right((reg, s)) if (s.getType == UNION) =>
-          safe(Schema.createUnion((AvroSchemaBuilder.builder.nullType +: s.getTypes.asScala.toList): _*)).map(s =>
-            (reg -> s).asRight)
+          safe(Schema.createUnion(((AvroSchemaBuilder.builder.nullType +: s.getTypes.asScala.toList).toSet.toList): _*))
+            .map(s => (reg -> s).asRight)
         case Right((reg, s)) =>
           safe(Schema.createUnion(List(AvroSchemaBuilder.builder.nullType, s).asJava)).map(s => (reg, s).asRight)
       }

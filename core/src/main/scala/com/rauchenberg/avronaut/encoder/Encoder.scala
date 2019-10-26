@@ -4,10 +4,10 @@ import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
 
 import cats.implicits._
-import com.rauchenberg.avronaut.common.{Error, Result}
+import com.rauchenberg.avronaut.common.Error
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
 import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
-import magnolia.{CaseClass, Magnolia}
+import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr}
 
@@ -30,17 +30,16 @@ object Encoder {
 
   implicit def gen[A]: Encoder[A] = macro Magnolia.gen[A]
 
-  def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericRecord] = {
-    println("a : " + a)
+  def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericRecord] =
     schema.data.flatMap { schema =>
       val res = encoder.apply(a, schema)
-      println("res : " + res)
       res match {
-        case Right(gr: GenericData.Record) => gr.asInstanceOf[GenericRecord].asRight[Error]
-        case _                             => Error("should have got a GenericData.Record from encoder").asLeft
+        case gr: GenericData.Record =>
+          println("got back out after encoding")
+          gr.asRight[Error]
+        case _ => Error("should have got a GenericData.Record from encoder").asLeft
       }
     }
-  }
 
   def combine[A](ctx: CaseClass[Typeclass, A]): Encoder[A] =
     new Encoder[A] {
@@ -48,31 +47,42 @@ object Encoder {
       val annotations       = getAnnotations(ctx.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
-      type Ret = Result[GenericRecord]
+      type Ret = GenericRecord
 
-      override def apply(value: A, sd: SchemaData): Result[GenericRecord] =
+      override def apply(value: A, sd: SchemaData): GenericRecord =
         sd.schemaMap.get(s"$namespace.$name") match {
           case None => throw new RuntimeException("fuck")
           case Some(schema) =>
             val gr = new GenericData.Record(schema)
-            schema.getFields.asScala.toList.zipWithIndex.traverse {
+            println("a")
+            schema.getFields.asScala.toList.zipWithIndex.foreach {
               case (field, i) =>
                 ctx.parameters.toList
                   .find(_.label == field.name)
                   .map { param =>
+                    println("b")
                     val paramValue = param.dereference(value)
                     param.typeclass.apply(paramValue, sd) match {
-                      case Left(v)      => gr.put(i, v).asRight[Error]
-                      case Right(v)     => gr.put(i, v).asRight[Error]
-                      case e @ Error(_) => e.asLeft[Unit]
-                      case other        => gr.put(i, other).asRight[Error]
+                      case Left(v)  => gr.put(i, v)
+                      case Right(v) => gr.put(i, v)
+                      case Error(_) => ()
+                      case other    => gr.put(i, other)
                     }
                   }
-                  .getOrElse(Error("couldn't find the typeclass for param matching : " + s"$namespace.$name").asLeft)
-            }.map(_ => gr)
+                  .getOrElse(())
+            }
+            println(gr)
+            gr
         }
-
     }
+
+  def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Encoder[A] {
+    println(ctx)
+    override type Ret = String
+
+    override def apply(value: A, schemaData: SchemaData): String =
+      value.toString
+  }
 
   implicit val stringEncoder: Encoder[String] = new Encoder[String] {
     type Ret = String
@@ -117,29 +127,28 @@ object Encoder {
 
     type Ret = java.util.List[aEncoder.Ret]
 
-    override def apply(value: List[A], schemaData: SchemaData): Ret =
+    override def apply(value: List[A], schemaData: SchemaData): Ret = {
+      println("value : " + value.asJava)
       value.map { v =>
         aEncoder(v, schemaData)
       }.asJava
+    }
   }
 
   implicit def optionEncoder[A](implicit aEncoder: Encoder[A]): Encoder[Option[A]] = new Encoder[Option[A]] {
 
-    type Ret = Either[Null, aEncoder.Ret]
+    type Ret = Any
 
     override def apply(value: Option[A], schemaData: SchemaData): Ret =
-      value match {
-        case None    => Left(null)
-        case Some(v) => aEncoder(v, schemaData).asRight
-      }
+      value.fold[Any](null)(v => aEncoder(v, schemaData))
   }
 
   implicit def eitherEncoder[A, B](implicit aEncoder: Encoder[A], bEncoder: Encoder[B]) =
     new Encoder[Either[A, B]] {
-      override type Ret = Either[aEncoder.Ret, bEncoder.Ret]
+      override type Ret = Any
 
       override def apply(value: Either[A, B], schemaData: SchemaData): Ret =
-        value.fold(aEncoder(_, schemaData).asLeft, bEncoder(_, schemaData).asRight)
+        value.fold(aEncoder(_, schemaData), bEncoder(_, schemaData))
     }
 
   implicit val cnilEncoder: Encoder[CNil] = new Encoder[CNil] {
@@ -150,12 +159,12 @@ object Encoder {
 
   implicit def coproductEncoder[A, B <: Coproduct](implicit aEncoder: Encoder[A],
                                                    bEncoder: Encoder[B]): Encoder[A :+: B] = new Encoder[A :+: B] {
-    override type Ret = Either[aEncoder.Ret, bEncoder.Ret]
+    override type Ret = Any
 
     override def apply(value: A :+: B, schemaData: SchemaData): Ret =
       value match {
-        case Inl(a) => aEncoder(a, schemaData).asLeft[bEncoder.Ret]
-        case Inr(b) => bEncoder(b, schemaData).asRight[aEncoder.Ret]
+        case Inl(a) => aEncoder(a, schemaData)
+        case Inr(b) => bEncoder(b, schemaData)
       }
   }
 
