@@ -31,6 +31,8 @@ protected object SchemaBuilder {
 
   def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
+    println("here")
+
     val annotations       = getAnnotations(ctx.annotations)
     val doc               = annotations.doc
     val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)

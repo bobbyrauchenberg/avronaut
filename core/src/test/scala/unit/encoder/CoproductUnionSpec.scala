@@ -33,7 +33,7 @@ class CoproductUnionSpec extends UnitSpecBase {
         val toEncode = WriterRecordWithCoproduct(field, field1, field2)
         val expected = recordBuilder.build.asInstanceOf[GenericRecord]
 
-        Encoder.encode[WriterRecordWithCoproduct](toEncode)(encoder, schema) should beRight(expected)
+        Encoder.encode[WriterRecordWithCoproduct](toEncode, encoder, schema.data) should beRight(expected)
       }
     }
 

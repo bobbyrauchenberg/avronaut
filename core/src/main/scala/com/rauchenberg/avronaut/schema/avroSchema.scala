@@ -9,7 +9,7 @@ trait AvroSchema[A] {
 
 object AvroSchema {
   def toSchema[A](implicit schemaBuilder: SchemaBuilder[A]): AvroSchema[A] = new AvroSchema[A] {
-    override def data: Result[SchemaData] = schemaBuilder.schema.flatMap(Parser(_).parse)
+    override val data: Result[SchemaData] = schemaBuilder.schema.flatMap(Parser(_).parse)
   }
 }
 

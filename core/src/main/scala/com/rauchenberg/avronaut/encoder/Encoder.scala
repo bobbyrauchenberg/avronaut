@@ -4,9 +4,9 @@ import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
 
 import cats.implicits._
-import com.rauchenberg.avronaut.common.Error
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
-import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
+import com.rauchenberg.avronaut.common.{Error, Result}
+import com.rauchenberg.avronaut.schema.SchemaData
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr}
@@ -30,12 +30,11 @@ object Encoder {
 
   implicit def gen[A]: Encoder[A] = macro Magnolia.gen[A]
 
-  def encode[A](a: A)(implicit encoder: Encoder[A], schema: AvroSchema[A]): Either[Error, GenericRecord] =
-    schema.data.flatMap { schema =>
+  def encode[A](a: A, encoder: Encoder[A], schemaData: Result[SchemaData]): Either[Error, GenericRecord] =
+    schemaData.flatMap { schema =>
       val res = encoder.apply(a, schema)
       res match {
         case gr: GenericData.Record =>
-          println("got back out after encoding")
           gr.asRight[Error]
         case _ => Error("should have got a GenericData.Record from encoder").asLeft
       }
@@ -47,6 +46,7 @@ object Encoder {
       val annotations       = getAnnotations(ctx.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
+      //should be Result[GenericRecord] or M[GenericRecord]
       type Ret = GenericRecord
 
       override def apply(value: A, sd: SchemaData): GenericRecord =
@@ -54,13 +54,11 @@ object Encoder {
           case None => throw new RuntimeException("fuck")
           case Some(schema) =>
             val gr = new GenericData.Record(schema)
-            println("a")
             schema.getFields.asScala.toList.zipWithIndex.foreach {
               case (field, i) =>
                 ctx.parameters.toList
                   .find(_.label == field.name)
                   .map { param =>
-                    println("b")
                     val paramValue = param.dereference(value)
                     param.typeclass.apply(paramValue, sd) match {
                       case Left(v)  => gr.put(i, v)
@@ -71,7 +69,6 @@ object Encoder {
                   }
                   .getOrElse(())
             }
-            println(gr)
             gr
         }
     }
@@ -114,6 +111,12 @@ object Encoder {
     override def apply(value: Long, schemaData: SchemaData): Long = value
   }
 
+  implicit val bytesEncoder: Encoder[Array[Byte]] = new Encoder[Array[Byte]] {
+    override type Ret = Array[Byte]
+
+    override def apply(value: Array[Byte], schemaData: SchemaData): Array[Byte] = value
+  }
+
   implicit def mapEncoder[A](implicit aEncoder: Encoder[A]): Encoder[Map[String, A]] = new Encoder[Map[String, A]] {
     override type Ret = java.util.Map[String, aEncoder.Ret]
     override def apply(value: Map[String, A], schemaData: SchemaData): Ret =
@@ -127,12 +130,10 @@ object Encoder {
 
     type Ret = java.util.List[aEncoder.Ret]
 
-    override def apply(value: List[A], schemaData: SchemaData): Ret = {
-      println("value : " + value.asJava)
+    override def apply(value: List[A], schemaData: SchemaData): Ret =
       value.map { v =>
         aEncoder(v, schemaData)
       }.asJava
-    }
   }
 
   implicit def optionEncoder[A](implicit aEncoder: Encoder[A]): Encoder[Option[A]] = new Encoder[Option[A]] {
