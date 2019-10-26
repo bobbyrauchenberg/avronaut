@@ -1,11 +1,14 @@
 package com.rauchenberg.avronaut.decoder
 
+import java.nio.ByteBuffer
+
 import cats.implicits._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
 import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
 import magnolia.{CaseClass, Magnolia}
 import org.apache.avro.generic.GenericRecord
+import org.apache.avro.util.Utf8
 
 import scala.collection.JavaConverters._
 
@@ -36,6 +39,7 @@ object Decoder {
 
     override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): A = {
 
+      println("in apply gen rec: " + genericRecord)
       val annotations       = getAnnotations(ctx.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
@@ -45,19 +49,15 @@ object Decoder {
 
         schemaData.schemaMap.get(s"$namespace.$name").toList.flatMap { schema =>
           schema.getFields.asScala.toList.filter(_.name == paramName).map { field =>
-            //valueOrDefault(
-            param.typeclass.apply(genericRecord.get(field.name), genericRecord, schemaData)
-            //  param.default)
+            valueOrDefault(
+              safe(genericRecord.get(field.name) match {
+                case gr: GenericRecord => param.typeclass.apply(gr, gr, schemaData)
+                case _                 => param.typeclass.apply(genericRecord.get(field.name), genericRecord, schemaData)
+              }),
+              param.default
+            )
           }
         }
-//        case AvroRecord(_, fields) =>
-//          params.zip(fields).traverse {
-//            case (param, avroType) =>
-//              valueOrDefault(param.typeclass.apply(avroType, genericRecord, schemaData), param.default)
-//          }
-//        case other =>
-//          params.traverse(param =>
-//            valueOrDefault(param.typeclass.apply(other, genericRecord, schemaData), param.default))
       })
     }
   }
@@ -76,26 +76,39 @@ object Decoder {
 //    }
 //  }
 
-//  private def valueOrDefault[B](value: B, default: Option[B]) =
-//    (value, default) match {
-//      case (Left(_), Some(default)) => default.asRight
-//      case _                        => value
-//    }
+  private def valueOrDefault[B](value: B, default: Option[B]) =
+    (value, default) match {
+      case (Left(_), Some(default)) => default
+      case (Right(value), _)        => value
+      case other                    => other
+    }
 
   def error[A](expected: String, actual: A): Either[Error, Nothing] = Error(s"expected $expected, got $actual").asLeft
 
   implicit val stringDecoder: Decoder[String] = new Decoder[String] {
-    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): String =
-      value.asInstanceOf[String]
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): String = value match {
+      case u: Utf8          => u.toString
+      case s: String        => s
+      case cs: CharSequence => cs.toString
+      case bb: ByteBuffer   => new String(bb.array)
+      case a: Array[Byte]   => new String(a)
+    }
   }
 
   implicit val booleanDecoder: Decoder[Boolean] = new Decoder[Boolean] {
     override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Boolean =
-      value.asInstanceOf[Boolean]
+      value match {
+        case true  => true
+        case false => false
+      }
   }
 
   implicit val intDecoder: Decoder[Int] = new Decoder[Int] {
-    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Int = value.asInstanceOf[Int]
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Int = value match {
+      case byte: Byte   => byte.toInt
+      case short: Short => short.toInt
+      case int: Int     => int
+    }
   }
 
   implicit val longDecoder: Decoder[Long] = new Decoder[Long] {
