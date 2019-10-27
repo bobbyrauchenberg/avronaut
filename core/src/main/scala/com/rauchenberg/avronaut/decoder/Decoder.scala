@@ -10,8 +10,10 @@ import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
+import shapeless.{:+:, CNil, Coproduct, Inr}
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 import scala.util.control.NoStackTrace
 
 trait Decoder[A] {
@@ -161,7 +163,12 @@ object Decoder {
           .asScala
           .map {
             case (k, v) =>
-              k -> elementDecoder(v, genericRecord, schemaData)
+              v match {
+                case gr: GenericRecord =>
+                  k -> elementDecoder(gr, gr, schemaData)
+                case _ => k -> elementDecoder(v, genericRecord, schemaData)
+              }
+
           }
           .toMap
     }
@@ -196,31 +203,25 @@ object Decoder {
   implicit def eitherDecoder[A, B](implicit lDecoder: Decoder[A], rDecoder: Decoder[B]): Decoder[Either[A, B]] =
     new Decoder[Either[A, B]] {
       override def apply[C](value: C, genericRecord: GenericRecord, schemaData: SchemaData): Either[A, B] =
-        try {
+        Try {
           rDecoder(value.asInstanceOf[A], genericRecord, schemaData).asRight
-        } catch {
-          case scala.util.control.NonFatal(_) =>
-            lDecoder(value.asInstanceOf[A], genericRecord, schemaData).asLeft
-        }
+        }.toOption.fold[Either[A, B]](lDecoder(value.asInstanceOf[A], genericRecord, schemaData).asLeft)(v => v)
     }
 
-//
-//  implicit object CNilDecoderValue extends Decoder[CNil] {
-//    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData) =
-//      Error(s"ended up reaching CNil when decoding $value").asLeft
-//  }
-//
-//  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H],
-//                                                   tDecoder: Decoder[T]): Decoder[H :+: T] = new Decoder[H :+: T] {
-//    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): Result[H :+: T] =
-//      value match {
-//        case value @ AvroUnion(v) =>
-//          hDecoder(v, genericRecord, schemaData) match {
-//            case r @ Right(_) => r.map(h => Coproduct[H :+: T](h))
-//            case _            => tDecoder(value, genericRecord, schemaData).map(Inr(_))
-//          }
-//        case value => tDecoder(value, genericRecord, schemaData).map(Inr(_))
-//      }
-//  }
+  implicit object CNilDecoderValue extends Decoder[CNil] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): CNil =
+      throw StacklessException
+  }
+
+  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H],
+                                                   tDecoder: Decoder[T]): Decoder[H :+: T] = new Decoder[H :+: T] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): H :+: T =
+      Try {
+        val h = hDecoder(value, genericRecord, schemaData)
+        Coproduct[H :+: T](h)
+      }.toOption.fold[H :+: T](
+        Inr(tDecoder(value, genericRecord, schemaData))
+      )(v => v)
+  }
 
 }

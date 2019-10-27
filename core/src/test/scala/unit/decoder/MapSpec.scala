@@ -12,6 +12,7 @@ class MapSpec extends UnitSpecBase {
   "decoder" should {
     "decode a record with a map" in {
 
+      //case class WriterRecordWithMap(writerField: String, field1: Map[String, Boolean], field2: Int)
       forAll { writerRecord: WriterRecordWithMap =>
         val writerSchema          = AvroSchema.toSchema[WriterRecordWithMap]
         implicit val readerSchema = AvroSchema.toSchema[ReaderRecordWithMap]
