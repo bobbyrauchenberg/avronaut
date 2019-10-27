@@ -1,16 +1,18 @@
 package com.rauchenberg.avronaut.decoder
 
-import java.nio.ByteBuffer
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.util.UUID
 
 import cats.implicits._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
 import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
-import magnolia.{CaseClass, Magnolia}
+import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
 
 import scala.collection.JavaConverters._
+import scala.util.control.NoStackTrace
 
 trait Decoder[A] {
 
@@ -31,6 +33,8 @@ object Decoder {
       decoder("", genericRecord, as)
     }
 
+  case object StacklessException extends NoStackTrace
+
   def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
     type Ret = Result[A]
@@ -39,7 +43,6 @@ object Decoder {
 
     override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): A = {
 
-      println("in apply gen rec: " + genericRecord)
       val annotations       = getAnnotations(ctx.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
@@ -51,8 +54,10 @@ object Decoder {
           schema.getFields.asScala.toList.filter(_.name == paramName).map { field =>
             valueOrDefault(
               safe(genericRecord.get(field.name) match {
-                case gr: GenericRecord => param.typeclass.apply(gr, gr, schemaData)
-                case _                 => param.typeclass.apply(genericRecord.get(field.name), genericRecord, schemaData)
+                case gr: GenericRecord =>
+                  param.typeclass.apply(gr, gr, schemaData)
+                case _ =>
+                  param.typeclass.apply(genericRecord.get(field.name), genericRecord, schemaData)
               }),
               param.default
             )
@@ -62,19 +67,14 @@ object Decoder {
     }
   }
 
-//  def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
-//    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): A = {
-//      null
-//      value match {
-//        case AvroEnum(v) =>
-//          ctx.subtypes
-//            .find(_.typeName.short == v.toString)
-//            .map(st => safe(ReflectionHelpers.toCaseObject[A](st.typeName.full)))
-//            .getOrElse(Error(s"wasn't able to find or to instantiate enum value $v in $v").asLeft[A])
-//        case _ => Error("not an enum").asLeft
-//      }
-//    }
-//  }
+  def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
+
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): A =
+      ctx.subtypes
+        .find(_.typeName.short == value.toString)
+        .map(st => ReflectionHelpers.toCaseObject[A](st.typeName.full))
+        .getOrElse(throw StacklessException)
+  }
 
   private def valueOrDefault[B](value: B, default: Option[B]) =
     (value, default) match {
@@ -87,11 +87,9 @@ object Decoder {
 
   implicit val stringDecoder: Decoder[String] = new Decoder[String] {
     override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): String = value match {
-      case u: Utf8          => u.toString
-      case s: String        => s
-      case cs: CharSequence => cs.toString
-      case bb: ByteBuffer   => new String(bb.array)
-      case a: Array[Byte]   => new String(a)
+      case u: Utf8        => u.toString
+      case s: String      => s
+      case a: Array[Byte] => new String(a)
     }
   }
 
@@ -131,81 +129,81 @@ object Decoder {
       value.asInstanceOf[Array[Byte]]
   }
 
-//  implicit def listDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[List[A]] = new Typeclass[List[A]] {
-//    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): Result[List[A]] = {
-//      val list = genericRecord.get(fieldName).asInstanceOf[List[A]]
-//      list.map(v => elementDecoder(v))
-//    }
-//      value match {
-//        case AvroArray(v) =>
-//          v.traverse(at => elementDecoder.apply(at, genericRecord, schemaData))
-//        case value => error("list", value)
-//      }
-//  }
-//
-//  implicit def seqDecoder[A : Decoder]: Decoder[Seq[A]] = listDecoder[A].apply(_, _, _)
-//
-//  implicit def vectorDecoder[A : Decoder]: Decoder[Vector[A]] = listDecoder[A].apply(_, _, _).map(_.toVector)
-//
-//  implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] =
-//    new Decoder[Map[String, A]] {
-//      override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): Result[Map[String, A]] =
-//        value match {
-//          case AvroMap(l) =>
-//            l.traverse { case (k, v) => elementDecoder(v, genericRecord, schemaData).map(k -> _) }.map(_.toMap)
-//          case value => error("map", value)
-//        }
-//    }
-//
-//  implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = new Decoder[OffsetDateTime] {
-//    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): Result[OffsetDateTime] =
-//      value match {
-//        case AvroLogical(AvroLong(value)) =>
-//          safe(OffsetDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC))
-//        case value => error("OffsetDateTime / Long", value)
-//      }
-//  }
-//
-//  implicit def instantDecoder: Decoder[Instant] = new Decoder[Instant] {
-//    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): Result[Instant] =
-//      value match {
-//        case AvroLogical(AvroLong(value)) => safe(Instant.ofEpochMilli(value))
-//        case value                        => error("Instant / Long", value)
-//      }
-//  }
-//
-//  implicit def uuidDecoder: Decoder[UUID] = new Typeclass[UUID] {
-//    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): Result[UUID] =
-//      value match {
-//        case AvroLogical(AvroString(value)) => safe(java.util.UUID.fromString(value))
-//        case value                          => error("UUID / String", value)
-//      }
-//  }
-//
-//  implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]): Decoder[Option[A]] = new Decoder[Option[A]] {
-//    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): Result[Option[A]] =
-//      value match {
-//        case AvroUnion(AvroNull) => none[A].asRight[Error]
-//        case AvroUnion(value)    => valueDecoder(value, genericRecord, schemaData).map(Option(_))
-//        case other               => valueDecoder(other, genericRecord, schemaData).map(Option(_))
-//      }
-//  }
-//
-//  implicit def eitherDecoder[A, B](implicit lDecoder: Decoder[A], rDecoder: Decoder[B]): Decoder[Either[A, B]] =
-//    new Typeclass[Either[A, B]] {
-//      override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData): Result[Either[A, B]] = {
-//        def runDecoders(fieldName: String) =
-//          lDecoder(value, genericRecord, schemaData).fold(
-//            _ => rDecoder(value, genericRecord, schemaData).map(_.asRight[A]),
-//            _.asLeft[B].asRight[Error]
-//          )
-//        value match {
-//          case AvroUnion(AvroNull) => runDecoders(value)
-//          case AvroUnion(v)        => runDecoders(v)
-//          case _                   => runDecoders(value)
-//        }
-//      }
-//    }
+  implicit def listDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[List[A]] = new Typeclass[List[A]] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): List[A] = {
+      val list = value.asInstanceOf[java.util.List[A]]
+      list.asScala.toList.map {
+        case v =>
+          v match {
+            case gr: GenericRecord =>
+              elementDecoder(gr, gr, schemaData)
+            case _ => elementDecoder(v, genericRecord, schemaData)
+          }
+      }
+    }
+  }
+
+  implicit def seqDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Seq[A]] = new Decoder[Seq[A]] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Seq[A] =
+      listDecoder[A](elementDecoder).apply(value, genericRecord, schemaData)
+  }
+
+  implicit def vectorDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Vector[A]] = new Decoder[Vector[A]] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Vector[A] =
+      listDecoder[A](elementDecoder).apply(value, genericRecord, schemaData).toVector
+  }
+
+  implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] =
+    new Decoder[Map[String, A]] {
+      override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Map[String, A] =
+        value
+          .asInstanceOf[java.util.Map[String, A]]
+          .asScala
+          .map {
+            case (k, v) =>
+              k -> elementDecoder(v, genericRecord, schemaData)
+          }
+          .toMap
+    }
+
+  implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = new Decoder[OffsetDateTime] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): OffsetDateTime =
+      value match {
+        case l: Long => OffsetDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneOffset.UTC)
+      }
+
+  }
+
+  implicit def instantDecoder: Decoder[Instant] = new Decoder[Instant] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Instant = value match {
+      case l: Long => Instant.ofEpochMilli(l)
+    }
+  }
+
+  implicit def uuidDecoder: Decoder[UUID] = new Decoder[UUID] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): UUID = value match {
+      case s: String if (s != null) => java.util.UUID.fromString(s)
+    }
+  }
+
+  implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]): Decoder[Option[A]] = new Decoder[Option[A]] {
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Option[A] =
+      if (value == null) None
+      else
+        Option(valueDecoder(value, genericRecord, schemaData))
+  }
+
+  implicit def eitherDecoder[A, B](implicit lDecoder: Decoder[A], rDecoder: Decoder[B]): Decoder[Either[A, B]] =
+    new Decoder[Either[A, B]] {
+      override def apply[C](value: C, genericRecord: GenericRecord, schemaData: SchemaData): Either[A, B] =
+        try {
+          rDecoder(value.asInstanceOf[A], genericRecord, schemaData).asRight
+        } catch {
+          case scala.util.control.NonFatal(_) =>
+            lDecoder(value.asInstanceOf[A], genericRecord, schemaData).asLeft
+        }
+    }
+
 //
 //  implicit object CNilDecoderValue extends Decoder[CNil] {
 //    override def apply(fieldName: String, genericRecord: GenericRecord, schemaData: SchemaData) =

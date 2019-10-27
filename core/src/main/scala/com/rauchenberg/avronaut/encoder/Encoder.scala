@@ -74,7 +74,6 @@ object Encoder {
     }
 
   def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Encoder[A] {
-    println(ctx)
     override type Ret = String
 
     override def apply(value: A, schemaData: SchemaData): String =
