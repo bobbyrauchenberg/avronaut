@@ -83,9 +83,9 @@ object Decoder {
 
   implicit val stringDecoder: Decoder[String] = new Decoder[String] {
     override def apply[B](value: B, genericRecord: GenericRecord): Result[String] = value match {
-      case s: String      => s.asRight
-      case u: Utf8        => u.toString.asRight
-      case a: Array[Byte] => new String(a).asRight
+      case s: String      => Right(s)
+      case u: Utf8        => Right(u.toString)
+      case a: Array[Byte] => Right(new String(a))
     }
   }
 
@@ -98,7 +98,7 @@ object Decoder {
   }
 
   implicit val intDecoder: Decoder[Int] = new Decoder[Int] {
-    override def apply[B](value: B, genericRecord: GenericRecord): Result[Int] = value.toString.toInt.asRight
+    override def apply[B](value: B, genericRecord: GenericRecord): Result[Int] = Right(value.toString.toInt)
   }
 
   implicit val longDecoder: Decoder[Long] = new Decoder[Long] {
@@ -125,55 +125,38 @@ object Decoder {
       value.asInstanceOf[Array[Byte]].asRight
   }
 
-  implicit def listDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[List[A]] = new Typeclass[List[A]] {
-    override def apply[B](value: B, genericRecord: GenericRecord): Result[List[A]] = {
-      val list = value.asInstanceOf[java.util.List[A]]
-      val arr  = new Array[A](list.size)
-      val it   = list.iterator()
-      var cnt  = 0
-      while (it.hasNext) {
-        val x = it.next()
-        it.next() match {
-          case gr: GenericRecord =>
-            arr(cnt) = elementDecoder(gr, gr).right.get
-          case _ =>
-            arr(cnt) = elementDecoder(x, genericRecord).right.get
+  implicit def listDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[List[A]] =
+    new Typeclass[List[A]] {
+      override def apply[B](value: B, genericRecord: GenericRecord): Result[List[A]] = {
+        val list = value.asInstanceOf[java.util.List[A]]
+        val arr  = new Array[A](list.size)
+        val it   = list.iterator()
+        var cnt  = 0
+        while (it.hasNext) {
+          val x = it.next()
+          it.next() match {
+            case gr: GenericRecord =>
+              arr(cnt) = elementDecoder(gr, gr).right.get
+            case _ =>
+              arr(cnt) = elementDecoder(x, genericRecord).right.get
+          }
+          cnt = cnt + 1
         }
-        cnt = cnt + 1
-      }
-      Right(arr.toList)
-    }
-  }
-
-  implicit def seqDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Seq[A]] = new Decoder[Seq[A]] {
-    override def apply[B](value: B, genericRecord: GenericRecord): Result[Seq[A]] = {
-      val list = value.asInstanceOf[java.util.List[A]]
-      list.asScala.toList.traverse {
-        case v =>
-          v match {
-            case gr: GenericRecord =>
-              elementDecoder(gr, gr)
-            case _ => elementDecoder(v, genericRecord)
-          }
+        Right(arr.toList)
       }
     }
 
+  implicit def seqDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[Seq[A]] = new Decoder[Seq[A]] {
+    override def apply[B](value: B, genericRecord: GenericRecord): Result[Seq[A]] =
+      listDecoder[A].apply[B](value, genericRecord)
   }
 
-  implicit def vectorDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Vector[A]] = new Decoder[Vector[A]] {
-    override def apply[B](value: B, genericRecord: GenericRecord): Result[Vector[A]] = {
-      val list = value.asInstanceOf[java.util.List[A]]
-      list.asScala.toList.traverse {
-        case v =>
-          v match {
-            case gr: GenericRecord =>
-              elementDecoder(gr, gr)
-            case _ => elementDecoder(v, genericRecord)
-          }
-      }.map(_.toVector)
+  implicit def vectorDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[Vector[A]] =
+    new Decoder[Vector[A]] {
+      override def apply[B](value: B, genericRecord: GenericRecord): Result[Vector[A]] =
+        listDecoder[A].apply[B](value, genericRecord).map(_.toVector)
+
     }
-
-  }
 
   implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] =
     new Decoder[Map[String, A]] {
