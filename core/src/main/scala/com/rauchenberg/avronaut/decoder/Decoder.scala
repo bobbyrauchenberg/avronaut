@@ -30,8 +30,8 @@ object Decoder {
 
   def apply[A](implicit decoder: Decoder[A]) = decoder
 
-  def decode[A](genericRecord: GenericRecord)(implicit decoder: Decoder[A], avroSchema: AvroSchema[A]) =
-    avroSchema.data.map { as =>
+  def decode[A](genericRecord: GenericRecord, decoder: Decoder[A], schemaData: Result[SchemaData]) =
+    schemaData.map { as =>
       decoder("", genericRecord, as)
     }
 
@@ -52,8 +52,8 @@ object Decoder {
         val paramAnnotations = getAnnotations(param.annotations)
         val paramName        = paramAnnotations.name(param.label)
 
-        schemaData.schemaMap.get(s"$namespace.$name").toList.flatMap { schema =>
-          schema.getFields.asScala.toList.filter(_.name == paramName).map { field =>
+        schemaData.schemaMap.get(s"$namespace.$name").flatMap { schema =>
+          schema.getFields.asScala.find(_.name == paramName).map { field =>
             valueOrDefault(
               safe(genericRecord.get(field.name) match {
                 case gr: GenericRecord =>
@@ -80,8 +80,8 @@ object Decoder {
 
   private def valueOrDefault[B](value: B, default: Option[B]) =
     (value, default) match {
-      case (Left(_), Some(default)) => default
       case (Right(value), _)        => value
+      case (Left(_), Some(default)) => default
       case other                    => other
     }
 
@@ -89,8 +89,8 @@ object Decoder {
 
   implicit val stringDecoder: Decoder[String] = new Decoder[String] {
     override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): String = value match {
-      case u: Utf8        => u.toString
       case s: String      => s
+      case u: Utf8        => u.toString
       case a: Array[Byte] => new String(a)
     }
   }
@@ -104,26 +104,26 @@ object Decoder {
   }
 
   implicit val intDecoder: Decoder[Int] = new Decoder[Int] {
-    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Int = value match {
-      case byte: Byte   => byte.toInt
-      case short: Short => short.toInt
-      case int: Int     => int
-    }
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Int = value.toString.toInt
   }
 
   implicit val longDecoder: Decoder[Long] = new Decoder[Long] {
-    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Long =
-      value.asInstanceOf[Long]
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Long = value match {
+      case l: Long => l
+    }
   }
 
   implicit val floatDecoder: Decoder[Float] = new Decoder[Float] {
-    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Float =
-      value.asInstanceOf[Float]
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Float = value match {
+      case f: Float => f
+    }
+
   }
 
   implicit val doubleDecoder: Decoder[Double] = new Decoder[Double] {
-    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Double =
-      value.asInstanceOf[Double]
+    override def apply[B](value: B, genericRecord: GenericRecord, schemaData: SchemaData): Double = value match {
+      case d: Double => d
+    }
   }
 
   implicit val bytesDecoder: Decoder[Array[Byte]] = new Decoder[Array[Byte]] {
