@@ -14,6 +14,7 @@ import shapeless.{:+:, CNil, Coproduct, Inr}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.reflect.ClassTag
 import scala.util.Try
 import scala.util.control.NoStackTrace
 
@@ -124,23 +125,23 @@ object Decoder {
       value.asInstanceOf[Array[Byte]].asRight
   }
 
-  implicit def listDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[List[A]] = new Typeclass[List[A]] {
+  implicit def listDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[List[A]] = new Typeclass[List[A]] {
     override def apply[B](value: B, genericRecord: GenericRecord): Result[List[A]] = {
       val list = value.asInstanceOf[java.util.List[A]]
-      val arr  = list.toArray
+      val arr  = new Array[A](list.size)
       val it   = list.iterator()
       var cnt  = 0
       while (it.hasNext) {
         val x = it.next()
         it.next() match {
           case gr: GenericRecord =>
-            arr(cnt) = elementDecoder(gr, gr)
+            arr(cnt) = elementDecoder(gr, gr).right.get
           case _ =>
-            arr(cnt) = elementDecoder(x, genericRecord)
+            arr(cnt) = elementDecoder(x, genericRecord).right.get
         }
         cnt = cnt + 1
       }
-      arr.toList.asInstanceOf[List[Result[A]]].sequence
+      Right(arr.toList)
     }
   }
 
