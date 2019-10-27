@@ -128,21 +128,29 @@ object Decoder {
   implicit def listDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[List[A]] =
     new Typeclass[List[A]] {
       override def apply[B](value: B, genericRecord: GenericRecord): Result[List[A]] = {
-        val list = value.asInstanceOf[java.util.List[A]]
-        val arr  = new Array[A](list.size)
-        val it   = list.iterator()
-        var cnt  = 0
+        import scala.util.control.Breaks._
+        val list   = value.asInstanceOf[java.util.List[A]]
+        val arr    = new Array[A](list.size)
+        val it     = list.iterator()
+        var cnt    = 0
+        var failed = false
         while (it.hasNext) {
           val x = it.next()
-          it.next() match {
+          val el = x match {
             case gr: GenericRecord =>
-              arr(cnt) = elementDecoder(gr, gr).right.get
+              elementDecoder(gr, gr)
             case _ =>
-              arr(cnt) = elementDecoder(x, genericRecord).right.get
+              elementDecoder(x, genericRecord)
+          }
+          if (el.isRight) arr(cnt) = el.right.get
+          else {
+            failed = true
+            break
           }
           cnt = cnt + 1
         }
-        Right(arr.toList)
+        if (failed == true) Error("couldn't parse list").asLeft
+        else Right(arr.toList)
       }
     }
 
