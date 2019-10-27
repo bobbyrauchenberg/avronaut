@@ -13,9 +13,9 @@
 //
 //    "decode a union of multiple types" in {
 //      forAll { (writerField: Long, field1: String :+: Boolean :+: Simple :+: CNil, field2: Boolean) =>
-//        val writerSchema          = AvroSchema.toSchema[WriterRecordWithCoproduct].data.value
-//        implicit val simpleSchema = AvroSchema.toSchema[Simple].data.value
-//        implicit val readerSchema = AvroSchema.toSchema[ReaderRecordWithCoproduct]
+//        val writerSchema = AvroSchema.toSchema[WriterRecordWithCoproduct].data.value
+//        val simpleSchema = AvroSchema.toSchema[Simple].data.value
+//        val decoder      = Decoder[ReaderRecordWithCoproduct]
 //
 //        val recordBuilder = new GenericRecordBuilder(new GenericData.Record(writerSchema.schema))
 //        val simpleGenRec  = new GenericData.Record(simpleSchema.schema)
@@ -35,7 +35,7 @@
 //
 //        val expected = ReaderRecordWithCoproduct(field2, field1)
 //
-//        Decoder.decode[ReaderRecordWithCoproduct](recordBuilder.build()) should beRight(expected)
+//        Decoder.decode[ReaderRecordWithCoproduct](recordBuilder.build, decoder) should beRight(expected)
 //      }
 //    }
 //
