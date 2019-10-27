@@ -90,15 +90,15 @@ class MapSpec extends UnitSpecBase {
   case class WriterRecordWithList(writerField: Boolean, field1: String, field2: Map[String, List[Int]])
 
   trait TestContext {
-    implicit val writeRecordWithMapEncoder                                  = Encoder[WriterRecordWithMap]
-    implicit val writerRecordWithMapSchema: AvroSchema[WriterRecordWithMap] = AvroSchema.toSchema[WriterRecordWithMap]
+    implicit val writeRecordWithMapEncoder = Encoder[WriterRecordWithMap]
+    implicit val writerRecordWithMapSchema = AvroSchema.toSchema[WriterRecordWithMap]
 
     implicit val writerRecordWithMapOfRecordEncoder = Encoder[WriterRecordWithMapOfRecord]
-    implicit val writerRecordWithMapOfRecordSchema: AvroSchema[WriterRecordWithMapOfRecord] =
+    implicit val writerRecordWithMapOfRecordSchema =
       AvroSchema.toSchema[WriterRecordWithMapOfRecord]
 
-    implicit val writerRecordWithListEncoder: Encoder[WriterRecordWithList] = Encoder[WriterRecordWithList]
-    implicit val writerRecordWithListSchema: AvroSchema[WriterRecordWithList] =
+    implicit val writerRecordWithListEncoder = Encoder[WriterRecordWithList]
+    implicit val writerRecordWithListSchema =
       AvroSchema.toSchema[WriterRecordWithList]
   }
 }

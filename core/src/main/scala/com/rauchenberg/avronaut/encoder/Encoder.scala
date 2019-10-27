@@ -34,9 +34,8 @@ object Encoder {
     schemaData.flatMap { schema =>
       val res = encoder.apply(a, schema)
       res match {
-        case gr: GenericData.Record =>
-          gr.asRight[Error]
-        case _ => Error("should have got a GenericData.Record from encoder").asLeft
+        case gr: GenericData.Record => gr.asRight[Error]
+        case _                      => Error("should have got a GenericData.Record from encoder").asLeft
       }
     }
 
@@ -76,8 +75,7 @@ object Encoder {
   def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Encoder[A] {
     override type Ret = String
 
-    override def apply(value: A, schemaData: SchemaData): String =
-      value.toString
+    override def apply(value: A, schemaData: SchemaData): String = value.toString
   }
 
   implicit val stringEncoder: Encoder[String] = new Encoder[String] {
