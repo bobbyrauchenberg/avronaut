@@ -2,8 +2,6 @@ package com.rauchenberg.avronaut.decoder
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
-
-import cats.Monad
 import cats.implicits._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
@@ -13,9 +11,7 @@ import org.apache.avro.util.Utf8
 import shapeless.{:+:, CNil, Coproduct, Inr}
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.reflect.ClassTag
-import scala.util.Try
 import scala.util.control.NoStackTrace
 
 trait Decoder[A] {
@@ -69,17 +65,18 @@ object Decoder {
       ctx.subtypes
         .find(_.typeName.short == value.toString)
         .map(st => ReflectionHelpers.toCaseObject[A](st.typeName.full))
-        .fold[Result[A]](Error("no").asLeft)(_.asRight)
+        .fold[Result[A]](Left(Error("no")))(Right(_))
   }
 
   private def valueOrDefault[B](value: Result[B], default: Option[B]): Result[B] =
     (value, default) match {
-      case (Right(value), _)        => value.asRight
-      case (Left(_), Some(default)) => default.asRight
-      case other                    => Error("blah").asLeft
+      case (Right(value), _)        => Right(value)
+      case (Left(_), Some(default)) => Right(default)
+      case other =>
+        Left(Error("blah"))
     }
 
-  def error[A](expected: String, actual: A): Either[Error, Nothing] = Error(s"expected $expected, got $actual").asLeft
+  def error[A](expected: String, actual: A): Either[Error, Nothing] = Left(Error(s"expected $expected, got $actual"))
 
   implicit val stringDecoder: Decoder[String] = new Decoder[String] {
     override def apply[B](value: B, genericRecord: GenericRecord): Result[String] = value match {
@@ -92,8 +89,8 @@ object Decoder {
   implicit val booleanDecoder: Decoder[Boolean] = new Decoder[Boolean] {
     override def apply[B](value: B, genericRecord: GenericRecord): Result[Boolean] =
       value match {
-        case true  => true.asRight
-        case false => false.asRight
+        case true  => Right(true)
+        case false => Right(false)
       }
   }
 
@@ -103,26 +100,26 @@ object Decoder {
 
   implicit val longDecoder: Decoder[Long] = new Decoder[Long] {
     override def apply[B](value: B, genericRecord: GenericRecord): Result[Long] = value match {
-      case l: Long => l.asRight
+      case l: Long => Right(l)
     }
   }
 
   implicit val floatDecoder: Decoder[Float] = new Decoder[Float] {
     override def apply[B](value: B, genericRecord: GenericRecord): Result[Float] = value match {
-      case f: Float => f.asRight
+      case f: Float => Right(f)
     }
 
   }
 
   implicit val doubleDecoder: Decoder[Double] = new Decoder[Double] {
     override def apply[B](value: B, genericRecord: GenericRecord): Result[Double] = value match {
-      case d: Double => d.asRight
+      case d: Double => Right(d)
     }
   }
 
   implicit val bytesDecoder: Decoder[Array[Byte]] = new Decoder[Array[Byte]] {
     override def apply[B](value: B, genericRecord: GenericRecord): Result[Array[Byte]] =
-      value.asInstanceOf[Array[Byte]].asRight
+      Right(value.asInstanceOf[Array[Byte]])
   }
 
   implicit def listDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[List[A]] =
@@ -149,7 +146,7 @@ object Decoder {
           }
           cnt = cnt + 1
         }
-        if (failed == true) Error("couldn't parse list").asLeft
+        if (failed == true) Left(Error("couldn't parse list"))
         else Right(arr.toList)
       }
     }
@@ -214,30 +211,35 @@ object Decoder {
   implicit def eitherDecoder[A, B](implicit lDecoder: Decoder[A], rDecoder: Decoder[B]): Decoder[Either[A, B]] =
     new Decoder[Either[A, B]] {
       override def apply[C](value: C, genericRecord: GenericRecord): Result[Either[A, B]] =
-        rDecoder(value.asInstanceOf[B], genericRecord) match {
-          case Left(_) =>
-            lDecoder(value.asInstanceOf[A], genericRecord) match {
-              case Right(v) => Right(v.asLeft)
-              case _        => Error("couldn't decode either").asLeft
-            }
+        safe(rDecoder(value, genericRecord)).flatten match {
           case Right(v) => Right(Right(v))
+          case Left(_) =>
+            lDecoder(value, genericRecord) match {
+              case Right(v) => Right(Left(v))
+              case _        => Left(Error("couldn't decode either"))
+            }
         }
     }
 
-//  implicit object CNilDecoderValue extends Decoder[CNil] {
-//    override def apply[B](value: B, genericRecord: GenericRecord): Result[CNil] = Error("Should not have got to CNil").asLeft
-//  }
-//
-//  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H],
-//                                                   tDecoder: Decoder[T]): Decoder[H :+: T] = new Decoder[H :+: T] {
-//    type Ret = H :+: T
-//    override def apply[B](value: B, genericRecord: GenericRecord): Ret =
-//      Try {
-//        val h = hDecoder(value, genericRecord).asInstanceOf[H]
-//        Coproduct[H :+: T](h)
-//      }.toOption.fold[H :+: T](
-//        Inr(tDecoder(value, genericRecord).asInstanceOf[T])
-//      )((v: H :+: T) => v)
-//  }
+  implicit object CNilDecoderValue extends Decoder[CNil] {
+    override def apply[B](value: B, genericRecord: GenericRecord): Result[CNil] =
+      Error("Should not have got to CNil").asLeft
+  }
+
+  implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H],
+                                                   tDecoder: Decoder[T]): Decoder[H :+: T] = new Decoder[H :+: T] {
+    type Ret = H :+: T
+    override def apply[B](value: B, genericRecord: GenericRecord): Result[H :+: T] =
+      try {
+        val res: Result[H] = hDecoder(value, genericRecord)
+        res match {
+          case Left(_)  => tDecoder(value, genericRecord).map(Inr(_))
+          case Right(r) => Right(Coproduct[H :+: T](r))
+        }
+      } catch {
+        case scala.util.control.NonFatal(_) =>
+          tDecoder(value, genericRecord).map(Inr(_))
+      }
+  }
 
 }
