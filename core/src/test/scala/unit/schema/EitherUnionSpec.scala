@@ -50,12 +50,6 @@ class EitherUnionSpec extends UnitSpecBase {
       schemaAsString[NestedUnion] shouldBe expected
     }
 
-    "encode a union of records" in {
-      implicit val schema = AvroSchema.toSchema[UnionOfRecords]
-
-      println(schemaAsString[UnionOfRecords])
-    }
-
   }
 
   case class EitherUnion(cupcat: Either[Boolean, String])

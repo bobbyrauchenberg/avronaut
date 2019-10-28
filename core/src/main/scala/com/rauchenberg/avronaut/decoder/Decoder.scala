@@ -35,27 +35,44 @@ object Decoder {
 
   def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
-    val params = ctx.parameters.toList
+    val params = ctx.parameters.toArray
 
     override def apply[B](value: B, genericRecord: GenericRecord): Result[A] = {
 
       val annotations       = getAnnotations(ctx.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
-      params.traverse { param =>
+      val it     = params.iterator
+      var failed = false
+      var cnt    = 0
+      var arr    = new Array[Any](params.size)
+
+      while (it.hasNext && !failed) {
+        val param            = it.next()
         val paramAnnotations = getAnnotations(param.annotations)
         val paramName        = paramAnnotations.name(param.label)
 
-        valueOrDefault(
-          safe(genericRecord.get(paramName) match {
-            case gr: GenericRecord =>
-              param.typeclass.apply(gr, gr)
-            case _ =>
-              param.typeclass.apply(genericRecord.get(paramName), genericRecord)
-          }).flatten,
+        val res = valueOrDefault(
+          try {
+            genericRecord.get(paramName) match {
+              case gr: GenericRecord =>
+                param.typeclass.apply(gr, gr)
+              case _ =>
+                param.typeclass.apply(genericRecord.get(paramName), genericRecord)
+            }
+          } catch {
+            case scala.util.control.NonFatal(t) =>
+              Left(Error("failed decoding param : " + paramName))
+          },
           param.default
         )
-      }.map(ctx.rawConstruct(_))
+        if (!res.isRight) failed = true
+        else arr(cnt) = res.right.get
+        cnt = cnt + 1
+      }
+      if (!failed) Right(ctx.rawConstruct(arr))
+      else Left(Error("failed"))
+
     }
   }
 
@@ -125,13 +142,12 @@ object Decoder {
   implicit def listDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[List[A]] =
     new Typeclass[List[A]] {
       override def apply[B](value: B, genericRecord: GenericRecord): Result[List[A]] = {
-        import scala.util.control.Breaks._
         val list   = value.asInstanceOf[java.util.List[A]]
         val arr    = new Array[A](list.size)
         val it     = list.iterator()
         var cnt    = 0
         var failed = false
-        while (it.hasNext) {
+        while (it.hasNext && !failed) {
           val x = it.next()
           val el = x match {
             case gr: GenericRecord =>
@@ -140,10 +156,8 @@ object Decoder {
               elementDecoder(x, genericRecord)
           }
           if (el.isRight) arr(cnt) = el.right.get
-          else {
+          else
             failed = true
-            break
-          }
           cnt = cnt + 1
         }
         if (failed == true) Left(Error("couldn't parse list"))
@@ -230,15 +244,9 @@ object Decoder {
                                                    tDecoder: Decoder[T]): Decoder[H :+: T] = new Decoder[H :+: T] {
     type Ret = H :+: T
     override def apply[B](value: B, genericRecord: GenericRecord): Result[H :+: T] =
-      try {
-        val res: Result[H] = hDecoder(value, genericRecord)
-        res match {
-          case Left(_)  => tDecoder(value, genericRecord).map(Inr(_))
-          case Right(r) => Right(Coproduct[H :+: T](r))
-        }
-      } catch {
-        case scala.util.control.NonFatal(_) =>
-          tDecoder(value, genericRecord).map(Inr(_))
+      safe(hDecoder(value, genericRecord)).flatten match {
+        case Left(_)  => tDecoder(value, genericRecord).map(Inr(_))
+        case Right(r) => Right(Coproduct[H :+: T](r))
       }
   }
 

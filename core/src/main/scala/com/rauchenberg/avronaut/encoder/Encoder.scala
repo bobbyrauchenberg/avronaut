@@ -1,6 +1,7 @@
 package com.rauchenberg.avronaut.encoder
 
 import java.time.{Instant, OffsetDateTime}
+import java.util
 import java.util.UUID
 
 import cats.implicits._
@@ -18,6 +19,8 @@ trait Encoder[A] {
 
   type Ret
 
+  def isRecord: Boolean = false
+
   def apply(value: A, schemaData: SchemaData): Ret
 
 }
@@ -34,41 +37,46 @@ object Encoder {
     schemaData.flatMap { schema =>
       val res = encoder.apply(a, schema)
       res match {
-        case gr: GenericData.Record => gr.asRight[Error]
-        case _                      => Error("should have got a GenericData.Record from encoder").asLeft
+        case Right(gr: GenericData.Record) => Right(gr)
+        case _                             => Left(Error("should have got a GenericData.Record from encoder"))
       }
     }
 
   def combine[A](ctx: CaseClass[Typeclass, A]): Encoder[A] =
     new Encoder[A] {
 
+      override def isRecord = true
+
       val annotations       = getAnnotations(ctx.annotations)
       val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
-      //should be Result[GenericRecord] or M[GenericRecord]
-      type Ret = GenericRecord
+      type Ret = Result[GenericRecord]
 
-      override def apply(value: A, sd: SchemaData): GenericRecord =
+      override def apply(value: A, sd: SchemaData): Result[GenericRecord] =
         sd.schemaMap.get(s"$namespace.$name") match {
-          case None => throw new RuntimeException("fuck")
+          case None => Left(Error(s"couldn't find a schema field for $namespace.$name"))
           case Some(schema) =>
             val gr = new GenericData.Record(schema)
-            schema.getFields.asScala.toList.zipWithIndex.foreach {
-              case (field, i) =>
-                ctx.parameters.toList
-                  .find(_.label == field.name)
-                  .map { param =>
-                    val paramValue = param.dereference(value)
-                    param.typeclass.apply(paramValue, sd) match {
-                      case Left(v)  => gr.put(i, v)
-                      case Right(v) => gr.put(i, v)
-                      case Error(_) => ()
-                      case other    => gr.put(i, other)
-                    }
+
+            val it  = schema.getFields.iterator()
+            var cnt = 0
+            while (it.hasNext) {
+              val field = it.next()
+              ctx.parameters
+                .find(_.label == field.name)
+                .map { param =>
+                  val paramValue = param.dereference(value)
+                  param.typeclass.apply(paramValue, sd) match {
+                    case Left(v)  => gr.put(cnt, v)
+                    case Right(v) => gr.put(cnt, v)
+                    case Error(_) => ()
+                    case other    => gr.put(cnt, other)
                   }
-                  .getOrElse(())
+                  cnt = cnt + 1
+                }
+                .getOrElse(())
             }
-            gr
+            Right(gr)
         }
     }
 
@@ -115,21 +123,28 @@ object Encoder {
   }
 
   implicit def mapEncoder[A](implicit aEncoder: Encoder[A]): Encoder[Map[String, A]] = new Encoder[Map[String, A]] {
-    override type Ret = java.util.Map[String, aEncoder.Ret]
+    override type Ret = java.util.Map[String, Any]
     override def apply(value: Map[String, A], schemaData: SchemaData): Ret =
       value.map {
         case (k, v) =>
-          k -> aEncoder(v, schemaData)
+          if (aEncoder.isRecord) {
+            k -> (aEncoder(v, schemaData) match { case Right(v) => v })
+          } else k -> aEncoder(v, schemaData)
+
       }.asJava
   }
 
   implicit def listEncoder[A : ClassTag](implicit aEncoder: Encoder[A]): Encoder[List[A]] = new Encoder[List[A]] {
 
-    type Ret = java.util.List[aEncoder.Ret]
+    type Ret = java.util.List[Any]
 
     override def apply(value: List[A], schemaData: SchemaData): Ret =
       value.map { v =>
-        aEncoder(v, schemaData)
+        if (aEncoder.isRecord) {
+          aEncoder(v, schemaData) match {
+            case Right(v) => v
+          }
+        } else aEncoder(v, schemaData)
       }.asJava
   }
 
