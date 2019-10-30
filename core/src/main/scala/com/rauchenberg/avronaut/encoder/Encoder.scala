@@ -10,7 +10,7 @@ import com.rauchenberg.avronaut.schema.SchemaData
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr}
-
+import cats.syntax.either._
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -33,23 +33,23 @@ object Encoder {
   type Typeclass[A] = Encoder[A]
 
   implicit def gen[A]: Encoder[A] = macro Magnolia.gen[A]
-  import cats.syntax.either._
+
   def encode[A](a: A,
                 encoder: Encoder[A],
                 schemaData: Either[List[Error], SchemaData]): Either[List[Error], GenericRecord] =
-    schemaData.flatMap { schema =>
-      encoder.apply(a, schema, true) match {
-        case Right(gr: GenericRecord) => gr.asRight[List[Error]]
-        case Left(l: List[_])         => l.asInstanceOf[List[Error]].asLeft[GenericRecord]
-        case _                        => List(Error("shit")).asLeft[GenericRecord]
-      }
-    }
+    runEncoder(a, encoder, schemaData, true)
 
   def encodeAccumulating[A](a: A,
                             encoder: Encoder[A],
                             schemaData: Either[List[Error], SchemaData]): Either[List[Error], GenericRecord] =
+    runEncoder(a, encoder, schemaData, false)
+
+  private def runEncoder[A](a: A,
+                            encoder: Encoder[A],
+                            schemaData: Either[List[Error], SchemaData],
+                            failFast: Boolean): Either[List[Error], GenericRecord] =
     schemaData.flatMap { schema =>
-      encoder.apply(a, schema, false) match {
+      encoder.apply(a, schema, failFast) match {
         case Right(gr: GenericRecord) => Right(gr)
         case Left(l: List[_])         => l.asInstanceOf[List[Error]].asLeft[GenericRecord]
         case _                        => List(Error("shit")).asLeft[GenericRecord]
@@ -113,15 +113,19 @@ object Encoder {
                   try {
                     param.typeclass.apply(param.dereference(value), sd, failFast) match {
                       case Right(v) => gr.put(cnt, v)
+                      case Left(Error(msg)) =>
+                        errors += Error(errorStr(param.label, paramValue, msg))
+                        hasErrors = true
                       case Error(_) => ()
                       case other    => gr.put(cnt, other)
                     }
+                    cnt = cnt + 1
                   } catch {
                     case scala.util.control.NonFatal(_) =>
-                      errors += Error("Encoding failed for param:" + param.label + " with value:" + paramValue)
+                      errors += Error(errorStr(param.label, paramValue))
                       hasErrors = true
                   }
-                  cnt = cnt + 1
+
                 }
               }
             }
