@@ -4,8 +4,8 @@ import java.time.{Instant, OffsetDateTime}
 import java.util
 import java.util.UUID
 
+import com.rauchenberg.avronaut.common.Error
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
-import com.rauchenberg.avronaut.common.{Error, Result}
 import com.rauchenberg.avronaut.schema.SchemaData
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.{GenericData, GenericRecord}
@@ -33,17 +33,28 @@ object Encoder {
   type Typeclass[A] = Encoder[A]
 
   implicit def gen[A]: Encoder[A] = macro Magnolia.gen[A]
-
-  def encode[A](a: A, encoder: Encoder[A], schemaData: Result[SchemaData]): Either[Error, GenericRecord] =
+  import cats.syntax.either._
+  def encode[A](a: A,
+                encoder: Encoder[A],
+                schemaData: Either[List[Error], SchemaData]): Either[List[Error], GenericRecord] =
     schemaData.flatMap { schema =>
-      val res = encoder.apply(a, schema, true)
-      res match {
-        case Right(gr: GenericData.Record) => Right(gr)
-        case _                             => Left(Error("should have got a GenericData.Record from encoder"))
+      encoder.apply(a, schema, true) match {
+        case Right(gr: GenericRecord) => gr.asRight[List[Error]]
+        case Left(l: List[_])         => l.asInstanceOf[List[Error]].asLeft[GenericRecord]
+        case _                        => List(Error("shit")).asLeft[GenericRecord]
       }
     }
 
-  def encodeAccumulating = ???
+  def encodeAccumulating[A](a: A,
+                            encoder: Encoder[A],
+                            schemaData: Either[List[Error], SchemaData]): Either[List[Error], GenericRecord] =
+    schemaData.flatMap { schema =>
+      encoder.apply(a, schema, false) match {
+        case Right(gr: GenericRecord) => Right(gr)
+        case Left(l: List[_])         => l.asInstanceOf[List[Error]].asLeft[GenericRecord]
+        case _                        => List(Error("shit")).asLeft[GenericRecord]
+      }
+    }
 
   def combine[A](ctx: CaseClass[Typeclass, A]): Encoder[A] =
     new Encoder[A] {
@@ -57,6 +68,12 @@ object Encoder {
       val DOT        = "."
       val recordName = namespace.concat(DOT).concat(name)
 
+      def errorStr[C](param: String, value: C): String =
+        "Encoding failed for param '".concat(param).concat("' with value '").concat(value + "'")
+
+      def errorStr[C, D](param: String, value: C, originalMsg: D): String =
+        errorStr(param, value).concat(", original message '").concat(originalMsg + "'")
+
       override def apply(value: A, sd: SchemaData, failFast: Boolean): Either[List[Error], GenericRecord] =
         sd.schemaMap.get(recordName) match {
           case None => Left(List(Error(s"couldn't find a schema field for " + recordName)))
@@ -69,19 +86,19 @@ object Encoder {
             if (!failFast) {
               ctx.parameters.foreach { param =>
                 if (fields.contains(param.label)) {
-                  fields -= (param.label)
-                  fields.length
                   val paramValue = param.dereference(value)
                   try {
                     param.typeclass.apply(param.dereference(value), sd, failFast) match {
-                      case Left(v)  => gr.put(cnt, v)
                       case Right(v) => gr.put(cnt, v)
+                      case Left(Error(msg)) =>
+                        errors += Error(errorStr(param.label, paramValue, msg))
                       case Error(_) => ()
                       case other    => gr.put(cnt, other)
                     }
                   } catch {
                     case scala.util.control.NonFatal(_) =>
-                      errors += Error("Encoding failed for param:" + param.label + " with value:" + paramValue)
+                      println("here!")
+                      errors += Error(errorStr(param.label, paramValue))
                       hasErrors = true
                   }
                   cnt = cnt + 1
@@ -92,12 +109,9 @@ object Encoder {
               while (it.hasNext && !hasErrors) {
                 val param = it.next
                 if (fields.contains(param.label)) {
-                  fields -= (param.label)
-                  fields.length
                   val paramValue = param.dereference(value)
                   try {
                     param.typeclass.apply(param.dereference(value), sd, failFast) match {
-                      case Left(v)  => gr.put(cnt, v)
                       case Right(v) => gr.put(cnt, v)
                       case Error(_) => ()
                       case other    => gr.put(cnt, other)
