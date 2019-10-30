@@ -14,11 +14,11 @@ import shapeless.{:+:, CNil, Coproduct}
 
 import scala.reflect.runtime.universe._
 
-protected trait SchemaBuilder[A] {
+trait SchemaBuilder[A] {
   def schema: Result[AvroSchemaADT]
 }
 
-protected object SchemaBuilder {
+object SchemaBuilder {
 
   def apply[A](implicit avroSchema: SchemaBuilder[A]) = avroSchema
 

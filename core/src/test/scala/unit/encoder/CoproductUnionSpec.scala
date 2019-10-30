@@ -1,12 +1,12 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
-import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import shapeless.{:+:, CNil, Inl, Inr}
 import unit.utils.UnitSpecBase
 import RunRoundTripAssert._
+import com.rauchenberg.avronaut.encoder.Encoder
 
 class CoproductUnionSpec extends UnitSpecBase {
 

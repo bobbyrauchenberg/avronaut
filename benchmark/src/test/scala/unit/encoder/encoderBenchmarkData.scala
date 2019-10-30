@@ -18,6 +18,15 @@ trait EncoderBenchmarkDataManyStrings extends RandomDataGenerator {
   val nestedStrList: Gen[List[List[String]]] = listOfN[List[String]](10)(genStrList)
   val nestedIntList: Gen[List[List[Int]]]    = listOfN[List[Int]](10)(genIntList)
 
+  val stringIntListPair: Gen[(String, List[Int])] = for {
+    il  <- genIntList
+    str <- genSizedStr
+  } yield (str, il)
+
+  val mapStringInts: Gen[Map[String, List[Int]]] = for {
+    map <- listOfN[(String, List[Int])](1000)(stringIntListPair)
+  } yield map.toMap
+
   val innerNested: Gen[List[List[InnerNested]]] = for {
     sl  <- nestedStrList
     si  <- nestedIntList
@@ -31,11 +40,12 @@ trait EncoderBenchmarkDataManyStrings extends RandomDataGenerator {
     field3IntList <- genIntListField3
     innerNested   <- innerNested
     nested        <- Gen.const(Nested(field1String, innerNested, field3IntList))
-  } yield RecordWithNestedCaseClasses(nested))
+    map           <- mapStringInts
+  } yield RecordWithNestedCaseClasses(nested, map))
 
   case class InnerNested(field1: List[List[String]], field2: List[List[Int]])
   case class Nested(field1: String, field2: List[List[InnerNested]], field3: List[Int])
-  case class RecordWithNestedCaseClasses(field: Nested)
+  case class RecordWithNestedCaseClasses(field: Nested, field2: Map[String, List[Int]])
 
   def testData: List[RecordWithNestedCaseClasses] = {
     (1 to 100).map { _ =>
@@ -53,9 +63,19 @@ trait EncoderBenchmarkDataNoStrings extends RandomDataGenerator {
   implicit val writerSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses]
 
   val genChar: Gen[Char]                  = Gen.alphaChar
+  val genSizedStr: Gen[String]            = stringOfN(30)(Arbitrary(genChar))
   val genIntList: Gen[List[Int]]          = listOfN[Int](30)(Gen.posNum[Int])
   val genIntListField: Gen[List[Int]]     = listOfN[Int](5000)(Gen.posNum[Int])
   val nestedIntList: Gen[List[List[Int]]] = listOfN[List[Int]](20)(genIntList)
+
+  val stringIntListPair: Gen[(String, List[Int])] = for {
+    il  <- genIntList
+    str <- genSizedStr
+  } yield (str, il)
+
+  val mapStringInts: Gen[Map[String, List[Int]]] = for {
+    map <- listOfN[(String, List[Int])](1000)(stringIntListPair)
+  } yield map.toMap
 
   val innerNested: Gen[List[List[InnerNested]]] = for {
     si  <- nestedIntList
@@ -68,11 +88,12 @@ trait EncoderBenchmarkDataNoStrings extends RandomDataGenerator {
     field2IntList <- genIntListField
     innerNested   <- innerNested
     nested        <- Gen.const(Nested(innerNested, field2IntList))
-  } yield RecordWithNestedCaseClasses(nested))
+    map           <- mapStringInts
+  } yield RecordWithNestedCaseClasses(nested, map))
 
   case class InnerNested(field1: List[List[Int]])
   case class Nested(field1: List[List[InnerNested]], field2: List[Int])
-  case class RecordWithNestedCaseClasses(field: Nested)
+  case class RecordWithNestedCaseClasses(field: Nested, field2: Map[String, List[Int]])
 
   def testData: List[RecordWithNestedCaseClasses] = {
     (1 to 100).map { _ =>
@@ -90,7 +111,9 @@ trait EncoderBenchmarkSimpleRecord extends RandomDataGenerator {
 
   implicit val stringSize: Arbitrary[String] = Arbitrary(stringOfN(10))
 
-  case class SimpleRecord(s: String, i: Int, b: Boolean, f: Float, d: Double, l: Long)
+  implicit val genIntList: Gen[List[Int]] = listOfN[Int](30)(Gen.posNum[Int])
+
+  case class SimpleRecord(s: String, i: Int, b: Boolean, f: Float, d: Double, l: Long, list: List[Int])
 
   implicit val writerSchema = AvroSchema.toSchema[SimpleRecord]
 

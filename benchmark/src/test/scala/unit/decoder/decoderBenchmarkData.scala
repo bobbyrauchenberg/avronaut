@@ -14,13 +14,19 @@ trait DecoderBenchmarkNestedRecordData extends RandomDataGenerator {
   implicit val nestedSchema = AvroSchema.toSchema[Nested].data.right.get.schema
   implicit val innerSchema  = AvroSchema.toSchema[InnerNested].data.right.get.schema
 
-  val genChar: Gen[Char]                     = Gen.alphaChar
-  val gen50Str: Gen[String]                  = stringOfN(30)(Arbitrary(genChar))
-  val genStrList: Gen[List[String]]          = listOfN[String](15)(gen50Str)
-  val genIntList: Gen[List[Int]]             = listOfN[Int](15)(Gen.posNum[Int])
-  val genIntListField3: Gen[List[Int]]       = listOfN[Int](15)(Gen.posNum[Int])
-  val nestedStrList: Gen[List[List[String]]] = listOfN[List[String]](10)(genStrList)
-  val nestedIntList: Gen[List[List[Int]]]    = listOfN[List[Int]](10)(genIntList)
+  val genChar: Gen[Char]            = Gen.alphaChar
+  val genSizedStr: Gen[String]      = stringOfN(30)(Arbitrary(genChar))
+  val genStrList: Gen[List[String]] = listOfN[String](15)(genSizedStr)
+  val genIntList: Gen[List[Int]]    = listOfN[Int](15)(Gen.posNum[Int])
+
+  val stringIntListPair: Gen[(String, List[Int])] = for {
+    il  <- genIntList
+    str <- genSizedStr
+  } yield (str, il)
+
+  val mapStringInts: Gen[Map[String, List[Int]]] = for {
+    map <- listOfN[(String, List[Int])](1000)(stringIntListPair)
+  } yield map.toMap
 
   val innerNested: Gen[List[InnerNested]] = for {
     sl <- stringOfN(30)(Arbitrary(genChar))
@@ -34,11 +40,12 @@ trait DecoderBenchmarkNestedRecordData extends RandomDataGenerator {
     field3IntList <- Gen.posNum[Int]
     innerNested   <- innerNested
     nested        <- Gen.const(Nested(field1String, innerNested, field3IntList))
-  } yield RecordWithNestedCaseClasses(nested))
+    intMap        <- mapStringInts
+  } yield RecordWithNestedCaseClasses(nested, intMap))
 
   case class InnerNested(field1: String, field2: Int)
   case class Nested(field1: String, field2: List[InnerNested], field3: Int)
-  case class RecordWithNestedCaseClasses(field: Nested)
+  case class RecordWithNestedCaseClasses(field: Nested, field2: Map[String, List[Int]])
 
   def testData: List[GenericRecord] = {
     (1 to 100).map { _ =>
@@ -58,6 +65,7 @@ trait DecoderBenchmarkNestedRecordData extends RandomDataGenerator {
       nested.set("field3", data.field.field3)
 
       record.put(0, nested.build)
+      record.put(1, data.field2.asJava)
       record.asInstanceOf[GenericRecord]
     }
   }.toList

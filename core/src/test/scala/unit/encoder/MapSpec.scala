@@ -1,9 +1,11 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
+import org.scalacheck.Arbitrary
 import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 
@@ -76,9 +78,21 @@ class MapSpec extends UnitSpecBase {
   }
 
   "do a roundtrip encode and decode" in new TestContext {
-    runRoundTrip[WriterRecordWithMapOfRecord]
-    runRoundTrip[WriterRecordWithMap]
-    runRoundTrip[WriterRecordWithList]
+    implicitly[Arbitrary[WriterRecordWithMapOfRecord]]
+    runRoundTrip[WriterRecordWithMapOfRecord](
+      implicitly[Arbitrary[WriterRecordWithMapOfRecord]],
+      writerRecordWithMapOfRecordEncoder,
+      writerRecordWithMapOfRecordSchema,
+      writerRecordWithMapOfRecordDecoder
+    )
+    runRoundTrip[WriterRecordWithMap](implicitly[Arbitrary[WriterRecordWithMap]],
+                                      writeRecordWithMapEncoder,
+                                      writerRecordWithMapSchema,
+                                      writerRecordWithMapDecoder)
+    runRoundTrip[WriterRecordWithList](implicitly[Arbitrary[WriterRecordWithList]],
+                                       writerRecordWithListEncoder,
+                                       writerRecordWithListSchema,
+                                       writerRecordWithListDecoder)
   }
 
   case class WriterRecordWithMap(writerField: String, field1: Map[String, Boolean], field2: Int)
@@ -90,15 +104,19 @@ class MapSpec extends UnitSpecBase {
   case class WriterRecordWithList(writerField: Boolean, field1: String, field2: Map[String, List[Int]])
 
   trait TestContext {
-    implicit val writeRecordWithMapEncoder = Encoder[WriterRecordWithMap]
-    implicit val writerRecordWithMapSchema = AvroSchema.toSchema[WriterRecordWithMap]
+    implicit val writeRecordWithMapEncoder  = Encoder[WriterRecordWithMap]
+    implicit val writerRecordWithMapSchema  = AvroSchema.toSchema[WriterRecordWithMap]
+    implicit val writerRecordWithMapDecoder = Decoder[WriterRecordWithMap]
 
-    implicit val writerRecordWithMapOfRecordEncoder = Encoder[WriterRecordWithMapOfRecord]
+    implicit val writerRecordWithMapOfRecordEncoder =
+      Encoder[WriterRecordWithMapOfRecord]
     implicit val writerRecordWithMapOfRecordSchema =
       AvroSchema.toSchema[WriterRecordWithMapOfRecord]
+    implicit val writerRecordWithMapOfRecordDecoder = Decoder[WriterRecordWithMapOfRecord]
 
     implicit val writerRecordWithListEncoder = Encoder[WriterRecordWithList]
     implicit val writerRecordWithListSchema =
       AvroSchema.toSchema[WriterRecordWithList]
+    implicit val writerRecordWithListDecoder = Decoder[WriterRecordWithList]
   }
 }

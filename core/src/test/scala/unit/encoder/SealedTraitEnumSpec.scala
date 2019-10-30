@@ -1,13 +1,13 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import SealedTraitSpec.{EnumRecord, SealedTraitEnumWithDefault}
+import SealedTraitEnumSpec.{EnumRecord, SealedTraitEnumWithDefault}
+import com.rauchenberg.avronaut.encoder.Encoder
 import unit.utils.UnitSpecBase
 
-class SealedTraitSpec extends UnitSpecBase {
+class SealedTraitEnumSpec extends UnitSpecBase {
 
   "encoder" should {
 
@@ -45,7 +45,7 @@ class SealedTraitSpec extends UnitSpecBase {
 
 }
 
-object SealedTraitSpec {
+object SealedTraitEnumSpec {
 
   sealed trait A
   case object B extends A

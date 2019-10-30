@@ -2,12 +2,12 @@ package unit.encoder
 
 import cats.syntax.either._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import unit.utils.UnitSpecBase
 import RunRoundTripAssert._
 import EitherUnionSpec.WriterRecordWithEnum
+import com.rauchenberg.avronaut.encoder.Encoder
 
 import scala.collection.JavaConverters._
 

@@ -4,7 +4,7 @@ import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import cats.implicits._
 import com.rauchenberg.avronaut.common._
-import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
+import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.getAnnotations
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
@@ -12,7 +12,6 @@ import shapeless.{:+:, CNil, Coproduct, Inr}
 
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
-import scala.util.control.NoStackTrace
 
 trait Decoder[A] {
 
@@ -31,28 +30,23 @@ object Decoder {
   def decode[A](genericRecord: GenericRecord, decoder: Decoder[A]): Result[A] =
     decoder("", genericRecord)
 
-  case object StacklessException extends NoStackTrace
-
   def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
     val params = ctx.parameters.toArray
 
     override def apply[B](value: B, genericRecord: GenericRecord): Result[A] = {
 
-      val annotations       = getAnnotations(ctx.annotations)
-      val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
-
       val it     = params.iterator
       var failed = false
       var cnt    = 0
-      var arr    = new Array[Any](params.size)
+      val arr    = new Array[Any](params.size)
 
       while (it.hasNext && !failed) {
         val param            = it.next()
         val paramAnnotations = getAnnotations(param.annotations)
         val paramName        = paramAnnotations.name(param.label)
 
-        val res = valueOrDefault(
+        val res: Result[param.PType] = valueOrDefault(
           try {
             genericRecord.get(paramName) match {
               case gr: GenericRecord =>
@@ -61,14 +55,16 @@ object Decoder {
                 param.typeclass.apply(genericRecord.get(paramName), genericRecord)
             }
           } catch {
-            case scala.util.control.NonFatal(t) =>
+            case scala.util.control.NonFatal(_) =>
               Left(Error("failed decoding param : " + paramName))
           },
           param.default
         )
-        if (!res.isRight) failed = true
-        else arr(cnt) = res.right.get
-        cnt = cnt + 1
+        if (res.isLeft) failed = true
+        else {
+          arr(cnt) = res.right.get
+          cnt = cnt + 1
+        }
       }
       if (!failed) Right(ctx.rawConstruct(arr))
       else Left(Error("failed"))
@@ -89,8 +85,7 @@ object Decoder {
     (value, default) match {
       case (Right(value), _)        => Right(value)
       case (Left(_), Some(default)) => Right(default)
-      case other =>
-        Left(Error("blah"))
+      case _                        => Left(Error("blah"))
     }
 
   def error[A](expected: String, actual: A): Either[Error, Nothing] = Left(Error(s"expected $expected, got $actual"))
@@ -179,20 +174,38 @@ object Decoder {
 
   implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] =
     new Decoder[Map[String, A]] {
-      override def apply[B](value: B, genericRecord: GenericRecord): Result[Map[String, A]] =
-        value
+      override def apply[B](value: B, genericRecord: GenericRecord): Result[Map[String, A]] = {
+        var cnt      = 0
+        var isFailed = false
+
+        val map = value
           .asInstanceOf[java.util.Map[String, A]]
-          .asScala
-          .toList
-          .traverse {
-            case (k, v) =>
-              v match {
-                case gr: GenericRecord =>
-                  elementDecoder(gr, gr).map(k -> _)
-                case _ => elementDecoder(v, genericRecord).map(k -> _)
+
+        val it = map.asScala.toArray.iterator
+
+        val arr = new Array[(String, A)](map.size)
+
+        while (it.hasNext && !isFailed) {
+          val (k, v) = it.next
+          v match {
+            case gr: GenericRecord =>
+              elementDecoder(gr, gr) match {
+                case Left(_) =>
+                  isFailed = true
+                case Right(v) => arr(cnt) = (k -> v)
+              }
+            case _ =>
+              elementDecoder(v, genericRecord) match {
+                case Left(_)  => isFailed = true
+                case Right(v) => arr(cnt) = (k -> v)
               }
           }
-          .map(_.toMap)
+          cnt = cnt + 1
+        }
+        if (isFailed) Left(Error("couldn't decode map"))
+        else Right(arr.toMap)
+      }
+
     }
 
   implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = new Decoder[OffsetDateTime] {

@@ -12,6 +12,7 @@ trait NestedRecordDecoding extends DecoderBenchmarkNestedRecordData {
 
   val avroSchema = AvroSchema.toSchema[RecordWithNestedCaseClasses]
   val decoder    = Decoder[RecordWithNestedCaseClasses]
+
   @Benchmark
   def runNestedDecoder: List[Result[RecordWithNestedCaseClasses]] =
     dataSet.map { element =>
