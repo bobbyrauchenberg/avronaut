@@ -56,7 +56,7 @@ object SchemaHelper {
       case default                         => default
     }
 
-  def makeSchemaField[A](field: Field[A]): Result[Schema.Field] =
+  def makeSchemaField[A](field: Field[A]): Results[Schema.Field] =
     field match {
       case Field(name, doc, Some(default: Map[_, _]), schema) => schemaField(name, schema, doc, default.asJava)
       case Field(name, doc, Some(default: Seq[_]), schema)    => schemaField(name, schema, doc, default.asJava)

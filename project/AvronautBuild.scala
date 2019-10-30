@@ -18,6 +18,7 @@ object AvronautBuild {
     resolvers ++= Seq(Resolver.sonatypeRepo("releases"),
     Resolver.sonatypeRepo("snapshots"),
       "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"),
+    crossScalaVersions := Seq("2.12.8", "2.13.0"),
     scalacOptions ++= Seq(
         "-deprecation",                      // Emit warning and location for usages of deprecated APIs.
         "-encoding", "utf-8",                // Specify character encoding used by source files.
@@ -65,7 +66,6 @@ object AvronautBuild {
         "-Ywarn-unused:privates",            // Warn if a private member is unused.
         "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
     ),
-    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
     addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.3.7")
   )
 

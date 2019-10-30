@@ -2,7 +2,7 @@ package unit.encoder
 
 import java.util.concurrent.TimeUnit
 
-import com.rauchenberg.avronaut.common.Result
+import com.rauchenberg.avronaut.common.Results
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.sksamuel.avro4s.{DefaultFieldMapper, Encoder => Avro4SEncoder}
 import org.apache.avro.generic.GenericRecord
@@ -13,7 +13,7 @@ trait AvronautEncodingManyStrings extends EncoderBenchmarkDataManyStrings {
   val encoder = Encoder[RecordWithNestedCaseClasses]
 
   @Benchmark
-  def runNestedEncoder: List[Result[GenericRecord]] =
+  def runNestedEncoder: List[Results[GenericRecord]] =
     dataSet.map { element =>
       Encoder.encode[RecordWithNestedCaseClasses](element, encoder, writerSchema.data)
     }
@@ -36,7 +36,7 @@ trait AvronautEncodingNoStrings extends EncoderBenchmarkDataNoStrings {
   val encoder = Encoder[RecordWithNestedCaseClasses]
 
   @Benchmark
-  def runNestedEncoder: List[Result[GenericRecord]] =
+  def runNestedEncoder: List[Results[GenericRecord]] =
     dataSet.map { element =>
       Encoder.encode[RecordWithNestedCaseClasses](element, encoder, writerSchema.data)
     }
@@ -58,7 +58,7 @@ trait AvronautSimpleRecord extends EncoderBenchmarkSimpleRecord {
   val encoder = Encoder[SimpleRecord]
 
   @Benchmark
-  def runNestedEncoder: List[Result[GenericRecord]] =
+  def runNestedEncoder: List[Results[GenericRecord]] =
     dataSet.map { element =>
       Encoder.encode[SimpleRecord](element, encoder, writerSchema.data)
     }

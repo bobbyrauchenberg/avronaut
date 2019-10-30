@@ -2,7 +2,7 @@ package unit.decoder
 
 import java.util.concurrent.TimeUnit
 
-import com.rauchenberg.avronaut.common.Result
+import com.rauchenberg.avronaut.common.Results
 import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import com.sksamuel.avro4s.{DefaultFieldMapper, SchemaFor, Decoder => Decoder4s}
@@ -14,7 +14,7 @@ trait NestedRecordDecoding extends DecoderBenchmarkNestedRecordData {
   val decoder    = Decoder[RecordWithNestedCaseClasses]
 
   @Benchmark
-  def runNestedDecoder: List[Result[RecordWithNestedCaseClasses]] =
+  def runNestedDecoder: List[Results[RecordWithNestedCaseClasses]] =
     dataSet.map { element =>
       Decoder.decode[RecordWithNestedCaseClasses](element, decoder)
     }
