@@ -34,7 +34,8 @@ object Dependencies {
     "com.danielasfregola"           %% "random-data-generator-magnolia" % "2.7" % Test,
     "com.danielasfregola"           %% "random-data-generator"          % "2.7",
     "com.ironcorelabs"              %% "cats-scalatest"                 % "2.4.1" % Test,
-    "com.47deg"                     %% "scalacheck-toolbox-datetime"    % "0.2.5" % Test
+    "com.47deg"                     %% "scalacheck-toolbox-datetime"    % "0.2.5" % Test,
+    "pl.project13.scala" % "sbt-jmh-extras" % "0.3.7"
   )
 
   def configureDependencies(extraDeps: Seq[ModuleID] = Seq.empty): Seq[Def.Setting[Seq[ModuleID]]] = Seq(

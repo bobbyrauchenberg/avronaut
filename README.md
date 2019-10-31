@@ -11,15 +11,6 @@ Inspired by Avro4S, Avronaut is aiming to offer safety (no exceptions, strongly 
 
 It also offers an error accumulation mode to help debugging issues with encoding and decoding
 
-## Schema Generation
-
-Auto-generate Avro schemas from case classes
-
-```scala
-case class RecordWithList(field: List[String])
-val schema: AvroSchema[RecordWithList] = AvroSchema[RecordWithList] = AvroSchema.toSchema[RecordWithList]
-```
-
 ## Decoder
 
 Decode an Avro GenericRecord to a case class
@@ -65,9 +56,9 @@ case class RecordWithUnion(field: Option[String])
 
 val schema = AvroSchema.toSchema[RecordWithUnion]
 val encoder = Encoder[RecordWithUnion]
-val record = RecordWithUnion("cupcat".some)
+val toEncode = RecordWithUnion("cupcat".some)
 
-Encoder.encode[RecordWithUnion](record, encoder, schema.data) // Right({"field":"cupcat"})
+Encoder.encode[RecordWithUnion](toEncode, encoder, schema.data) // Right({"field":"cupcat"})
 ```
 
 As with the decoder, you can encode a case class to an Avro GenericRecord accumulating all failures

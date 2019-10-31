@@ -15,6 +15,7 @@ import shapeless.{:+:, CNil, Coproduct, Inl, Inr}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
+import com.rauchenberg.avronaut.common.ReflectionHelpers._
 import scala.reflect.runtime.universe._
 
 trait Encoder[A] {
@@ -156,7 +157,6 @@ object Encoder {
 
   def dispatch[A : WeakTypeTag](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Encoder[A] {
     override type Ret = Any
-    import com.rauchenberg.avronaut.common.ReflectionHelpers._
 
     override def apply(value: A, schemaData: SchemaData, failFast: Boolean): Ret =
       ctx.dispatch(value) { subtype =>

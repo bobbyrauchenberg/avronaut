@@ -14,6 +14,8 @@ import shapeless.{:+:, CNil, Coproduct, Inr}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
+import com.rauchenberg.avronaut.common.ReflectionHelpers._
+import scala.reflect.runtime.universe._
 
 trait Decoder[A] {
 
@@ -127,13 +129,28 @@ object Decoder {
     }
   }
 
-  def dispatch[A](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
+  def dispatch[A : WeakTypeTag](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[A] =
+    val emptyFail = Left(Nil)
+
+    def deriveEnum[B](value: B) =
       ctx.subtypes
         .find(_.typeName.short == value.toString)
         .map(st => ReflectionHelpers.toCaseObject[A](st.typeName.full))
-        .fold[Results[A]](Left(List(Error("no"))))(Right(_))
+        .fold[Results[A]](emptyFail)(Right(_))
+
+    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[A] =
+      if (isEnum) deriveEnum(value)
+      else {
+        value match {
+          case gr: GenericRecord =>
+            ctx.subtypes
+              .find(_.typeName.full == gr.getSchema.getFullName)
+              .map(_.typeclass.apply(value, genericRecord, failFast))
+              .getOrElse(emptyFail)
+          case _ => deriveEnum(value)
+        }
+      }
   }
 
   private def valueOrDefault[A, B](value: Results[B], default: Option[B], paramName: String, origValue: A): Results[B] =

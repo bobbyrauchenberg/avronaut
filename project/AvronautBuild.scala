@@ -10,7 +10,7 @@ object AvronautBuild {
     scalaVersion := "2.12.10"
   )
 
-  def isTravis = System.getenv("TRAVIS") == "true"
+  def isTravis = System.getenv("TRAVIS") == "true" 
 
   def travisBuildNumber = System.getenv("TRAVIS_BUILD_NUMBER")
 
@@ -18,7 +18,7 @@ object AvronautBuild {
     resolvers ++= Seq(Resolver.sonatypeRepo("releases"),
     Resolver.sonatypeRepo("snapshots"),
       "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"),
-    crossScalaVersions := Seq("2.12.8", "2.13.0"),
+    crossScalaVersions := Seq("2.12.10", "2.13.0"),
     scalacOptions ++= Seq(
         "-deprecation",                      // Emit warning and location for usages of deprecated APIs.
         "-encoding", "utf-8",                // Specify character encoding used by source files.
