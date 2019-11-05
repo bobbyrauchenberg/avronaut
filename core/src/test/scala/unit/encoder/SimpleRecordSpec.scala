@@ -23,8 +23,7 @@ class SimpleRecordSpec extends UnitSpecBase {
 
         Encoder.encode[TestRecord](
           record,
-          testRecordEncoder,
-          testRecordSchema.data
+          testRecordEncoder
         ) should beRight(expected.asInstanceOf[GenericRecord])
       }
     }
@@ -42,8 +41,7 @@ class SimpleRecordSpec extends UnitSpecBase {
 
         Encoder.encode[NestedRecord](
           record,
-          nestedRecordEncoder,
-          nestedRecordSchema.data
+          nestedRecordEncoder
         ) should beRight(expected.asInstanceOf[GenericRecord])
       }
     }

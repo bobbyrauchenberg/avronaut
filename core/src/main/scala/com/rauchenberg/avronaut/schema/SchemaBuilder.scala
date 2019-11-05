@@ -104,6 +104,10 @@ object SchemaBuilder {
     override def schema: Results[AvroSchemaADT] = elementSchema.schema.map(SchemaList(_))
   }
 
+  implicit def setSchema[A](implicit elementSchema: SchemaBuilder[A]) = new SchemaBuilder[Set[A]] {
+    override def schema: Results[AvroSchemaADT] = listSchema[A].schema
+  }
+
   implicit def seqSchema[A](implicit elementSchema: SchemaBuilder[A]) = new SchemaBuilder[Seq[A]] {
     override def schema: Results[AvroSchemaADT] = elementSchema.schema.map(SchemaList(_))
   }

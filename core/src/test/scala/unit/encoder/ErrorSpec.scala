@@ -1,10 +1,9 @@
 package unit.encoder
 
-import com.rauchenberg.avronaut.encoder.Encoder
-import com.rauchenberg.avronaut.schema.AvroSchema
-import unit.utils.UnitSpecBase
-import DodgyEncoders._
 import com.rauchenberg.avronaut.common.Error
+import com.rauchenberg.avronaut.encoder.Encoder
+import unit.encoder.DodgyEncoders._
+import unit.utils.UnitSpecBase
 
 class ErrorSpec extends UnitSpecBase {
 
@@ -12,9 +11,7 @@ class ErrorSpec extends UnitSpecBase {
 
     "be able to accumulate errors" in {
 
-      val record = ManyFields(1, "2", true, List(123), 4D)
-      val schema = AvroSchema.toSchema[ManyFields]
-
+      val record  = ManyFields(1, "2", true, List(123), 4D)
       val encoder = Encoder[ManyFields]
 
       val expected = List(
@@ -23,34 +20,30 @@ class ErrorSpec extends UnitSpecBase {
         Error("Encoding failed for param 'field4' with value 'List(123)'")
       )
 
-      Encoder.encodeAccumulating[ManyFields](record, encoder, schema.data) should beLeft(expected)
+      Encoder.encodeAccumulating[ManyFields](record, encoder) should beLeft(expected)
     }
 
     "fail fast by default" in {
 
-      val record = ManyFields(1, "2", true, List(123), 4D)
-      val schema = AvroSchema.toSchema[ManyFields]
-
+      val record  = ManyFields(1, "2", true, List(123), 4D)
       val encoder = Encoder[ManyFields]
 
       val expected = List(
         Error(s"Encoding failed for param 'field1' with value '1'")
       )
 
-      Encoder.encode[ManyFields](record, encoder, schema.data) should beLeft(expected)
+      Encoder.encode[ManyFields](record, encoder) should beLeft(expected)
     }
 
     "fail fast for an error returned by a typeclass instance" in {
-      val record = SingleField(true)
-      val schema = AvroSchema.toSchema[SingleField]
-
+      val record  = SingleField(true)
       val encoder = Encoder[SingleField]
 
       val expected = List(
         Error(s"Encoding failed for param 'field' with value 'true', original message 'boolean blew up'"),
       )
 
-      Encoder.encode[SingleField](record, encoder, schema.data) should beLeft(expected)
+      Encoder.encode[SingleField](record, encoder) should beLeft(expected)
     }
 
   }

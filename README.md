@@ -3,11 +3,12 @@
 
 # Avronaut
 
-Scala Avro library
+Scala Avro library, currently in active development
 
-Currently in active development
-
-Inspired by Avro4S, Avronaut is aiming to offer safety (no exceptions, strongly typed client APIS), whilst being simple to use and fast for encoding and decoding. 
+Inspired by Avro4S, Avronaut is aiming to offer
+ - Safety. It doesn't throw exceptions, and offers well typed client APIS
+ - Simplicity. There are only 2 APIS, Encoder and Decoder
+ - Speed. The aim is to make it as fast, or in some cases faster, than Avro4S
 
 It also offers an error accumulation mode to help debugging issues with encoding and decoding
 
@@ -19,54 +20,48 @@ Decode an Avro GenericRecord to a case class
 case class RecordWithMultipleFields(field1: Boolean, field2: String, field3: Int)
 
 val decoder = Decoder[RecordWithMultipleFields]
-val genericRecord = ...
 
-Decoder.decode[RecordWithMultipleFields](genericRecord, decoder) //Right(RecordWithMultipleFields(true, "some string", 123))
-```
-
-Decode an Avro GenericRecord to a case class accumulating all failures
-
-```scala
-case class RecordWithMultipleFields(field1: Boolean, field2: String, field3: Int)
-
-val decoder = Decoder[RecordWithMultipleFields]
-val genericRecord = ...
-
-Decoder.decodeAccumulating[RecordWithMultipleFields](genericRecord, decoder) 
-```
-
-If there are any errors Avronaut will return a List describing the fields which failed. In this case if `field1` and `field3` fail that will be described, along with a printout of the GenericRecord itself
-
-```scala
-Left(
-  List(
-    Error("Decoding failed for param 'field1' with value '123' from the GenericRecord"),
-    Error("Decoding failed for param 'field3' with value 'cupcat' from the GenericRecord"),
-    Error("The failing GenericRecord was '{"field1" : "123", "field2" : "cupcat", "field3" : "cupcat" }))
+Decoder.decode[RecordWithMultipleFields](someGenericRecord, decoder) 
 ```
 
 ## Encoder
 
 Encode a case class to an Avro GenericRecord
 
-Encoding needs a schema to generate a GenericRecord from
-
 ```scala
 case class RecordWithUnion(field: Option[String])
 
-val schema = AvroSchema.toSchema[RecordWithUnion]
-val encoder = Encoder[RecordWithUnion]
+val encoder = Encoder.toEncoder[RecordWithUnion]
 val toEncode = RecordWithUnion("cupcat".some)
 
-Encoder.encode[RecordWithUnion](toEncode, encoder, schema.data) // Right({"field":"cupcat"})
+Encoder.encode[RecordWithUnion](toEncode, encoder) 
 ```
 
-As with the decoder, you can encode a case class to an Avro GenericRecord accumulating all failures
+## Error Accumulation
+
+To help debug decode and encode failures Avronuat offers apis which accumulate errors, in the style of Validation
 
 ```scala
-Encoder.encodeAccumulating[RecordWithUnion](record, encoder, schema.data) 
+case class RecordWithMultipleFields(field1: Boolean, field2: String, field3: Int)
+
+val decoder = Decoder[RecordWithMultipleFields]
+
+Decoder.decodeAccumulating[RecordWithMultipleFields](someGenericRecord, decoder) 
 ```
 
-Again, this will return a list describing the fields which failed
+If there are any errors Avronaut will return a List of the fields which failed. In this case if `field1` and `field3` fail that will be described, along with a printout of the provided GenericRecord
+
+```scala
+Left(
+  List(
+    Error("Decoding failed for param 'field1' with value '123' from the GenericRecord"),
+    Error("Decoding failed for param 'field3' with value 'cupcat' from the GenericRecord"),
+    Error("The failing GenericRecord was '{"field1" : "123", "field2" : "cupcat", "field3" : "cupcat"})
+  )
+)  
+```
+
+
+Similarly `Encoder` offers the `encodeAccumulating` function which will return a list describing fields which failed
 
 

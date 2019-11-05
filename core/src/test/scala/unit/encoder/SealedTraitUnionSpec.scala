@@ -23,7 +23,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
             bGR.put(0, field)
             genericRecord.set("field", bGR)
         }
-        Encoder.encode[XWrapper](record, xEncoder, xSchema.data) should
+        Encoder.encode[XWrapper](record, xEncoder) should
           beRight(genericRecord.build.asInstanceOf[GenericRecord])
       }
     }

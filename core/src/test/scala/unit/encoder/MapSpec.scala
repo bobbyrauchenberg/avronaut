@@ -24,8 +24,7 @@ class MapSpec extends UnitSpecBase {
 
       val expected = recordBuilder.build()
 
-      Encoder.encode(writerRecord, writeRecordWithMapEncoder, writerRecordWithMapSchema.data) should beRight(
-        expected.asInstanceOf[GenericRecord])
+      Encoder.encode(writerRecord, writeRecordWithMapEncoder) should beRight(expected.asInstanceOf[GenericRecord])
 
     }
   }
@@ -53,7 +52,7 @@ class MapSpec extends UnitSpecBase {
         recordBuilder.set("field1", writerRecord.field1)
         recordBuilder.set("field2", nestedMap)
 
-        Encoder.encode(writerRecord, writerRecordWithMapOfRecordEncoder, writerRecordWithMapOfRecordSchema.data) should beRight(
+        Encoder.encode(writerRecord, writerRecordWithMapOfRecordEncoder) should beRight(
           recordBuilder.build.asInstanceOf[GenericRecord])
       }
     }
@@ -72,7 +71,7 @@ class MapSpec extends UnitSpecBase {
       recordBuilder.set("field1", writerRecord.field1)
       recordBuilder.set("field2", javaCollection)
 
-      Encoder.encode(writerRecord, writerRecordWithListEncoder, writerRecordWithListSchema.data) should beRight(
+      Encoder.encode(writerRecord, writerRecordWithListEncoder) should beRight(
         recordBuilder.build.asInstanceOf[GenericRecord])
     }
   }
@@ -82,16 +81,13 @@ class MapSpec extends UnitSpecBase {
     runRoundTrip[WriterRecordWithMapOfRecord](
       implicitly[Arbitrary[WriterRecordWithMapOfRecord]],
       writerRecordWithMapOfRecordEncoder,
-      writerRecordWithMapOfRecordSchema,
       writerRecordWithMapOfRecordDecoder
     )
     runRoundTrip[WriterRecordWithMap](implicitly[Arbitrary[WriterRecordWithMap]],
                                       writeRecordWithMapEncoder,
-                                      writerRecordWithMapSchema,
                                       writerRecordWithMapDecoder)
     runRoundTrip[WriterRecordWithList](implicitly[Arbitrary[WriterRecordWithList]],
                                        writerRecordWithListEncoder,
-                                       writerRecordWithListSchema,
                                        writerRecordWithListDecoder)
   }
 

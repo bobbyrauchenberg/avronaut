@@ -24,8 +24,7 @@ class LogicalTypeSpec extends UnitSpecBase {
         genericRecord.put(1, record.field.toString)
         genericRecord.put(2, record.writerField2)
 
-        Encoder.encode[RecordWithUUID](record, encoder, schema.data) should beRight(
-          genericRecord.asInstanceOf[GenericRecord])
+        Encoder.encode[RecordWithUUID](record, encoder) should beRight(genericRecord.asInstanceOf[GenericRecord])
       }
     }
 
@@ -39,8 +38,7 @@ class LogicalTypeSpec extends UnitSpecBase {
         genericRecord.put(1, record.writerField2)
         genericRecord.put(2, record.field.toInstant.toEpochMilli)
 
-        Encoder.encode[RecordWithDateTime](record, encoder, schema.data) should beRight(
-          genericRecord.asInstanceOf[GenericRecord])
+        Encoder.encode[RecordWithDateTime](record, encoder) should beRight(genericRecord.asInstanceOf[GenericRecord])
       }
     }
 
@@ -54,7 +52,7 @@ class LogicalTypeSpec extends UnitSpecBase {
         genericRecord.put(1, record.writerField2)
         genericRecord.put(2, record.field.toEpochMilli)
 
-        Encoder.encode[RecordWithInstant](record, encoder, schema.data)
+        Encoder.encode[RecordWithInstant](record, encoder)
       }
     }
 
@@ -66,8 +64,7 @@ class LogicalTypeSpec extends UnitSpecBase {
       val genericRecord = new GenericData.Record(schema.data.value.schema)
       genericRecord.put(0, defaultDateTimeLong)
 
-      Encoder.encode(RecordWithDateTimeDefault(), encoder, schema.data) should beRight(
-        genericRecord.asInstanceOf[GenericRecord])
+      Encoder.encode(RecordWithDateTimeDefault(), encoder) should beRight(genericRecord.asInstanceOf[GenericRecord])
     }
   }
 

@@ -19,8 +19,8 @@ object RunAssert extends Matchers with EitherMatchers with EitherValues {
     Decoder.decode[B](record, decoder) should beRight(expected)
   }
 
-  def runEncodeAssert[A](value: A, expected: GenericRecord)(implicit encoder: Encoder[A], schema: AvroSchema[A]) =
-    Encoder.encode(value, encoder, schema.data) should beRight(expected)
+  def runEncodeAssert[A](value: A, expected: GenericRecord)(implicit encoder: Encoder[A]) =
+    Encoder.encode(value, encoder) should beRight(expected)
 
   def runListAssert[A, B](fieldValue: Seq[A], expected: B)(implicit
                                                            schema: AvroSchema[B],

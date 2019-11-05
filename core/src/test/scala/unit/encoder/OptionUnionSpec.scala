@@ -20,7 +20,8 @@ class OptionUnionSpec extends UnitSpecBase {
 
         genericRecord.put(0, record.field.orNull)
 
-        Encoder.encode[RecordWithUnion](record, recordWithUnionEncoder, recordWithUnionSchema.data) should beRight(
+        Encoder
+          .encode[RecordWithUnion](record, recordWithUnionEncoder) should beRight(
           genericRecord.asInstanceOf[GenericRecord])
       }
     }
@@ -43,8 +44,7 @@ class OptionUnionSpec extends UnitSpecBase {
 
         Encoder
           .encode[RecordWithUnionOfCaseclass](RecordWithUnionOfCaseclass(Some(record)),
-                                              recordWithUnionOfCaseClassEncoder,
-                                              recordWithUnionOfCaseClassSchema.data) should beRight(
+                                              recordWithUnionOfCaseClassEncoder) should beRight(
           recordBuilder.build.asInstanceOf[GenericRecord])
       }
     }
@@ -61,7 +61,7 @@ class OptionUnionSpec extends UnitSpecBase {
         }
 
         Encoder
-          .encode[RecordWithOptionalListCaseClass](r, unionWithListEncoder, unionWithListSchema.data) should beRight(
+          .encode[RecordWithOptionalListCaseClass](r, unionWithListEncoder) should beRight(
           builder.build.asInstanceOf[GenericRecord])
       }
     }

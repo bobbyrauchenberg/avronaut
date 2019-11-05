@@ -15,7 +15,7 @@ trait AvronautEncodingManyStrings extends EncoderBenchmarkDataManyStrings {
   @Benchmark
   def runNestedEncoder: List[Results[GenericRecord]] =
     dataSet.map { element =>
-      Encoder.encode[RecordWithNestedCaseClasses](element, encoder, writerSchema.data)
+      Encoder.encode[RecordWithNestedCaseClasses](element, encoder)
     }
 }
 
@@ -38,7 +38,7 @@ trait AvronautEncodingNoStrings extends EncoderBenchmarkDataNoStrings {
   @Benchmark
   def runNestedEncoder: List[Results[GenericRecord]] =
     dataSet.map { element =>
-      Encoder.encode[RecordWithNestedCaseClasses](element, encoder, writerSchema.data)
+      Encoder.encode[RecordWithNestedCaseClasses](element, encoder)
     }
 }
 
@@ -60,7 +60,7 @@ trait AvronautSimpleRecord extends EncoderBenchmarkSimpleRecord {
   @Benchmark
   def runNestedEncoder: List[Results[GenericRecord]] =
     dataSet.map { element =>
-      Encoder.encode[SimpleRecord](element, encoder, writerSchema.data)
+      Encoder.encode[SimpleRecord](element, encoder)
     }
 }
 

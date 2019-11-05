@@ -1,11 +1,11 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
+import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
+import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
-import RunRoundTripAssert._
-import com.rauchenberg.avronaut.encoder.Encoder
 
 import scala.collection.JavaConverters._
 
@@ -18,8 +18,7 @@ class ArraySpec extends UnitSpecBase {
         val expected = new GenericRecordBuilder(new GenericData.Record(testRecordSchema.data.value.schema))
         expected.set("field", record.field.asJava)
 
-        Encoder.encode[TestRecord](record, testRecordEncoder, testRecordSchema.data) should beRight(
-          expected.build.asInstanceOf[GenericRecord])
+        Encoder.encode[TestRecord](record, testRecordEncoder) should beRight(expected.build.asInstanceOf[GenericRecord])
       }
     }
 
@@ -47,10 +46,7 @@ class ArraySpec extends UnitSpecBase {
         }.asJava
         recordBuilder.set("field", recordList)
 
-        Encoder
-          .encode[RecordWithListOfCaseClass](record,
-                                             recordWithListOfCaseClassEncoder,
-                                             recordWithListOfCaseClassSchema.data) should beRight(
+        Encoder.encode[RecordWithListOfCaseClass](record, recordWithListOfCaseClassEncoder) should beRight(
           recordBuilder.build
             .asInstanceOf[GenericRecord])
       }
@@ -69,12 +65,8 @@ class ArraySpec extends UnitSpecBase {
           case None       => builder.set("field", null)
         }
 
-        Encoder
-          .encode[RecordWithOptionalListCaseClass](r,
-                                                   recordWithOptionalListCaseClassEncoder,
-                                                   recordWithOptionalListCaseClassSchema.data)
-          .map(v => v.get(0).asInstanceOf[java.util.List[Any]].asScala) should beRight(
-          builder.build().get(0).asInstanceOf[java.util.List[Any]].asScala)
+        Encoder.encode[RecordWithOptionalListCaseClass](r, recordWithOptionalListCaseClassEncoder) should beRight(
+          builder.build().asInstanceOf[GenericRecord])
       }
     }
 
@@ -86,7 +78,7 @@ class ArraySpec extends UnitSpecBase {
         builder.set("field", l)
 
         Encoder
-          .encode[RecordWithListOfList](record, recordWithListOfListEncoder, recordWithListOfListSchema.data) should beRight(
+          .encode[RecordWithListOfList](record, recordWithListOfListEncoder) should beRight(
           builder.build().asInstanceOf[GenericRecord])
       }
     }
@@ -100,7 +92,7 @@ class ArraySpec extends UnitSpecBase {
         builder.set("field", l)
 
         val result =
-          Encoder.encode[RecordWithManyListsOfList](record, recordWithManyListsOfListEncoder, writerSchema.data)
+          Encoder.encode[RecordWithManyListsOfList](record, recordWithManyListsOfListEncoder)
         val resultAsScalaList = result.map(_.get(0).asInstanceOf[java.util.List[Any]].asScala)
         resultAsScalaList should beRight(builder.build().get(0).asInstanceOf[java.util.List[Any]].asScala)
       }
@@ -119,9 +111,7 @@ class ArraySpec extends UnitSpecBase {
 
         builder.set("field", values)
 
-        val result = Encoder.encode[RecordWithListOfEither](record,
-                                                            recordWithListOfEitherEncoder,
-                                                            recordWithListOfEitherSchema.data)
+        val result = Encoder.encode[RecordWithListOfEither](record, recordWithListOfEitherEncoder)
 
         result should beRight(builder.build().asInstanceOf[GenericRecord])
 

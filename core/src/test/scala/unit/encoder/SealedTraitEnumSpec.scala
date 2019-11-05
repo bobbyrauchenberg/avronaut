@@ -16,7 +16,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
         val gr = new GenericData.Record(enumRecordSchema.data.value.schema)
         gr.put(0, record.field.toString)
 
-        Encoder.encode(record, enumRecordEncoder, enumRecordSchema.data) should beRight(gr.asInstanceOf[GenericRecord])
+        Encoder.encode(record, enumRecordEncoder) should beRight(gr.asInstanceOf[GenericRecord])
       }
     }
 
@@ -27,8 +27,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
 
       Encoder.encode(
         SealedTraitEnumWithDefault(),
-        sealedTraitEnumWithDefaultEncoder,
-        sealedTraitEnumWithDefaultSchema.data
+        sealedTraitEnumWithDefaultEncoder
       ) should beRight(gr.asInstanceOf[GenericRecord])
     }
 

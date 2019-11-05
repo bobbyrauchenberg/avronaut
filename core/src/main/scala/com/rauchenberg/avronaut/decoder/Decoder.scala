@@ -4,6 +4,7 @@ import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 import cats.implicits._
+import com.rauchenberg.avronaut.common.ReflectionHelpers._
 import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.getAnnotations
 import magnolia.{CaseClass, Magnolia, SealedTrait}
@@ -14,12 +15,11 @@ import shapeless.{:+:, CNil, Coproduct, Inr}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
-import com.rauchenberg.avronaut.common.ReflectionHelpers._
 import scala.reflect.runtime.universe._
 
 trait Decoder[A] {
 
-  def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[A]
+  def apply[B](value: B, failFast: Boolean): Results[A]
 
 }
 
@@ -32,10 +32,10 @@ object Decoder {
   def apply[A](implicit decoder: Decoder[A]) = decoder
 
   def decode[A](genericRecord: GenericRecord, decoder: Decoder[A]): Results[A] =
-    decoder("", genericRecord, true)
+    decoder(genericRecord, true)
 
   def decodeAccumlating[A](genericRecord: GenericRecord, decoder: Decoder[A]): Results[A] =
-    decoder("", genericRecord, false)
+    decoder(genericRecord, false)
 
   def errorStr[C](param: String, value: C): String =
     "Decoding failed for param '".concat(param).concat("' with value '").concat(value + "' from the GenericRecord")
@@ -44,7 +44,7 @@ object Decoder {
 
     val params = ctx.parameters.toArray
 
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[A] = {
+    override def apply[B](value: B, failFast: Boolean): Results[A] = {
 
       val it     = params.iterator
       var failed = false
@@ -58,32 +58,38 @@ object Decoder {
           val param            = it.next()
           val paramAnnotations = getAnnotations(param.annotations)
           val paramName        = paramAnnotations.name(param.label)
-          val res = valueOrDefault(
-            try {
-              genericRecord.get(paramName) match {
-                case gr: GenericRecord =>
-                  param.typeclass.apply(gr, gr, failFast)
-                case _ =>
-                  param.typeclass.apply(genericRecord.get(paramName), genericRecord, failFast)
-              }
-            } catch {
-              case scala.util.control.NonFatal(_) => Left(Nil)
-            },
-            param.default,
-            param.label,
-            value
-          )
+
+          val res = value match {
+            case genericRecord: GenericRecord =>
+              val v = genericRecord.get(paramName)
+              valueOrDefault(
+                try {
+                  v match {
+                    case gr: GenericRecord =>
+                      param.typeclass.apply(gr, failFast)
+                    case _ =>
+                      param.typeclass.apply(genericRecord.get(paramName), failFast)
+                  }
+                } catch {
+                  case scala.util.control.NonFatal(_) => Left(Nil)
+                },
+                param.default,
+                param.label,
+                v
+              )
+            case _ => Left(Nil)
+          }
           res match {
             case Right(v) =>
               arr(cnt) = v
-              cnt = cnt + 1
+              cnt += 1
             case Left(l) =>
               errors.appendAll(l)
               failed = true
           }
         }
         if (!failed) Right(ctx.rawConstruct(arr))
-        else Left(errors.toList :+ Error("The failing GenericRecord was: " + genericRecord.toString))
+        else Left(errors.toList :+ Error("The value passed to the record decoder was: " + value.toString))
       }
 
       def iterateAccumulating = {
@@ -91,23 +97,29 @@ object Decoder {
           val param            = it.next()
           val paramAnnotations = getAnnotations(param.annotations)
           val paramName        = paramAnnotations.name(param.label)
-          val res = valueOrDefault(
-            try {
-              genericRecord.get(paramName) match {
-                case gr: GenericRecord =>
-                  param.typeclass.apply(gr, gr, failFast)
-                case _ =>
-                  param.typeclass.apply(genericRecord.get(paramName), genericRecord, failFast)
-              }
-            } catch {
-              case scala.util.control.NonFatal(_) =>
-                failed = true
-                Left(Nil) // needed to compile, but errors are accumulated in `errors`
-            },
-            param.default,
-            param.label,
-            value
-          )
+
+          val res = value match {
+            case genericRecord: GenericRecord =>
+              val v = genericRecord.get(paramName)
+              valueOrDefault(
+                try {
+                  v match {
+                    case gr: GenericRecord =>
+                      param.typeclass.apply(gr, failFast)
+                    case _ =>
+                      param.typeclass.apply(genericRecord.get(paramName), failFast)
+                  }
+                } catch {
+                  case scala.util.control.NonFatal(_) =>
+                    failed = true
+                    Left(Nil) // needed to compile, but errors are accumulated in `errors`
+                },
+                param.default,
+                param.label,
+                v
+              )
+            case _ => Left(Nil)
+          }
           res match {
             case Right(v) =>
               arr(cnt) = v
@@ -115,10 +127,10 @@ object Decoder {
               errors.appendAll(l)
               failed = true
           }
-          cnt = cnt + 1
+          cnt += 1
         }
         if (!failed) Right(ctx.rawConstruct(arr))
-        else Left(errors.toList :+ Error("The failing GenericRecord was: " + genericRecord.toString))
+        else Left(errors.toList :+ Error("The value passed to the record decoder was: " + value.toString))
       }
 
       if (failFast) {
@@ -139,14 +151,14 @@ object Decoder {
         .map(st => ReflectionHelpers.toCaseObject[A](st.typeName.full))
         .fold[Results[A]](emptyFail)(Right(_))
 
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[A] =
+    override def apply[B](value: B, failFast: Boolean): Results[A] =
       if (isEnum) deriveEnum(value)
       else {
         value match {
           case gr: GenericRecord =>
             ctx.subtypes
               .find(_.typeName.full == gr.getSchema.getFullName)
-              .map(_.typeclass.apply(value, genericRecord, failFast))
+              .map(_.typeclass.apply(value, failFast))
               .getOrElse(emptyFail)
           case _ => deriveEnum(value)
         }
@@ -163,7 +175,7 @@ object Decoder {
   def error[A](expected: String, actual: A): Either[Error, Nothing] = Left(Error(s"expected $expected, got $actual"))
 
   implicit val stringDecoder: Decoder[String] = new Decoder[String] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[String] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[String] = value match {
       case s: String      => Right(s)
       case u: Utf8        => Right(u.toString)
       case a: Array[Byte] => Right(new String(a))
@@ -171,7 +183,7 @@ object Decoder {
   }
 
   implicit val booleanDecoder: Decoder[Boolean] = new Decoder[Boolean] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Boolean] =
+    override def apply[B](value: B, failFast: Boolean): Results[Boolean] =
       value match {
         case true  => Right(true)
         case false => Right(false)
@@ -179,37 +191,37 @@ object Decoder {
   }
 
   implicit val intDecoder: Decoder[Int] = new Decoder[Int] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Int] =
+    override def apply[B](value: B, failFast: Boolean): Results[Int] =
       Right(value.toString.toInt)
   }
 
   implicit val longDecoder: Decoder[Long] = new Decoder[Long] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Long] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[Long] = value match {
       case l: Long => Right(l.toString.toLong)
     }
   }
 
   implicit val floatDecoder: Decoder[Float] = new Decoder[Float] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Float] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[Float] = value match {
       case f: Float => Right(f.toString.toFloat)
     }
 
   }
 
   implicit val doubleDecoder: Decoder[Double] = new Decoder[Double] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Double] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[Double] = value match {
       case d: Double => Right(d.toString.toDouble)
     }
   }
 
   implicit val bytesDecoder: Decoder[Array[Byte]] = new Decoder[Array[Byte]] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Array[Byte]] =
+    override def apply[B](value: B, failFast: Boolean): Results[Array[Byte]] =
       Right(value.asInstanceOf[Array[Byte]])
   }
 
   implicit def listDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[List[A]] =
     new Typeclass[List[A]] {
-      override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[List[A]] = {
+      override def apply[B](value: B, failFast: Boolean): Results[List[A]] = {
         val list   = value.asInstanceOf[java.util.List[A]]
         val arr    = new Array[A](list.size)
         val it     = list.iterator()
@@ -219,13 +231,13 @@ object Decoder {
           val x = it.next()
           val el = x match {
             case gr: GenericRecord =>
-              elementDecoder(gr, gr, failFast)
+              elementDecoder(gr, failFast)
             case _ =>
-              elementDecoder(x, genericRecord, failFast)
+              elementDecoder(x, failFast)
           }
           if (el.isRight) {
             arr(cnt) = el.right.get
-            cnt = cnt + 1
+            cnt += 1
           } else
             failed = true
 
@@ -236,20 +248,25 @@ object Decoder {
     }
 
   implicit def seqDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[Seq[A]] = new Decoder[Seq[A]] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Seq[A]] =
-      listDecoder[A].apply[B](value, genericRecord, failFast)
+    override def apply[B](value: B, failFast: Boolean): Results[Seq[A]] =
+      listDecoder[A].apply[B](value, failFast)
   }
 
   implicit def vectorDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[Vector[A]] =
     new Decoder[Vector[A]] {
-      override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Vector[A]] =
-        listDecoder[A].apply[B](value, genericRecord, failFast).map(_.toVector)
+      override def apply[B](value: B, failFast: Boolean): Results[Vector[A]] =
+        listDecoder[A].apply[B](value, failFast).map(_.toVector)
+    }
 
+  implicit def setDecoder[A : ClassTag](implicit elementDecoder: Decoder[A]): Decoder[Set[A]] =
+    new Decoder[Set[A]] {
+      override def apply[B](value: B, failFast: Boolean): Results[Set[A]] =
+        listDecoder[A].apply[B](value, failFast).map(_.toSet)
     }
 
   implicit def mapDecoder[A](implicit elementDecoder: Decoder[A]): Decoder[Map[String, A]] =
     new Decoder[Map[String, A]] {
-      override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Map[String, A]] = {
+      override def apply[B](value: B, failFast: Boolean): Results[Map[String, A]] = {
         var cnt      = 0
         var isFailed = false
 
@@ -264,18 +281,18 @@ object Decoder {
           val (k, v) = it.next
           v match {
             case gr: GenericRecord =>
-              elementDecoder(gr, gr, failFast) match {
+              elementDecoder(gr, failFast) match {
                 case Left(_) =>
                   isFailed = true
                 case Right(v) => arr(cnt) = (k -> v)
               }
             case _ =>
-              elementDecoder(v, genericRecord, failFast) match {
+              elementDecoder(v, failFast) match {
                 case Left(_)  => isFailed = true
                 case Right(v) => arr(cnt) = (k -> v)
               }
           }
-          cnt = cnt + 1
+          cnt += 1
         }
         if (isFailed) Left(List(Error("couldn't decode map")))
         else Right(arr.toMap)
@@ -284,7 +301,7 @@ object Decoder {
     }
 
   implicit def offsetDateTimeDecoder: Decoder[OffsetDateTime] = new Decoder[OffsetDateTime] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[OffsetDateTime] =
+    override def apply[B](value: B, failFast: Boolean): Results[OffsetDateTime] =
       value match {
         case l: Long => Right(OffsetDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneOffset.UTC))
       }
@@ -292,31 +309,31 @@ object Decoder {
   }
 
   implicit def instantDecoder: Decoder[Instant] = new Decoder[Instant] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Instant] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[Instant] = value match {
       case l: Long => Right(Instant.ofEpochMilli(l))
     }
   }
 
   implicit def uuidDecoder: Decoder[UUID] = new Decoder[UUID] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[UUID] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[UUID] = value match {
       case s: String if (s != null) => Right(java.util.UUID.fromString(s))
     }
   }
 
   implicit def optionDecoder[A](implicit valueDecoder: Decoder[A]): Decoder[Option[A]] = new Decoder[Option[A]] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[Option[A]] =
+    override def apply[B](value: B, failFast: Boolean): Results[Option[A]] =
       if (value == null) Right(None)
       else
-        valueDecoder(value, genericRecord, failFast).map(Option(_))
+        valueDecoder(value, failFast).map(Option(_))
   }
 
   implicit def eitherDecoder[A, B](implicit lDecoder: Decoder[A], rDecoder: Decoder[B]): Decoder[Either[A, B]] =
     new Decoder[Either[A, B]] {
-      override def apply[C](value: C, genericRecord: GenericRecord, failFast: Boolean): Results[Either[A, B]] =
-        safeL(rDecoder(value, genericRecord, failFast)).flatten match {
+      override def apply[C](value: C, failFast: Boolean): Results[Either[A, B]] =
+        safeL(rDecoder(value, failFast)).flatten match {
           case Right(v) => Right(Right(v))
           case Left(_) =>
-            lDecoder(value, genericRecord, failFast) match {
+            lDecoder(value, failFast) match {
               case Right(v) => Right(Left(v))
               case _        => Left(List(Error("couldn't decode either")))
             }
@@ -324,16 +341,16 @@ object Decoder {
     }
 
   implicit object CNilDecoderValue extends Decoder[CNil] {
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[CNil] =
+    override def apply[B](value: B, failFast: Boolean): Results[CNil] =
       List(Error("Should not have got to CNil")).asLeft
   }
 
   implicit def coproductDecoder[H, T <: Coproduct](implicit hDecoder: Decoder[H],
                                                    tDecoder: Decoder[T]): Decoder[H :+: T] = new Decoder[H :+: T] {
     type Ret = H :+: T
-    override def apply[B](value: B, genericRecord: GenericRecord, failFast: Boolean): Results[H :+: T] =
-      safeL(hDecoder(value, genericRecord, failFast)).flatten match {
-        case Left(_)  => tDecoder(value, genericRecord, failFast).map(Inr(_))
+    override def apply[B](value: B, failFast: Boolean): Results[H :+: T] =
+      safeL(hDecoder(value, failFast)).flatten match {
+        case Left(_)  => tDecoder(value, failFast).map(Inr(_))
         case Right(r) => Right(Coproduct[H :+: T](r))
       }
   }

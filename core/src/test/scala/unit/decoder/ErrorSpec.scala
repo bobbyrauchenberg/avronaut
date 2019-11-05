@@ -16,12 +16,12 @@ class ErrorSpec extends UnitSpecBase {
       val genericRecord = new GenericData.Record(schema.data.value.schema)
 
       val expected = List(
-        Error("Decoding failed for param 'field1' with value '' from the GenericRecord"),
-        Error("Decoding failed for param 'field2' with value '' from the GenericRecord"),
-        Error("Decoding failed for param 'field3' with value '' from the GenericRecord"),
-        Error("Decoding failed for param 'field4' with value '' from the GenericRecord"),
-        Error("Decoding failed for param 'field5' with value '' from the GenericRecord"),
-        Error(s"""The failing GenericRecord was: ${genericRecord.toString}""")
+        Error("Decoding failed for param 'field1' with value 'null' from the GenericRecord"),
+        Error("Decoding failed for param 'field2' with value 'null' from the GenericRecord"),
+        Error("Decoding failed for param 'field3' with value 'null' from the GenericRecord"),
+        Error("Decoding failed for param 'field4' with value 'null' from the GenericRecord"),
+        Error("Decoding failed for param 'field5' with value 'null' from the GenericRecord"),
+        Error(s"The value passed to the record decoder was: ${genericRecord.toString}")
       )
 
       Decoder.decodeAccumlating[ManyFields](genericRecord, decoder) should beLeft(expected)
@@ -33,8 +33,8 @@ class ErrorSpec extends UnitSpecBase {
       val genericRecord = new GenericData.Record(schema.data.value.schema)
 
       val expected = List(
-        Error("Decoding failed for param 'field1' with value '' from the GenericRecord"),
-        Error(s"""The failing GenericRecord was: ${genericRecord.toString}""")
+        Error(s"Decoding failed for param 'field1' with value 'null' from the GenericRecord"),
+        Error(s"The value passed to the record decoder was: ${genericRecord.toString}")
       )
 
       Decoder.decode[ManyFields](genericRecord, decoder) should beLeft(expected)

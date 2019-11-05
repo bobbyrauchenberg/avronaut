@@ -2,12 +2,12 @@ package unit.encoder
 
 import cats.syntax.either._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
+import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
+import unit.encoder.EitherUnionSpec.WriterRecordWithEnum
+import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
-import RunRoundTripAssert._
-import EitherUnionSpec.WriterRecordWithEnum
-import com.rauchenberg.avronaut.encoder.Encoder
 
 import scala.collection.JavaConverters._
 
@@ -19,7 +19,7 @@ class EitherUnionSpec extends UnitSpecBase {
         val expected = new GenericData.Record(unionSchema.data.value.schema)
         u.field.fold(v => expected.put("field", v), v => expected.put("field", v))
 
-        Encoder.encode[Union](u, unionEncoder, unionSchema.data) should beRight(expected.asInstanceOf[GenericRecord])
+        Encoder.encode[Union](u, unionEncoder) should beRight(expected.asInstanceOf[GenericRecord])
       }
     }
 
@@ -47,7 +47,7 @@ class EitherUnionSpec extends UnitSpecBase {
         }
 
         (Encoder
-          .encode[WriterUnionWithCaseClass](u, writerUnionWithCaseClassEncoder, writerUnionWithCaseClassSchema.data))
+          .encode[WriterUnionWithCaseClass](u, writerUnionWithCaseClassEncoder))
           .map(_.asInstanceOf[GenericData.Record]) should beRight(recordBuilder.build)
 
       }
@@ -76,7 +76,7 @@ class EitherUnionSpec extends UnitSpecBase {
         }
 
         Encoder
-          .encode[UnionWithOptionalEither](u, unionWithOptionalEitherEncoder, unionWithOptionalEitherSchema.data) should beRight(
+          .encode[UnionWithOptionalEither](u, unionWithOptionalEitherEncoder) should beRight(
           recordBuilder.build.asInstanceOf[GenericRecord])
 
       }
@@ -106,7 +106,7 @@ class EitherUnionSpec extends UnitSpecBase {
           case Left(None) =>
             outerRecord.put(0, null)
         }
-        Encoder.encode(u, unionWithEitherOfOptionEncoder, unionWithEitherOfOptionSchema.data) should beRight(
+        Encoder.encode(u, unionWithEitherOfOptionEncoder) should beRight(
           recordBuilder.build.asInstanceOf[GenericRecord])
       }
     }
@@ -142,7 +142,7 @@ class EitherUnionSpec extends UnitSpecBase {
         }
 
         Encoder
-          .encode[UnionWithEitherOfList](u, unionWithEitherOfListEncoder, unionWithEitherOfListSchema.data) should beRight(
+          .encode[UnionWithEitherOfList](u, unionWithEitherOfListEncoder) should beRight(
           recordBuilder.build.asInstanceOf[GenericRecord])
       }
     }
@@ -159,9 +159,7 @@ class EitherUnionSpec extends UnitSpecBase {
       val recordBuilder = new GenericRecordBuilder(outerRecord)
       recordBuilder.set("field", cupcatRecord)
 
-      Encoder.encode(UnionWithDefaultCaseClass(),
-                     unionWithDefaultCaseClassEncoder,
-                     unionWithDefaultCaseClassSchema.data) should beRight(
+      Encoder.encode(UnionWithDefaultCaseClass(), unionWithDefaultCaseClassEncoder) should beRight(
         recordBuilder.build.asInstanceOf[GenericRecord])
     }
 
@@ -178,7 +176,7 @@ class EitherUnionSpec extends UnitSpecBase {
         builder.set("field2", record.field2)
 
         Encoder
-          .encode[WriterRecordWithEnum](record, writerRecordWithEnumEncoder, writerRecordWithEnumSchema.data) should beRight(
+          .encode[WriterRecordWithEnum](record, writerRecordWithEnumEncoder) should beRight(
           builder.build.asInstanceOf[GenericRecord])
       }
     }

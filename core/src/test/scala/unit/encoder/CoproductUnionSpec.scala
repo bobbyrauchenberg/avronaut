@@ -1,12 +1,12 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
+import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import shapeless.{:+:, CNil, Inl, Inr}
+import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
-import RunRoundTripAssert._
-import com.rauchenberg.avronaut.encoder.Encoder
 
 class CoproductUnionSpec extends UnitSpecBase {
 
@@ -33,12 +33,11 @@ class CoproductUnionSpec extends UnitSpecBase {
         val toEncode = WriterRecordWithCoproduct(field, field1, field2)
         val expected = recordBuilder.build.asInstanceOf[GenericRecord]
 
-        Encoder.encode[WriterRecordWithCoproduct](toEncode, encoder, schema.data) should beRight(expected)
+        Encoder.encode[WriterRecordWithCoproduct](toEncode, encoder) should beRight(expected)
       }
     }
 
     "do a roundtrip encode and decode" in {
-      implicit val schema  = AvroSchema.toSchema[WriterRecordWithCoproduct]
       implicit val encoder = Encoder[WriterRecordWithCoproduct]
       runRoundTrip[WriterRecordWithCoproduct]
     }
