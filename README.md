@@ -7,7 +7,7 @@ Scala Avro library, currently in active development
 
 Inspired by Avro4S, Avronaut is aiming to offer
  - Safety. It doesn't throw exceptions, and offers well typed client APIS
- - Simplicity. There are only 2 APIS, Encoder and Decoder
+ - Simplicity. 
  - Speed. The aim is to make it as fast, or in some cases faster, than Avro4S
 
 It also offers an error accumulation mode to help debugging issues with encoding and decoding
