@@ -39,21 +39,7 @@ val decoder = Decoder[RecordWithMultipleFields]
 Decoder.decode[RecordWithMultipleFields](someGenericRecord, decoder) 
 ```
 
-## Schemas
-
-Encoding and decoding using Avronaut does not require you to pass schemas around either explicitly or implicitly. However sometimes you might need access to the schema that has been generated. It can be retrieved via the Encoder API
-
-```scala
-case class Record(field1: Int, field2: String, field3: Boolean)
-
-val encoder = Encoder.toEncoder[Record]
-
-Encoder.schemaFrom(encoder)
-```
-
-This will return the `AvroSchema` object generated from the supplied case class
-
-## Error Accumulation
+### Error Accumulation
 
 To help debug decode and encode failures Avronuat offers apis which accumulate errors, in the style of Validation
 
@@ -76,6 +62,22 @@ Left(
   )
 )  
 ```
+
+## Schemas
+
+Encoding and decoding using Avronaut does not require you to pass schemas around either explicitly or implicitly. However sometimes you might need access to the schema that has been generated. It can be retrieved via the Encoder API
+
+```scala
+case class Record(field1: Int, field2: String, field3: Boolean)
+
+val encoder = Encoder.toEncoder[Record]
+
+Encoder.schemaFrom(encoder)
+```
+
+This will return the `AvroSchema` object generated from the supplied case class
+
+
 
 
 Similarly `Encoder` offers the `encodeAccumulating` function which will return a list describing fields which failed
