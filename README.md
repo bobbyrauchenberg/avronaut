@@ -7,24 +7,14 @@ Scala Avro library, currently in active development
 
 Inspired by Avro4S, Avronaut is aiming to offer
  - Safety. It doesn't throw exceptions, and offers well typed client APIS
- - Simplicity. There are only 2 APIS, Encoder and Decoder
+ - Simplicity.
  - Speed. The aim is to make it as fast, or in some cases faster, than Avro4S
 
 It also offers an error accumulation mode to help debugging issues with encoding and decoding
 
-## Decoder
+## Encoding and Decoding
 
-Decode an Avro GenericRecord to a case class
-
-```scala
-case class RecordWithMultipleFields(field1: Boolean, field2: String, field3: Int)
-
-val decoder = Decoder[RecordWithMultipleFields]
-
-Decoder.decode[RecordWithMultipleFields](someGenericRecord, decoder) 
-```
-
-## Encoder
+### Encoder
 
 Encode a case class to an Avro GenericRecord
 
@@ -37,7 +27,19 @@ val toEncode = RecordWithUnion("cupcat".some)
 Encoder.encode[RecordWithUnion](toEncode, encoder) 
 ```
 
-## Error Accumulation
+### Decoder
+
+Decode an Avro GenericRecord to a case class
+
+```scala
+case class RecordWithMultipleFields(field1: Boolean, field2: String, field3: Int)
+
+val decoder = Decoder[RecordWithMultipleFields]
+
+Decoder.decode[RecordWithMultipleFields](someGenericRecord, decoder) 
+```
+
+### Error Accumulation
 
 To help debug decode and encode failures Avronuat offers apis which accumulate errors, in the style of Validation
 
@@ -60,6 +62,22 @@ Left(
   )
 )  
 ```
+
+## Schemas
+
+Encoding and decoding using Avronaut does not require you to pass schemas around either explicitly or implicitly. However sometimes you might need access to the schema that has been generated. It can be retrieved via the Encoder API
+
+```scala
+case class Record(field1: Int, field2: String, field3: Boolean)
+
+val encoder = Encoder.toEncoder[Record]
+
+Encoder.schemaFrom(encoder)
+```
+
+This will return the `AvroSchema` object generated from the supplied case class
+
+
 
 
 Similarly `Encoder` offers the `encodeAccumulating` function which will return a list describing fields which failed
