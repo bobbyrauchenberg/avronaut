@@ -12,19 +12,9 @@ Inspired by Avro4S, Avronaut is aiming to offer
 
 It also offers an error accumulation mode to help debugging issues with encoding and decoding
 
-## Decoder
+## Encoding and Decoding
 
-Decode an Avro GenericRecord to a case class
-
-```scala
-case class RecordWithMultipleFields(field1: Boolean, field2: String, field3: Int)
-
-val decoder = Decoder[RecordWithMultipleFields]
-
-Decoder.decode[RecordWithMultipleFields](someGenericRecord, decoder) 
-```
-
-## Encoder
+### Encoder
 
 Encode a case class to an Avro GenericRecord
 
@@ -35,6 +25,18 @@ val encoder = Encoder.toEncoder[RecordWithUnion]
 val toEncode = RecordWithUnion("cupcat".some)
 
 Encoder.encode[RecordWithUnion](toEncode, encoder) 
+```
+
+### Decoder
+
+Decode an Avro GenericRecord to a case class
+
+```scala
+case class RecordWithMultipleFields(field1: Boolean, field2: String, field3: Int)
+
+val decoder = Decoder[RecordWithMultipleFields]
+
+Decoder.decode[RecordWithMultipleFields](someGenericRecord, decoder) 
 ```
 
 ## Schemas
