@@ -1,6 +1,7 @@
 package unit.decoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.RunAssert._
 import unit.utils.UnitSpecBase
@@ -13,13 +14,15 @@ class SealedTraitSpec extends UnitSpecBase {
 
     "handle sealed trait enums" in {
       forAll { enumRecord: EnumRecord =>
-        implicit val schema = AvroSchema.toSchema[EnumRecord]
+        implicit val schema  = AvroSchema.toSchema[EnumRecord]
+        implicit val decoder = Decoder[EnumRecord]
         runDecodeAssert(enumRecord.field.toString, enumRecord)
       }
     }
 
     "handle sealed trait enums with defaults" in {
-      implicit val schema = AvroSchema.toSchema[SealedTraitEnumWithDefault]
+      implicit val schema  = AvroSchema.toSchema[SealedTraitEnumWithDefault]
+      implicit val decoder = Decoder[SealedTraitEnumWithDefault]
       runDecodeAssert(B.toString, SealedTraitEnumWithDefault())
     }
   }

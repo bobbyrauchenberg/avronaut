@@ -2,13 +2,13 @@ package unit.encoder
 
 import cats.syntax.either._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import unit.encoder.EitherUnionSpec.WriterRecordWithEnum
 import unit.encoder.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
-
 import scala.collection.JavaConverters._
 
 class EitherUnionSpec extends UnitSpecBase {
@@ -163,21 +163,26 @@ class EitherUnionSpec extends UnitSpecBase {
         recordBuilder.build.asInstanceOf[GenericRecord])
     }
 
-    "encode a union of null and enum" in new TestContext {
+    "encode a union of sealed trait and boolean" in new TestContext {
       import EitherUnionSpec._
       forAll { record: WriterRecordWithEnum =>
-        val builder = new GenericRecordBuilder(new GenericData.Record(writerRecordWithEnumSchema.data.value.schema))
+        whenever(record.field1.isLeft) {
+          val schema  = writerRecordWithEnumSchema.data.value.schema
+          val builder = new GenericRecordBuilder(new GenericData.Record(writerRecordWithEnumSchema.data.value.schema))
 
-        record.field1 match {
-          case Left(enum)     => builder.set("field1", enum.toString)
-          case Right(boolean) => builder.set("field1", boolean)
+          record.field1 match {
+            case Left(enum) =>
+              val enumSchema = schema.getFields.asScala.head.schema().getTypes.asScala.head
+              builder.set("field1", GenericData.get.createEnum(enum.toString, enumSchema))
+            case Right(boolean) => builder.set("field1", boolean)
+          }
+          builder.set("writerField", record.writerField)
+          builder.set("field2", record.field2)
+
+          Encoder
+            .encode[WriterRecordWithEnum](record, writerRecordWithEnumEncoder) should beRight(
+            builder.build.asInstanceOf[GenericRecord])
         }
-        builder.set("writerField", record.writerField)
-        builder.set("field2", record.field2)
-
-        Encoder
-          .encode[WriterRecordWithEnum](record, writerRecordWithEnumEncoder) should beRight(
-          builder.build.asInstanceOf[GenericRecord])
       }
     }
 
@@ -205,29 +210,36 @@ class EitherUnionSpec extends UnitSpecBase {
 
   trait TestContext {
     implicit val unionEncoder                   = Encoder[Union]
+    implicit val unionDecoder                   = Decoder[Union]
     implicit val unionSchema: AvroSchema[Union] = AvroSchema.toSchema[Union]
 
     implicit val writerUnionWithCaseClassEncoder = Encoder[WriterUnionWithCaseClass]
+    implicit val writerUnionWithCaseClassDecoder = Decoder[WriterUnionWithCaseClass]
     implicit val writerUnionWithCaseClassSchema: AvroSchema[WriterUnionWithCaseClass] =
       AvroSchema.toSchema[WriterUnionWithCaseClass]
 
     implicit val unionWithOptionalEitherEncoder = Encoder[UnionWithOptionalEither]
+    implicit val unionWithOptionalEitherDecoder = Decoder[UnionWithOptionalEither]
     implicit val unionWithOptionalEitherSchema: AvroSchema[UnionWithOptionalEither] =
       AvroSchema.toSchema[UnionWithOptionalEither]
 
     implicit val unionWithEitherOfOptionEncoder = Encoder[UnionWithEitherOfOption]
+    implicit val unionWithEitherOfOptionDecoder = Decoder[UnionWithEitherOfOption]
     implicit val unionWithEitherOfOptionSchema: AvroSchema[UnionWithEitherOfOption] =
       AvroSchema.toSchema[UnionWithEitherOfOption]
 
     implicit val unionWithEitherOfListEncoder = Encoder[UnionWithEitherOfList]
+    implicit val unionWithEitherOfListDecoder = Decoder[UnionWithEitherOfList]
     implicit val unionWithEitherOfListSchema: AvroSchema[UnionWithEitherOfList] =
       AvroSchema.toSchema[UnionWithEitherOfList]
 
     implicit val unionWithDefaultCaseClassEncoder = Encoder[UnionWithDefaultCaseClass]
+    implicit val unionWithDefaultCaseClassDecoder = Decoder[UnionWithDefaultCaseClass]
     implicit val unionWithDefaultCaseClassSchema: AvroSchema[UnionWithDefaultCaseClass] =
       AvroSchema.toSchema[UnionWithDefaultCaseClass]
 
     implicit val writerRecordWithEnumEncoder = Encoder[WriterRecordWithEnum]
+    implicit val writerRecordWithEnumDecoder = Decoder[WriterRecordWithEnum]
     implicit val writerRecordWithEnumSchema: AvroSchema[WriterRecordWithEnum] =
       AvroSchema.toSchema[WriterRecordWithEnum]
   }

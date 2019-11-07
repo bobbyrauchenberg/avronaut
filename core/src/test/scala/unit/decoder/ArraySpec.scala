@@ -16,29 +16,35 @@ class ArraySpec extends UnitSpecBase {
   "decoder" should {
     "decode a record with a list" in {
       forAll { record: RecordWithList =>
+        implicit val decoder = Decoder[RecordWithList]
         runListAssert(record.field, record)
       }
     }
     "decode a record with a seq" in {
       forAll { record: RecordWithSeq =>
+        implicit val decoder = Decoder[RecordWithSeq]
         runListAssert(record.field, record)
       }
     }
     "decode a record with a vector" in {
       forAll { record: RecordWithSeq =>
+        implicit val decoder = Decoder[RecordWithSeq]
         runListAssert(record.field, record)
       }
     }
     "decode a record with a list and a default value" in {
-      val record = RecordWithListDefault()
+      val record           = RecordWithListDefault()
+      implicit val decoder = Decoder[RecordWithListDefault]
       runListAssert(record.field, record)
     }
     "decode a record with a seq and a default value" in {
-      val record = RecordWithSeqDefault()
+      val record           = RecordWithSeqDefault()
+      implicit val decoder = Decoder[RecordWithSeqDefault]
       runListAssert(record.field, record)
     }
     "decode a record with a vector and a default value" in {
-      val record = RecordWithVectorDefault()
+      val record           = RecordWithVectorDefault()
+      implicit val decoder = Decoder[RecordWithVectorDefault]
       runListAssert(record.field, record)
     }
 

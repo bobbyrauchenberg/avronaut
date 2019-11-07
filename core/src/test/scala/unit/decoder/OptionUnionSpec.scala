@@ -15,7 +15,8 @@ class OptionUnionSpec extends UnitSpecBase {
   "decoder" should {
     "decode an union of null and T" in {
       forAll { record: Union =>
-        implicit val schema = AvroSchema.toSchema[Union]
+        implicit val schema  = AvroSchema.toSchema[Union]
+        implicit val decoder = Decoder[Union]
         runDecodeAssert(record.field.getOrElse(null), record)
       }
     }

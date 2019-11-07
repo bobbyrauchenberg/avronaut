@@ -1,6 +1,7 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
@@ -46,6 +47,12 @@ class OptionUnionSpec extends UnitSpecBase {
           .encode[RecordWithUnionOfCaseclass](RecordWithUnionOfCaseclass(Some(record)),
                                               recordWithUnionOfCaseClassEncoder) should beRight(
           recordBuilder.build.asInstanceOf[GenericRecord])
+
+        Encoder
+          .encode[RecordWithUnionOfCaseclass](
+            RecordWithUnionOfCaseclass(Some(record)),
+            recordWithUnionOfCaseClassEncoder
+          )
       }
     }
 
@@ -80,13 +87,16 @@ class OptionUnionSpec extends UnitSpecBase {
 
   trait TestContext {
     implicit val recordWithUnionEncoder = Encoder[RecordWithUnion]
+    implicit val recordWithUnionDecoder = Decoder[RecordWithUnion]
     implicit val recordWithUnionSchema  = AvroSchema.toSchema[RecordWithUnion]
 
     implicit val recordWithUnionOfCaseClassEncoder = Encoder[RecordWithUnionOfCaseclass]
+    implicit val recordWithUnionOfCaseClassDecoder = Decoder[RecordWithUnionOfCaseclass]
     implicit val recordWithUnionOfCaseClassSchema =
       AvroSchema.toSchema[RecordWithUnionOfCaseclass]
 
     implicit val unionWithListEncoder = Encoder[RecordWithOptionalListCaseClass]
+    implicit val unionWithListDecoder = Decoder[RecordWithOptionalListCaseClass]
     implicit val unionWithListSchema =
       AvroSchema.toSchema[RecordWithOptionalListCaseClass]
   }

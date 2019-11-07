@@ -13,8 +13,8 @@ class SealedTraitEnumSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
-          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"SimpleEnum","namespace":"unit.schema.SealedTraitEnum.SimpleEnum",
-          |"symbols":["Cupcat","Rendal"]}}]}""".stripMargin.replace("\n", "")
+          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"SimpleEnum","symbols":["Cupcat","Rendal"]}}]}""".stripMargin
+          .replace("\n", "")
 
       schemaAsString[EnumCC] shouldBe expected
     }
@@ -22,7 +22,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[AnnotatedEnumCC]
       val expected =
         """{"type":"record","name":"AnnotatedEnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
-          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"CupcatEnum","namespace":"unit.schema.SealedTraitEnum.AnnotatedEnum",
+          |"fields":[{"name":"cupcat","type":{"type":"enum","name":"CupcatEnum",
           |"symbols":["AnnotatedCupcat","AnnotatedRendal"]}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[AnnotatedEnumCC] shouldBe expected
@@ -31,8 +31,8 @@ class SealedTraitEnumSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[MultipleEnumRecord]
       val expected =
         """{"type":"record","name":"MultipleEnumRecord","namespace":"unit.schema.SealedTraitEnum","doc":"",
-          |"fields":[{"name":"s","type":"string"},{"name":"er","type":{"type":"enum","name":"Cup","namespace":
-          |"unit.schema.SealedTraitEnum.Cup","symbols":["B","C"]}},{"name":"enumRecord","type":{"type":"record","name"
+          |"fields":[{"name":"s","type":"string"},{"name":"er","type":{"type":"enum","name":"Cup",
+          |"symbols":["B","C"]}},{"name":"enumRecord","type":{"type":"record","name"
           |:"EnumRecord","doc":"","fields":[{"name":"enumField","type":{"type":"enum","name":"Cup",
           |"namespace":"unit.schema.SealedTraitEnum.Cup2","symbols":["B","C"]}}]}}]}""".stripMargin.replace("\n", "")
 

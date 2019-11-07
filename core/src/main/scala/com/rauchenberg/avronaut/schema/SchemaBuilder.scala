@@ -44,7 +44,7 @@ object SchemaBuilder {
         (sch, ns) match {
           case (Right(s @ SchemaRecord(_, _, _, _)), Some(ns)) =>
             SchemaNamedField(paramName, paramAnnotations.doc, param.default, s.copy(namespace = ns)).asRight
-          case (Right(s @ SchemaEnum(_, _, _, _)), Some(ns)) =>
+          case (Right(s @ SchemaEnum(_, _, _, _, _)), Some(ns)) =>
             SchemaNamedField(paramName, paramAnnotations.doc, param.default, s.copy(namespace = ns)).asRight
           case (other, _) => other.map(SchemaNamedField(paramName, paramAnnotations.doc, param.default, _))
         }
@@ -54,7 +54,9 @@ object SchemaBuilder {
   def dispatch[A : WeakTypeTag](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
 
     val anno              = getAnnotations(ctx.annotations)
-    val (name, namespace) = getNameAndNamespace(anno, ctx.typeName.short, ctx.typeName.full)
+    val lastDot           = ctx.typeName.full.lastIndexOf(".")
+    val fullName          = ctx.typeName.full.substring(0, lastDot)
+    val (name, namespace) = getNameAndNamespace(anno, ctx.typeName.short, fullName)
 
     val subtypes = ctx.subtypes.toList.toNel
 
@@ -62,9 +64,10 @@ object SchemaBuilder {
       subtypes.fold[Results[AvroSchemaADT]](List(Error("Got an empty list of symbols building Enum or Union")).asLeft)(
         st =>
           if (isEnum)
-            SchemaEnum(name, namespace, anno.doc, st.map(_.typeName.short)).asRight
-          else
-            st.traverse(_.typeclass.schema).map(SchemaCoproduct(_)))
+            SchemaEnum(name, namespace, anno.doc, st.map(_.typeName.short), st.map(_.typeName.full)).asRight
+          else {
+            st.traverse(_.typeclass.schema).map(SchemaCoproduct(_))
+        })
 
   }
 

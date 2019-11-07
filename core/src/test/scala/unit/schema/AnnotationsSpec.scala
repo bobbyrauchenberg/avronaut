@@ -50,7 +50,7 @@ class AnnotationsSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[AnnotatedEnum]
       val expected =
         """{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
-                       |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat","namespace":"unit.schema.Annotated",
+                       |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat",
                        |"symbols":["AnnotatedCup","AnnotatedCat"]}}]}""".stripMargin.replace("\n", "")
 
       runAssert[AnnotatedEnum](expected)

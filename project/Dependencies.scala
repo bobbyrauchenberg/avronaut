@@ -34,6 +34,11 @@ object Dependencies {
     "com.ironcorelabs"              %% "cats-scalatest"                 % "2.4.1" % Test,
     "com.47deg"                     %% "scalacheck-toolbox-datetime"    % "0.2.5" % Test,
     "pl.project13.scala" % "sbt-jmh-extras" % "0.3.7"
+  ).map(_ exclude ("javax.ws.rs", "javax.ws.rs-api"))
+
+  excludeDependencies ++= Seq(
+    ExclusionRule("log4j", "log4j"),
+    ExclusionRule("org.slf4j", "slf4j-log4j12")
   )
 
   def configureDependencies(extraDeps: Seq[ModuleID] = Seq.empty): Seq[Def.Setting[Seq[ModuleID]]] = Seq(

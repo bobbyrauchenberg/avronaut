@@ -26,17 +26,18 @@ case class Parser(record: AvroSchemaADT) {
     }.map(SchemaData.tupled(_))
 
   val toSchemaF: FCoalgebraM[Results, AvroSchemaF, AvroSchemaADT] = {
-    case SchemaInt                                   => SchemaIntF.asRight
-    case SchemaLong                                  => SchemaLongF.asRight
-    case SchemaFloat                                 => SchemaFloatF.asRight
-    case SchemaDouble                                => SchemaDoubleF.asRight
-    case SchemaBoolean                               => SchemaBooleanF.asRight
-    case SchemaString                                => SchemaStringF.asRight
-    case SchemaNull                                  => SchemaNullF.asRight
-    case SchemaBytes                                 => SchemaBytesF.asRight
-    case SchemaUUID                                  => SchemaUUIDF.asRight
-    case SchemaTimestampMillis                       => SchemaTimestampMillisF.asRight
-    case SchemaEnum(name, namespace, doc, values)    => SchemaEnumF(name, namespace, doc, values).asRight
+    case SchemaInt             => SchemaIntF.asRight
+    case SchemaLong            => SchemaLongF.asRight
+    case SchemaFloat           => SchemaFloatF.asRight
+    case SchemaDouble          => SchemaDoubleF.asRight
+    case SchemaBoolean         => SchemaBooleanF.asRight
+    case SchemaString          => SchemaStringF.asRight
+    case SchemaNull            => SchemaNullF.asRight
+    case SchemaBytes           => SchemaBytesF.asRight
+    case SchemaUUID            => SchemaUUIDF.asRight
+    case SchemaTimestampMillis => SchemaTimestampMillisF.asRight
+    case SchemaEnum(name, namespace, doc, values, fullyQualifiedTypes) =>
+      SchemaEnumF(name, namespace, doc, values, fullyQualifiedTypes).asRight
     case SchemaList(values)                          => SchemaListF(values).asRight
     case SchemaMap(values)                           => SchemaMapF(values).asRight
     case SchemaOption(value)                         => SchemaOptionF(value).asRight
@@ -57,8 +58,14 @@ case class Parser(record: AvroSchemaADT) {
     case SchemaUUIDF    => (empty, LogicalTypes.uuid.addToSchema(AvroSchemaBuilder.builder.stringType)).asRight.asRight
     case SchemaTimestampMillisF =>
       (empty, LogicalTypes.timestampMillis.addToSchema(AvroSchemaBuilder.builder.longType)).asRight.asRight
-    case SchemaEnumF(name, namespace, doc, values) =>
-      schemaEnum(name, namespace, doc, values).map(s => (empty -> s).asRight)
+    case SchemaEnumF(name, namespace, doc, values, fullyQualifiedTypes) =>
+      schemaEnum(name, namespace, doc, values).map { s =>
+        val mapNamespace = empty + (namespace -> s)
+        val withSubtypes = fullyQualifiedTypes.foldLeft(mapNamespace) { (acc, st) =>
+          acc + (st -> s)
+        }
+        (withSubtypes -> s).asRight
+      }
     case SchemaListF(value) =>
       value match {
         case Left((_, v))    => error("Array", v).asLeft
@@ -97,18 +104,23 @@ case class Parser(record: AvroSchemaADT) {
       schemaField(name, schema, doc).map(v => (registry -> v).asLeft)
     case SchemaNamedFieldF(_, _, _, Left((_, field))) =>
       List(Error(s"building a Field, expected a Schema, not Schema.Field ${field.schema}")).asLeft
-    case SchemaRecordF(name, namespace, doc, values) =>
-      values
-        .map(_.swap)
-        .sequence
-        .map { v =>
-          val schema = Schema.createRecord(name, doc.getOrElse(""), namespace, false, v.map(_._2).asJava)
-          val updated = v.foldLeft(empty) {
-            case (acc, (reg, _)) => acc ++ reg + (s"$namespace.$name" -> schema)
+    case SchemaRecordF(name, namespace, doc, values) => {
+      if (values.isEmpty) {
+        val schema = Schema.createRecord(name, doc.getOrElse(""), namespace, false, Nil.asJava)
+        schema.asRight[(Registry, Schema.Field)].map(v => (Map(s"$namespace.$name" -> schema), v)).asRight
+      } else
+        values
+          .map(_.swap)
+          .sequence
+          .map { v =>
+            val schema = Schema.createRecord(name, doc.getOrElse(""), namespace, false, v.map(_._2).asJava)
+            val updated = v.foldLeft(empty) {
+              case (acc, (reg, _)) => acc ++ reg + (s"$namespace.$name" -> schema)
+            }
+            schema.asRight.map(v => (updated -> v))
           }
-          schema.asRight.map(v => (updated -> v))
-        }
-        .leftMap(e => List(Error(s"building a Record, got error for Schema $e")))
+          .leftMap(e => List(Error(s"building a Record, got error for Schema $e")))
+    }
   }
 
   private def error(schemaType: String, field: Schema.Field) =

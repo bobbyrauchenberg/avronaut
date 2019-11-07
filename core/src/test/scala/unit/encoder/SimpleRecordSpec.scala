@@ -2,6 +2,7 @@ package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
 import com.rauchenberg.avronaut.encoder.Encoder
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import unit.encoder.RunRoundTripAssert._
@@ -54,9 +55,11 @@ class SimpleRecordSpec extends UnitSpecBase {
 
   trait TestContext {
     implicit val testRecordEncoder = Encoder[TestRecord]
+    implicit val testRecordDecoder = Decoder[TestRecord]
     implicit val testRecordSchema  = AvroSchema.toSchema[TestRecord]
 
     implicit val nestedRecordEncoder = Encoder[NestedRecord]
+    implicit val nestedRecordDecoder = Decoder[NestedRecord]
     implicit val nestedRecordSchema  = AvroSchema.toSchema[NestedRecord]
   }
 

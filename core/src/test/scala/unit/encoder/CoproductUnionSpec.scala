@@ -1,6 +1,7 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
@@ -39,6 +40,7 @@ class CoproductUnionSpec extends UnitSpecBase {
 
     "do a roundtrip encode and decode" in {
       implicit val encoder = Encoder[WriterRecordWithCoproduct]
+      implicit val decoder = Decoder[WriterRecordWithCoproduct]
       runRoundTrip[WriterRecordWithCoproduct]
     }
 

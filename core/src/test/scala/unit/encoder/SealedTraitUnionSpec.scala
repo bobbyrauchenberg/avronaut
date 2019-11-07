@@ -1,30 +1,42 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.schema.AvroSchema
-import unit.utils.UnitSpecBase
-import SealedTraitUnionSpec._
 import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
+import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
+import unit.encoder.SealedTraitUnionSpec._
+import unit.utils.UnitSpecBase
+
+import scala.collection.JavaConverters._
 
 class SealedTraitUnionSpec extends UnitSpecBase {
 
   "encoder" should {
     "encode a mixed sealed trait as a union" in new TestContext {
       forAll { record: XWrapper =>
-        val genericRecord = new GenericRecordBuilder(xSchema.data.value.schema)
+        whenever(record.field == A) {
 
-        record.field match {
-          case A => genericRecord.set("field", record.field.toString)
-          case B(field) =>
-            val bSchema = AvroSchema.toSchema[B]
-            val bGR     = new GenericData.Record(bSchema.data.value.schema)
-            bGR.put(0, field)
-            genericRecord.set("field", bGR)
+          val schema        = xSchema.data.value.schema
+          val genericRecord = new GenericRecordBuilder(schema)
+
+          record.field match {
+            case A =>
+              val s    = schema.getFields.asScala.head.schema().getTypes.asScala.head
+              val enum = GenericData.get.createEnum(value.toString, s)
+              genericRecord.set("field", enum)
+            case B(field) =>
+              val bSchema = AvroSchema.toSchema[B]
+              val bGR     = new GenericData.Record(bSchema.data.value.schema)
+              bGR.put(0, field)
+              genericRecord.set("field", bGR)
+          }
+
+          Encoder.encode[XWrapper](record, xEncoder) should
+            beRight(genericRecord.build.asInstanceOf[GenericRecord])
+
         }
-        Encoder.encode[XWrapper](record, xEncoder) should
-          beRight(genericRecord.build.asInstanceOf[GenericRecord])
+
       }
     }
   }

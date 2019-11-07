@@ -9,6 +9,7 @@ import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotat
 import com.rauchenberg.avronaut.common.{Error, Results}
 import com.rauchenberg.avronaut.schema.SchemaData
 import magnolia.{CaseClass, Magnolia, SealedTrait}
+import org.apache.avro.generic.GenericData.EnumSymbol
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.avro.util.Utf8
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr}
@@ -141,11 +142,15 @@ object EncoderBuilder {
 
     override def apply(value: A, schemaData: SchemaData, failFast: Boolean): Ret =
       ctx.dispatch(value) { subtype =>
-        if (isEnum) value.toString
-        else {
+        if (isEnum) {
+          GenericData.get.createEnum(value.toString, schemaData.schemaMap.get(subtype.typeName.full).get)
+        } else {
           value match {
-            case p: Product if p.productArity == 0 => p.toString
-            case _                                 => subtype.typeclass(value.asInstanceOf[subtype.SType], schemaData, failFast)
+            case p: Product if p.productArity == 0 =>
+              GenericData.get.createEnum(p.toString,
+                                         schemaData.schemaMap.get(s"${subtype.typeName.owner}.${p.toString}").get)
+            case _ =>
+              subtype.typeclass(value.asInstanceOf[subtype.SType], schemaData, failFast)
           }
         }
       }

@@ -15,8 +15,9 @@ class EitherUnionSpec extends UnitSpecBase {
   "decoder" should {
     "decode a union of either A or B" in {
       forAll { u: Union =>
-        implicit val schema = AvroSchema.toSchema[Union]
-        val expected        = u.field.fold(identity, identity)
+        implicit val schema  = AvroSchema.toSchema[Union]
+        implicit val decoder = Decoder[Union]
+        val expected         = u.field.fold(identity, identity)
         runDecodeAssert(expected, u)
       }
     }

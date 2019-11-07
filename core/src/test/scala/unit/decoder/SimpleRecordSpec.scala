@@ -29,7 +29,8 @@ class SimpleRecordSpec extends UnitSpecBase {
     }
     "decode a record with a boolean field" in {
       forAll { record: BooleanRecord =>
-        implicit val schema = AvroSchema.toSchema[BooleanRecord]
+        implicit val schema  = AvroSchema.toSchema[BooleanRecord]
+        implicit val decoder = Decoder[BooleanRecord]
         runDecodeAssert(record.field, record)
       }
     }
@@ -51,25 +52,29 @@ class SimpleRecordSpec extends UnitSpecBase {
 
     "decode a record with an int field" in {
       forAll { record: IntRecord =>
-        implicit val schema = AvroSchema.toSchema[IntRecord]
+        implicit val schema  = AvroSchema.toSchema[IntRecord]
+        implicit val decoder = Decoder[IntRecord]
         runDecodeAssert(record.field, record)
       }
     }
     "decode a record with a long field" in {
       forAll { record: LongRecord =>
-        implicit val schema = AvroSchema.toSchema[LongRecord]
+        implicit val schema  = AvroSchema.toSchema[LongRecord]
+        implicit val decoder = Decoder[LongRecord]
         runDecodeAssert(record.field, record)
       }
     }
     "decode a record with a float field" in {
       forAll { record: FloatRecord =>
-        implicit val schema = AvroSchema.toSchema[FloatRecord]
+        implicit val schema  = AvroSchema.toSchema[FloatRecord]
+        implicit val decoder = Decoder[FloatRecord]
         runDecodeAssert(record.field, record)
       }
     }
     "decode a record with a double field" in {
       forAll { record: DoubleRecord =>
-        implicit val schema = AvroSchema.toSchema[DoubleRecord]
+        implicit val schema  = AvroSchema.toSchema[DoubleRecord]
+        implicit val decoder = Decoder[DoubleRecord]
         runDecodeAssert(record.field, record)
       }
     }

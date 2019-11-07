@@ -1,6 +1,7 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
+import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
@@ -146,21 +147,27 @@ class ArraySpec extends UnitSpecBase {
 
   trait TestContext {
     implicit val testRecordEncoder = Encoder[TestRecord]
+    implicit val testRecordDecoder = Decoder[TestRecord]
     implicit val testRecordSchema  = AvroSchema.toSchema[TestRecord]
 
     implicit val recordWithListOfCaseClassEncoder = Encoder[RecordWithListOfCaseClass]
+    implicit val recordWithListOfCaseClassDecoder = Decoder[RecordWithListOfCaseClass]
     implicit val recordWithListOfCaseClassSchema  = AvroSchema.toSchema[RecordWithListOfCaseClass]
 
     implicit val recordWithOptionalListCaseClassEncoder = Encoder[RecordWithOptionalListCaseClass]
+    implicit val recordWithOptionalListCaseClassDecoder = Decoder[RecordWithOptionalListCaseClass]
     implicit val recordWithOptionalListCaseClassSchema  = AvroSchema.toSchema[RecordWithOptionalListCaseClass]
 
     implicit val recordWithListOfListEncoder = Encoder[RecordWithListOfList]
+    implicit val recordWithListOfListDecoder = Decoder[RecordWithListOfList]
     implicit val recordWithListOfListSchema  = AvroSchema.toSchema[RecordWithListOfList]
 
     implicit val recordWithManyListsOfListEncoder = Encoder[RecordWithManyListsOfList]
+    implicit val recordWithManyListsOfListDecoder = Decoder[RecordWithManyListsOfList]
     implicit val recordWithManyListsOfListSchema  = AvroSchema.toSchema[RecordWithManyListsOfList]
 
     implicit val recordWithListOfEitherEncoder = Encoder[RecordWithListOfEither]
+    implicit val recordWithListOfEitherDecoder = Decoder[RecordWithListOfEither]
     implicit val recordWithListOfEitherSchema  = AvroSchema.toSchema[RecordWithListOfEither]
   }
 
