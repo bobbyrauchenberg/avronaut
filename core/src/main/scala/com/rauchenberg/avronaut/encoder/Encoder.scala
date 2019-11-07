@@ -3,6 +3,7 @@ package com.rauchenberg.avronaut.encoder
 import cats.syntax.either._
 import com.rauchenberg.avronaut.common.{Error, Results}
 import com.rauchenberg.avronaut.schema.{Parser, SchemaBuilder}
+import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 
 trait Encoder[A] {
@@ -19,11 +20,14 @@ object Encoder {
         }
     }
 
-  def encode[A](a: A, encoder: Encoder[A]): Either[List[Error], GenericRecord] =
+  def encode[A](a: A, encoder: Encoder[A]): Results[GenericRecord] =
     runEncoder(a, encoder, true)
 
-  def encodeAccumulating[A](a: A, encoder: Encoder[A]): Either[List[Error], GenericRecord] =
+  def encodeAccumulating[A](a: A, encoder: Encoder[A]): Results[GenericRecord] =
     runEncoder(a, encoder, false)
+
+  def schema[A](encoder: Encoder[A]): Results[Schema] =
+    encoder.data.map(_.schemaData.schema)
 
   private def runEncoder[A](a: A, encoder: Encoder[A], failFast: Boolean): Either[List[Error], GenericRecord] =
     encoder.data.flatMap { encodable =>

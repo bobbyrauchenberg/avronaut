@@ -37,7 +37,7 @@ object Decoder {
   def decodeAccumlating[A](genericRecord: GenericRecord, decoder: Decoder[A]): Results[A] =
     decoder(genericRecord, false)
 
-  def errorStr[C](param: String, value: C): String =
+  private def errorStr[C](param: String, value: C): String =
     "Decoding failed for param '".concat(param).concat("' with value '").concat(value + "' from the GenericRecord")
 
   def combine[A](ctx: CaseClass[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
@@ -205,7 +205,6 @@ object Decoder {
     override def apply[B](value: B, failFast: Boolean): Results[Float] = value match {
       case f: Float => Right(f.toString.toFloat)
     }
-
   }
 
   implicit val doubleDecoder: Decoder[Double] = new Decoder[Double] {
@@ -269,10 +268,8 @@ object Decoder {
       override def apply[B](value: B, failFast: Boolean): Results[Map[String, A]] = {
         var cnt      = 0
         var isFailed = false
-
         val map = value
           .asInstanceOf[java.util.Map[String, A]]
-
         val it = map.asScala.toArray.iterator
 
         val arr = new Array[(String, A)](map.size)

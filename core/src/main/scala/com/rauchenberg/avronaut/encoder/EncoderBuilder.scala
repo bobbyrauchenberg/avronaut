@@ -27,6 +27,10 @@ trait EncoderBuilder[A] {
 
 }
 
+trait RootEncoder[A] extends EncoderBuilder[A] {
+  type Ret = Results[GenericRecord]
+}
+
 case class Encodable[A](encoder: EncoderBuilder[A], schemaData: SchemaData)
 
 object EncoderBuilder {
