@@ -5,7 +5,7 @@ import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
-import unit.encoder.RunRoundTripAssert._
+import unit.common.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 
 import scala.collection.JavaConverters._

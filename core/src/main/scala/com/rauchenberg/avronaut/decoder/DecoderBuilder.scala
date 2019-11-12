@@ -19,6 +19,8 @@ import scala.reflect.runtime.universe._
 
 trait DecoderBuilder[A] {
 
+  def isString: Boolean = false
+
   def apply[B](value: B, failFast: Boolean): Results[A]
 
 }
@@ -327,14 +329,26 @@ object DecoderBuilder {
                                           rDecoderBuilder: DecoderBuilder[B]): DecoderBuilder[Either[A, B]] =
     new DecoderBuilder[Either[A, B]] {
       override def apply[C](value: C, failFast: Boolean): Results[Either[A, B]] =
-        safeL(rDecoderBuilder(value, failFast)).flatten match {
-          case Right(v) => Right(Right(v))
-          case Left(_) =>
-            lDecoderBuilder(value, failFast) match {
-              case Right(v) => Right(Left(v))
-              case _        => Left(List(Error(s"couldn't decode either with value '$value'")))
-            }
+        if (rDecoderBuilder.isString) { //anything can decode to string, so run it 2nd
+          safeL(lDecoderBuilder(value, failFast)).flatten match {
+            case Right(v) => Right(Left(v))
+            case Left(_) =>
+              rDecoderBuilder(value, failFast) match {
+                case Right(v) => Right(Right(v))
+                case _        => Left(List(Error(s"couldn't decode either with value '$value'")))
+              }
+          }
+        } else {
+          safeL(rDecoderBuilder(value, failFast)).flatten match {
+            case Right(v) => Right(Right(v))
+            case Left(_) =>
+              lDecoderBuilder(value, failFast) match {
+                case Right(v) => Right(Left(v))
+                case _        => Left(List(Error(s"couldn't decode either with value '$value'")))
+              }
+          }
         }
+
     }
 
   implicit object CNilDecoderBuilderValue extends DecoderBuilder[CNil] {

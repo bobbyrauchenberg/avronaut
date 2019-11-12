@@ -4,6 +4,7 @@ import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{Name, Name
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
 import unit.schema.SealedTraitEnum._
+import unit.common._
 
 class SealedTraitEnumSpec extends UnitSpecBase {
 

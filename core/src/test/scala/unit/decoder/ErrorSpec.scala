@@ -24,7 +24,7 @@ class ErrorSpec extends UnitSpecBase {
         Error(s"The value passed to the record decoder was: ${genericRecord.toString}")
       )
 
-      Decoder.decodeAccumlating[ManyFields](genericRecord, decoder) should beLeft(expected)
+      Decoder.decodeAccumulating[ManyFields](genericRecord, decoder) should beLeft(expected)
     }
 
     "be able to fail fast and return the first error" in {

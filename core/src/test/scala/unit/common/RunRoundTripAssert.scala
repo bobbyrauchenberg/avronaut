@@ -1,9 +1,11 @@
-package unit.encoder
+package unit.common
 
+import com.rauchenberg.avronaut.Codec
 import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.encoder.Encoder
 import org.scalacheck.Arbitrary
 import unit.utils.UnitSpecBase
+import Codec._
 
 object RunRoundTripAssert extends UnitSpecBase {
 
@@ -11,6 +13,13 @@ object RunRoundTripAssert extends UnitSpecBase {
     forAll { record: A =>
       Encoder.encode(record, encoder).flatMap { genericRecord =>
         Decoder.decode[A](genericRecord, decoder)
+      } should beRight(record)
+    }
+
+  def runCodecRoundTrip[A : Arbitrary](implicit codec: Codec[A]) =
+    forAll { record: A =>
+      record.encode.flatMap { gr =>
+        gr.decode[A]
       } should beRight(record)
     }
 

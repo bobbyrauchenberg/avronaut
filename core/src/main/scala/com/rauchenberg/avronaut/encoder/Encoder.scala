@@ -37,4 +37,9 @@ object Encoder {
         case _                        => List(Error("something went very wrong :o")).asLeft[GenericRecord]
       }
     }
+
+  implicit class EncodeSyntax[A](val toEncode: A) extends AnyVal {
+    def encode(implicit encoder: Encoder[A])             = Encoder.encode(toEncode, encoder)
+    def encodeAccumulating(implicit encoder: Encoder[A]) = Encoder.encodeAccumulating(toEncode, encoder)
+  }
 }

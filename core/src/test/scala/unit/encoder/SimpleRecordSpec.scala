@@ -5,7 +5,7 @@ import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import unit.encoder.RunRoundTripAssert._
+import unit.common.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 
 class SimpleRecordSpec extends UnitSpecBase {

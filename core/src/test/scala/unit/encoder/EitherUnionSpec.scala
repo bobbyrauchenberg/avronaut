@@ -7,7 +7,7 @@ import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import unit.encoder.EitherUnionSpec.WriterRecordWithEnum
-import unit.encoder.RunRoundTripAssert._
+import unit.common.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 import scala.collection.JavaConverters._
 
@@ -166,23 +166,21 @@ class EitherUnionSpec extends UnitSpecBase {
     "encode a union of sealed trait and boolean" in new TestContext {
       import EitherUnionSpec._
       forAll { record: WriterRecordWithEnum =>
-        whenever(record.field1.isLeft) {
-          val schema  = writerRecordWithEnumSchema.data.value.schema
-          val builder = new GenericRecordBuilder(new GenericData.Record(writerRecordWithEnumSchema.data.value.schema))
+        val schema  = writerRecordWithEnumSchema.data.value.schema
+        val builder = new GenericRecordBuilder(new GenericData.Record(writerRecordWithEnumSchema.data.value.schema))
 
-          record.field1 match {
-            case Left(enum) =>
-              val enumSchema = schema.getFields.asScala.head.schema().getTypes.asScala.head
-              builder.set("field1", GenericData.get.createEnum(enum.toString, enumSchema))
-            case Right(boolean) => builder.set("field1", boolean)
-          }
-          builder.set("writerField", record.writerField)
-          builder.set("field2", record.field2)
-
-          Encoder
-            .encode[WriterRecordWithEnum](record, writerRecordWithEnumEncoder) should beRight(
-            builder.build.asInstanceOf[GenericRecord])
+        record.field1 match {
+          case Left(enum) =>
+            val enumSchema = schema.getFields.asScala.head.schema().getTypes.asScala.head
+            builder.set("field1", GenericData.get.createEnum(enum.toString, enumSchema))
+          case Right(boolean) => builder.set("field1", boolean)
         }
+        builder.set("writerField", record.writerField)
+        builder.set("field2", record.field2)
+
+        Encoder
+          .encode[WriterRecordWithEnum](record, writerRecordWithEnumEncoder) should beRight(
+          builder.build.asInstanceOf[GenericRecord])
       }
     }
 

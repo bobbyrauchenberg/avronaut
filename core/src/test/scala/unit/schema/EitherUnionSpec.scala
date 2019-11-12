@@ -3,6 +3,7 @@ package unit.schema
 import cats.syntax.either._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import unit.utils.UnitSpecBase
+import unit.common._
 
 class EitherUnionSpec extends UnitSpecBase {
 

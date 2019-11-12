@@ -6,6 +6,7 @@ import cats.syntax.either._
 import com.rauchenberg.avronaut.common.Results
 import com.rauchenberg.avronaut.schema.{AvroSchema, SchemaData}
 import org.apache.avro.{Schema, SchemaBuilder}
+import unit.common._
 
 case class UserDefinedInstance(value: Boolean, u: UUID)
 

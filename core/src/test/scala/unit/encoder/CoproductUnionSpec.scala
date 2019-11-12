@@ -6,7 +6,7 @@ import com.rauchenberg.avronaut.encoder.Encoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import shapeless.{:+:, CNil, Inl, Inr}
-import unit.encoder.RunRoundTripAssert._
+import unit.common.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 
 class CoproductUnionSpec extends UnitSpecBase {

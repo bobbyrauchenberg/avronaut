@@ -4,6 +4,7 @@ import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import shapeless._
 import unit.utils.UnitSpecBase
+import unit.common._
 
 class CoproductUnionSpec extends UnitSpecBase {
 
