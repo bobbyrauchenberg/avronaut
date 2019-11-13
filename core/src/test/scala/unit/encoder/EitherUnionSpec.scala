@@ -2,13 +2,13 @@ package unit.encoder
 
 import cats.syntax.either._
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Decoder
-import com.rauchenberg.avronaut.encoder.Encoder
+import com.rauchenberg.avronaut.Codec
+import com.rauchenberg.avronaut.Codec._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import unit.encoder.EitherUnionSpec.WriterRecordWithEnum
-import unit.common.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
+
 import scala.collection.JavaConverters._
 
 class EitherUnionSpec extends UnitSpecBase {
@@ -16,19 +16,21 @@ class EitherUnionSpec extends UnitSpecBase {
   "encoder" should {
     "encode a union of either A or B" in new TestContext {
       forAll { u: Union =>
-        val expected = new GenericData.Record(unionSchema.data.value.schema)
+        val schema   = Codec.schema[Union].value
+        val expected = new GenericData.Record(schema)
         u.field.fold(v => expected.put("field", v), v => expected.put("field", v))
 
-        Encoder.encode[Union](u, unionEncoder) should beRight(expected.asInstanceOf[GenericRecord])
+        u.encode should beRight(expected.asInstanceOf[GenericRecord])
       }
     }
 
     "encode a union of case classes" in new TestContext {
       forAll { u: WriterUnionWithCaseClass =>
+        val schema       = Codec.schema[WriterUnionWithCaseClass].value
         val cupcatSchema = AvroSchema.toSchema[Cupcat].data.value
         val rendalSchema = AvroSchema.toSchema[Rendal].data.value
 
-        val outerRecord  = new GenericData.Record(writerUnionWithCaseClassSchema.data.value.schema)
+        val outerRecord  = new GenericData.Record(schema)
         val cupcatRecord = new GenericData.Record(cupcatSchema.schema)
         val rendalRecord = new GenericData.Record(rendalSchema.schema)
 
@@ -46,8 +48,7 @@ class EitherUnionSpec extends UnitSpecBase {
             recordBuilder.set("field1", cupcatRecord)
         }
 
-        (Encoder
-          .encode[WriterUnionWithCaseClass](u, writerUnionWithCaseClassEncoder))
+        u.encode
           .map(_.asInstanceOf[GenericData.Record]) should beRight(recordBuilder.build)
 
       }
@@ -55,10 +56,11 @@ class EitherUnionSpec extends UnitSpecBase {
 
     "encode a case class with an optional either" in new TestContext {
       forAll { u: UnionWithOptionalEither =>
+        val schema       = Codec.schema[UnionWithOptionalEither].value
         val cupcatSchema = AvroSchema.toSchema[Cupcat].data.value
         val rendalSchema = AvroSchema.toSchema[Rendal].data.value
 
-        val outerRecord  = new GenericData.Record(unionWithOptionalEitherSchema.data.value.schema)
+        val outerRecord  = new GenericData.Record(schema)
         val cupcatRecord = new GenericData.Record(cupcatSchema.schema)
         val rendalRecord = new GenericData.Record(rendalSchema.schema)
 
@@ -75,19 +77,18 @@ class EitherUnionSpec extends UnitSpecBase {
           case None => outerRecord.put(0, null)
         }
 
-        Encoder
-          .encode[UnionWithOptionalEither](u, unionWithOptionalEitherEncoder) should beRight(
-          recordBuilder.build.asInstanceOf[GenericRecord])
+        u.encode should beRight(recordBuilder.build.asInstanceOf[GenericRecord])
 
       }
     }
 
     "encode a case class with an either with an optional field" in new TestContext {
       forAll { u: UnionWithEitherOfOption =>
+        val schema       = Codec.schema[UnionWithEitherOfOption].value
         val cupcatSchema = AvroSchema.toSchema[Cupcat].data.value
         val rendalSchema = AvroSchema.toSchema[Rendal].data.value
 
-        val outerRecord  = new GenericData.Record(unionWithEitherOfOptionSchema.data.value.schema)
+        val outerRecord  = new GenericData.Record(schema)
         val cupcatRecord = new GenericData.Record(cupcatSchema.schema)
         val rendalRecord = new GenericData.Record(rendalSchema.schema)
 
@@ -106,19 +107,18 @@ class EitherUnionSpec extends UnitSpecBase {
           case Left(None) =>
             outerRecord.put(0, null)
         }
-        Encoder.encode(u, unionWithEitherOfOptionEncoder) should beRight(
-          recordBuilder.build.asInstanceOf[GenericRecord])
+        u.encode should beRight(recordBuilder.build.asInstanceOf[GenericRecord])
       }
     }
 
     "encode a case class with an either with an optional list of record" in new TestContext {
       forAll { field: Either[Option[List[Cupcat]], Either[Rendal, String]] =>
-        val u = UnionWithEitherOfList(field)
-
+        val u            = UnionWithEitherOfList(field)
+        val schema       = Codec.schema[UnionWithEitherOfList].value
         val cupcatSchema = AvroSchema.toSchema[Cupcat].data.value
         val rendalSchema = AvroSchema.toSchema[Rendal].data.value
 
-        val outerRecord  = new GenericData.Record(unionWithEitherOfListSchema.data.value.schema)
+        val outerRecord  = new GenericData.Record(schema)
         val rendalRecord = new GenericData.Record(rendalSchema.schema)
 
         val recordBuilder = new GenericRecordBuilder(outerRecord)
@@ -141,17 +141,15 @@ class EitherUnionSpec extends UnitSpecBase {
             outerRecord.put(0, null)
         }
 
-        Encoder
-          .encode[UnionWithEitherOfList](u, unionWithEitherOfListEncoder) should beRight(
-          recordBuilder.build.asInstanceOf[GenericRecord])
+        u.encode should beRight(recordBuilder.build.asInstanceOf[GenericRecord])
       }
     }
 
     "encode a caseclass with a default either value" in new TestContext {
 
+      val schema       = Codec.schema[UnionWithDefaultCaseClass].value
       val cupcatSchema = AvroSchema.toSchema[Cupcat].data.value.schema
-
-      val outerRecord  = new GenericData.Record(unionWithDefaultCaseClassSchema.data.value.schema)
+      val outerRecord  = new GenericData.Record(schema)
       val cupcatRecord = new GenericData.Record(cupcatSchema)
       cupcatRecord.put(0, true)
       cupcatRecord.put(1, 123.8f)
@@ -159,15 +157,14 @@ class EitherUnionSpec extends UnitSpecBase {
       val recordBuilder = new GenericRecordBuilder(outerRecord)
       recordBuilder.set("field", cupcatRecord)
 
-      Encoder.encode(UnionWithDefaultCaseClass(), unionWithDefaultCaseClassEncoder) should beRight(
-        recordBuilder.build.asInstanceOf[GenericRecord])
+      UnionWithDefaultCaseClass().encode should beRight(recordBuilder.build.asInstanceOf[GenericRecord])
     }
 
     "encode a union of sealed trait and boolean" in new TestContext {
       import EitherUnionSpec._
       forAll { record: WriterRecordWithEnum =>
-        val schema  = writerRecordWithEnumSchema.data.value.schema
-        val builder = new GenericRecordBuilder(new GenericData.Record(writerRecordWithEnumSchema.data.value.schema))
+        val schema  = Codec.schema[WriterRecordWithEnum].value
+        val builder = new GenericRecordBuilder(new GenericData.Record(schema))
 
         record.field1 match {
           case Left(enum) =>
@@ -178,18 +175,8 @@ class EitherUnionSpec extends UnitSpecBase {
         builder.set("writerField", record.writerField)
         builder.set("field2", record.field2)
 
-        Encoder
-          .encode[WriterRecordWithEnum](record, writerRecordWithEnumEncoder) should beRight(
-          builder.build.asInstanceOf[GenericRecord])
+        record.encode should beRight(builder.build.asInstanceOf[GenericRecord])
       }
-    }
-
-    "do a roundtrip encode and decode" in new TestContext {
-      runRoundTrip[Union]
-      runRoundTrip[WriterUnionWithCaseClass]
-      runRoundTrip[UnionWithOptionalEither]
-      runRoundTrip[UnionWithEitherOfOption]
-      runRoundTrip[UnionWithDefaultCaseClass]
     }
 
   }
@@ -207,39 +194,13 @@ class EitherUnionSpec extends UnitSpecBase {
   case class UnionWithEitherOfList(field: Either[Option[List[Cupcat]], Either[Rendal, String]])
 
   trait TestContext {
-    implicit val unionEncoder                   = Encoder[Union]
-    implicit val unionDecoder                   = Decoder[Union]
-    implicit val unionSchema: AvroSchema[Union] = AvroSchema.toSchema[Union]
-
-    implicit val writerUnionWithCaseClassEncoder = Encoder[WriterUnionWithCaseClass]
-    implicit val writerUnionWithCaseClassDecoder = Decoder[WriterUnionWithCaseClass]
-    implicit val writerUnionWithCaseClassSchema: AvroSchema[WriterUnionWithCaseClass] =
-      AvroSchema.toSchema[WriterUnionWithCaseClass]
-
-    implicit val unionWithOptionalEitherEncoder = Encoder[UnionWithOptionalEither]
-    implicit val unionWithOptionalEitherDecoder = Decoder[UnionWithOptionalEither]
-    implicit val unionWithOptionalEitherSchema: AvroSchema[UnionWithOptionalEither] =
-      AvroSchema.toSchema[UnionWithOptionalEither]
-
-    implicit val unionWithEitherOfOptionEncoder = Encoder[UnionWithEitherOfOption]
-    implicit val unionWithEitherOfOptionDecoder = Decoder[UnionWithEitherOfOption]
-    implicit val unionWithEitherOfOptionSchema: AvroSchema[UnionWithEitherOfOption] =
-      AvroSchema.toSchema[UnionWithEitherOfOption]
-
-    implicit val unionWithEitherOfListEncoder = Encoder[UnionWithEitherOfList]
-    implicit val unionWithEitherOfListDecoder = Decoder[UnionWithEitherOfList]
-    implicit val unionWithEitherOfListSchema: AvroSchema[UnionWithEitherOfList] =
-      AvroSchema.toSchema[UnionWithEitherOfList]
-
-    implicit val unionWithDefaultCaseClassEncoder = Encoder[UnionWithDefaultCaseClass]
-    implicit val unionWithDefaultCaseClassDecoder = Decoder[UnionWithDefaultCaseClass]
-    implicit val unionWithDefaultCaseClassSchema: AvroSchema[UnionWithDefaultCaseClass] =
-      AvroSchema.toSchema[UnionWithDefaultCaseClass]
-
-    implicit val writerRecordWithEnumEncoder = Encoder[WriterRecordWithEnum]
-    implicit val writerRecordWithEnumDecoder = Decoder[WriterRecordWithEnum]
-    implicit val writerRecordWithEnumSchema: AvroSchema[WriterRecordWithEnum] =
-      AvroSchema.toSchema[WriterRecordWithEnum]
+    implicit val unionCodec: Codec[Union]                                         = Codec[Union]
+    implicit val writerUnionWithCaseClassEncoder: Codec[WriterUnionWithCaseClass] = Codec[WriterUnionWithCaseClass]
+    implicit val unionWithOptionalEitherCodec: Codec[UnionWithOptionalEither]     = Codec[UnionWithOptionalEither]
+    implicit val unionWithEitherOfOptionCodec: Codec[UnionWithEitherOfOption]     = Codec[UnionWithEitherOfOption]
+    implicit val unionWithEitherOfListCodec: Codec[UnionWithEitherOfList]         = Codec[UnionWithEitherOfList]
+    implicit val unionWithDefaultCaseClassCodec: Codec[UnionWithDefaultCaseClass] = Codec[UnionWithDefaultCaseClass]
+    implicit val writerRecordWithEnumCodec: Codec[WriterRecordWithEnum]           = Codec[WriterRecordWithEnum]
   }
 
 }

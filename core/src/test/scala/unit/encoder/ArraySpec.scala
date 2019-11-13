@@ -1,11 +1,10 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Decoder
-import com.rauchenberg.avronaut.encoder.Encoder
+import com.rauchenberg.avronaut.Codec
+import com.rauchenberg.avronaut.Codec._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
-import unit.common.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 
 import scala.collection.JavaConverters._
@@ -16,20 +15,22 @@ class ArraySpec extends UnitSpecBase {
 
     "encode a record with a list of primitives" in new TestContext {
       forAll { record: TestRecord =>
-        val expected = new GenericRecordBuilder(new GenericData.Record(testRecordSchema.data.value.schema))
+        val schema   = Codec.schema[TestRecord].value
+        val expected = new GenericRecordBuilder(new GenericData.Record(schema))
         expected.set("field", record.field.asJava)
 
-        Encoder.encode[TestRecord](record, testRecordEncoder) should beRight(expected.build.asInstanceOf[GenericRecord])
+        record.encode should beRight(expected.build.asInstanceOf[GenericRecord])
       }
     }
 
     "encode a record with a list of caseclass" in new TestContext {
 
       forAll { record: RecordWithListOfCaseClass =>
+        val schema      = Codec.schema[RecordWithListOfCaseClass].value
         val outerSchema = AvroSchema.toSchema[Nested].data.value
         val innerSchema = AvroSchema.toSchema[InnerNested].data.value
 
-        val rootRecord = new GenericData.Record(recordWithListOfCaseClassSchema.data.value.schema)
+        val rootRecord = new GenericData.Record(schema)
 
         val recordBuilder = new GenericRecordBuilder(rootRecord)
 
@@ -47,7 +48,7 @@ class ArraySpec extends UnitSpecBase {
         }.asJava
         recordBuilder.set("field", recordList)
 
-        Encoder.encode[RecordWithListOfCaseClass](record, recordWithListOfCaseClassEncoder) should beRight(
+        record.encode should beRight(
           recordBuilder.build
             .asInstanceOf[GenericRecord])
       }
@@ -56,8 +57,9 @@ class ArraySpec extends UnitSpecBase {
     "encode a record with a list of Union" in new TestContext {
 
       forAll { writerRecord: Option[List[String]] =>
+        val schema = Codec.schema[RecordWithOptionalListCaseClass].value
         val builder =
-          new GenericRecordBuilder(new GenericData.Record(recordWithOptionalListCaseClassSchema.data.value.schema))
+          new GenericRecordBuilder(new GenericData.Record(schema))
 
         val r = RecordWithOptionalListCaseClass(writerRecord)
 
@@ -66,21 +68,19 @@ class ArraySpec extends UnitSpecBase {
           case None       => builder.set("field", null)
         }
 
-        Encoder.encode[RecordWithOptionalListCaseClass](r, recordWithOptionalListCaseClassEncoder) should beRight(
-          builder.build().asInstanceOf[GenericRecord])
+        r.encode should beRight(builder.build().asInstanceOf[GenericRecord])
       }
     }
 
     "encode a record with a nested list" in new TestContext {
       forAll { record: RecordWithListOfList =>
-        val builder = new GenericRecordBuilder(new GenericData.Record(recordWithListOfListSchema.data.value.schema))
+        val schema  = Codec.schema[RecordWithListOfList].value
+        val builder = new GenericRecordBuilder(new GenericData.Record(schema))
 
         val l = record.field.map(_.asJava).asJava
         builder.set("field", l)
 
-        Encoder
-          .encode[RecordWithListOfList](record, recordWithListOfListEncoder) should beRight(
-          builder.build().asInstanceOf[GenericRecord])
+        record.encode should beRight(builder.build().asInstanceOf[GenericRecord])
       }
     }
 
@@ -92,8 +92,7 @@ class ArraySpec extends UnitSpecBase {
         val l = record.field.map(_.map(_.map(_.map(_.asJava).asJava).asJava).asJava).asJava
         builder.set("field", l)
 
-        val result =
-          Encoder.encode[RecordWithManyListsOfList](record, recordWithManyListsOfListEncoder)
+        val result            = record.encode
         val resultAsScalaList = result.map(_.get(0).asInstanceOf[java.util.List[Any]].asScala)
         resultAsScalaList should beRight(builder.build().get(0).asInstanceOf[java.util.List[Any]].asScala)
       }
@@ -101,7 +100,8 @@ class ArraySpec extends UnitSpecBase {
 
     "encode a record with a list of either" in new TestContext {
       forAll { record: RecordWithListOfEither =>
-        val builder = new GenericRecordBuilder(recordWithListOfEitherSchema.data.value.schema)
+        val schema  = Codec.schema[RecordWithListOfEither].value
+        val builder = new GenericRecordBuilder(schema)
 
         val values = record.field.map { value =>
           value match {
@@ -112,10 +112,7 @@ class ArraySpec extends UnitSpecBase {
 
         builder.set("field", values)
 
-        val result = Encoder.encode[RecordWithListOfEither](record, recordWithListOfEitherEncoder)
-
-        result should beRight(builder.build().asInstanceOf[GenericRecord])
-
+        record.encode should beRight(builder.build().asInstanceOf[GenericRecord])
       }
     }
 
@@ -136,39 +133,16 @@ class ArraySpec extends UnitSpecBase {
 //
 //    }
 
-    "do a roundtrip encode and decode" in new TestContext {
-      runRoundTrip[TestRecord]
-      runRoundTrip[RecordWithListOfCaseClass]
-      runRoundTrip[RecordWithOptionalListCaseClass]
-      runRoundTrip[RecordWithListOfList]
-      runRoundTrip[RecordWithManyListsOfList]
-    }
   }
 
   trait TestContext {
-    implicit val testRecordEncoder = Encoder[TestRecord]
-    implicit val testRecordDecoder = Decoder[TestRecord]
-    implicit val testRecordSchema  = AvroSchema.toSchema[TestRecord]
-
-    implicit val recordWithListOfCaseClassEncoder = Encoder[RecordWithListOfCaseClass]
-    implicit val recordWithListOfCaseClassDecoder = Decoder[RecordWithListOfCaseClass]
-    implicit val recordWithListOfCaseClassSchema  = AvroSchema.toSchema[RecordWithListOfCaseClass]
-
-    implicit val recordWithOptionalListCaseClassEncoder = Encoder[RecordWithOptionalListCaseClass]
-    implicit val recordWithOptionalListCaseClassDecoder = Decoder[RecordWithOptionalListCaseClass]
-    implicit val recordWithOptionalListCaseClassSchema  = AvroSchema.toSchema[RecordWithOptionalListCaseClass]
-
-    implicit val recordWithListOfListEncoder = Encoder[RecordWithListOfList]
-    implicit val recordWithListOfListDecoder = Decoder[RecordWithListOfList]
-    implicit val recordWithListOfListSchema  = AvroSchema.toSchema[RecordWithListOfList]
-
-    implicit val recordWithManyListsOfListEncoder = Encoder[RecordWithManyListsOfList]
-    implicit val recordWithManyListsOfListDecoder = Decoder[RecordWithManyListsOfList]
-    implicit val recordWithManyListsOfListSchema  = AvroSchema.toSchema[RecordWithManyListsOfList]
-
-    implicit val recordWithListOfEitherEncoder = Encoder[RecordWithListOfEither]
-    implicit val recordWithListOfEitherDecoder = Decoder[RecordWithListOfEither]
-    implicit val recordWithListOfEitherSchema  = AvroSchema.toSchema[RecordWithListOfEither]
+    implicit val testRecordCodec: Codec[TestRecord]                               = Codec[TestRecord]
+    implicit val recordWithListOfCaseClassCodec: Codec[RecordWithListOfCaseClass] = Codec[RecordWithListOfCaseClass]
+    implicit val recordWithOptionalListCaseClassCodec: Codec[RecordWithOptionalListCaseClass] =
+      Codec[RecordWithOptionalListCaseClass]
+    implicit val recordWithListOfListCodec: Codec[RecordWithListOfList]           = Codec[RecordWithListOfList]
+    implicit val recordWithManyListsOfListCodec: Codec[RecordWithManyListsOfList] = Codec[RecordWithManyListsOfList]
+    implicit val recordWithListOfEitherCodec: Codec[RecordWithListOfEither]       = Codec[RecordWithListOfEither]
   }
 
   case class TestRecord(field: List[String])

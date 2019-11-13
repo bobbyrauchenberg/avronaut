@@ -238,6 +238,22 @@ object EncoderBuilder {
       }
     }
 
+  implicit def seqEncoder[A](implicit aEncoder: EncoderBuilder[A]): EncoderBuilder[Seq[A]] =
+    new EncoderBuilder[Seq[A]] {
+      override type Ret = EncoderBuilder[List[A]]#Ret
+
+      override def apply(value: Seq[A], schemaData: SchemaData, failFast: Boolean): Ret =
+        listEncoder[A].apply(value.toList, schemaData, failFast)
+    }
+
+  implicit def vectorEncoder[A](implicit aEncoder: EncoderBuilder[A]): EncoderBuilder[Vector[A]] =
+    new EncoderBuilder[Vector[A]] {
+      override type Ret = EncoderBuilder[List[A]]#Ret
+
+      override def apply(value: Vector[A], schemaData: SchemaData, failFast: Boolean): Ret =
+        listEncoder[A].apply(value.toList, schemaData, failFast)
+    }
+
   implicit def setEncoder[A](implicit aEncoder: EncoderBuilder[A]): EncoderBuilder[Set[A]] =
     new EncoderBuilder[Set[A]] {
       type Ret = EncoderBuilder[List[A]]#Ret

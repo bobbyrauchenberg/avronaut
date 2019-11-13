@@ -1,11 +1,12 @@
 package unit.decoder
 
-import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import shapeless.{:+:, CNil, Inl, Inr}
 import unit.utils.UnitSpecBase
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
+import com.rauchenberg.avronaut.Codec
+import Codec._
 
 class CoproductUnionSpec extends UnitSpecBase {
 
@@ -13,9 +14,9 @@ class CoproductUnionSpec extends UnitSpecBase {
 
     "decode a union of multiple types" in {
       forAll { (writerField: Long, field1: String :+: Boolean :+: Simple :+: Int :+: CNil, field2: Boolean) =>
-        val writerSchema = AvroSchema.toSchema[WriterRecordWithCoproduct].data.value
-        val simpleSchema = AvroSchema.toSchema[Simple].data.value
-        val decoder      = Decoder[ReaderRecordWithCoproduct]
+        val writerSchema   = AvroSchema.toSchema[WriterRecordWithCoproduct].data.value
+        val simpleSchema   = AvroSchema.toSchema[Simple].data.value
+        implicit val codec = Codec[ReaderRecordWithCoproduct]
 
         val recordBuilder = new GenericRecordBuilder(new GenericData.Record(writerSchema.schema))
         val simpleGenRec  = new GenericData.Record(simpleSchema.schema)
@@ -36,7 +37,7 @@ class CoproductUnionSpec extends UnitSpecBase {
 
         val expected = ReaderRecordWithCoproduct(field2, field1)
 
-        Decoder.decode[ReaderRecordWithCoproduct](recordBuilder.build, decoder) should beRight(expected)
+        recordBuilder.build.decode[ReaderRecordWithCoproduct] should beRight(expected)
       }
     }
 

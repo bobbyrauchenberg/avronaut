@@ -1,7 +1,8 @@
 package unit.decoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Decoder
+import com.rauchenberg.avronaut.Codec
+import com.rauchenberg.avronaut.Codec._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import unit.decoder.SealedTraitUnionSpec.{A, B, XWrapper}
@@ -11,11 +12,11 @@ class SealedTraitUnionSpec extends UnitSpecBase {
 
   "decoder" should {
     "decode a sealed trait union" in {
-      val xSchema  = AvroSchema.toSchema[XWrapper]
-      val xDecoder = Decoder[XWrapper]
+      implicit val codec = Codec[XWrapper]
+      val schema         = Codec.schema[XWrapper].value
 
       forAll { record: XWrapper =>
-        val genericRecord = new GenericRecordBuilder(xSchema.data.value.schema)
+        val genericRecord = new GenericRecordBuilder(schema)
 
         record.field match {
           case A => genericRecord.set("field", record.field.toString)
@@ -26,7 +27,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
             genericRecord.set("field", bGR)
         }
 
-        Decoder.decode[XWrapper](genericRecord.build, xDecoder) should beRight(record)
+        genericRecord.build.decode[XWrapper] should beRight(record)
       }
     }
   }

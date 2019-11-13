@@ -1,10 +1,10 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.schema.AvroSchema
+import com.rauchenberg.avronaut.Codec
+import com.rauchenberg.avronaut.Codec._
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import SealedTraitEnumSpec.{EnumRecord, SealedTraitEnumWithDefault}
-import com.rauchenberg.avronaut.encoder.Encoder
+import unit.encoder.SealedTraitEnumSpec.{EnumRecord, SealedTraitEnumWithDefault}
 import unit.utils.UnitSpecBase
 
 class SealedTraitEnumSpec extends UnitSpecBase {
@@ -13,33 +13,28 @@ class SealedTraitEnumSpec extends UnitSpecBase {
 
     "handle sealed trait enums" in new TestContext {
       forAll { record: EnumRecord =>
-        val gr = new GenericData.Record(enumRecordSchema.data.value.schema)
+        val schema = Codec.schema[EnumRecord].value
+        val gr     = new GenericData.Record(schema)
         gr.put(0, record.field.toString)
 
-        Encoder.encode(record, enumRecordEncoder) should beRight(gr.asInstanceOf[GenericRecord])
+        record.encode should beRight(gr.asInstanceOf[GenericRecord])
       }
     }
 
     "handle sealed trait enums with defaults" in new TestContext {
       val record = SealedTraitEnumWithDefault()
-      val gr     = new GenericData.Record(sealedTraitEnumWithDefaultSchema.data.value.schema)
+      val schema = Codec.schema[SealedTraitEnumWithDefault].value
+      val gr     = new GenericData.Record(schema)
       gr.put(0, record.field.toString)
 
-      Encoder.encode(
-        SealedTraitEnumWithDefault(),
-        sealedTraitEnumWithDefaultEncoder
-      ) should beRight(gr.asInstanceOf[GenericRecord])
+      SealedTraitEnumWithDefault().encode should beRight(gr.asInstanceOf[GenericRecord])
     }
 
   }
 
   trait TestContext {
-    implicit val enumRecordEncoder = Encoder[EnumRecord]
-    implicit val enumRecordSchema  = AvroSchema.toSchema[EnumRecord]
-
-    implicit val sealedTraitEnumWithDefaultEncoder = Encoder[SealedTraitEnumWithDefault]
-    implicit val sealedTraitEnumWithDefaultSchema =
-      AvroSchema.toSchema[SealedTraitEnumWithDefault]
+    implicit val enumRecordCodec: Codec[EnumRecord]                                 = Codec[EnumRecord]
+    implicit val sealedTraitEnumWithDefaultCodec: Codec[SealedTraitEnumWithDefault] = Codec[SealedTraitEnumWithDefault]
   }
 
 }

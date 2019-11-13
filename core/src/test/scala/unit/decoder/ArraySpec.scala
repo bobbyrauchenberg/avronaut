@@ -1,7 +1,8 @@
 package unit.decoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Decoder
+import com.rauchenberg.avronaut.Codec
+import Codec._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
 import unit.utils.RunAssert._
@@ -16,35 +17,35 @@ class ArraySpec extends UnitSpecBase {
   "decoder" should {
     "decode a record with a list" in {
       forAll { record: RecordWithList =>
-        implicit val decoder = Decoder[RecordWithList]
+        implicit val codec = Codec[RecordWithList]
         runListAssert(record.field, record)
       }
     }
     "decode a record with a seq" in {
       forAll { record: RecordWithSeq =>
-        implicit val decoder = Decoder[RecordWithSeq]
+        implicit val codec = Codec[RecordWithSeq]
         runListAssert(record.field, record)
       }
     }
     "decode a record with a vector" in {
       forAll { record: RecordWithSeq =>
-        implicit val decoder = Decoder[RecordWithSeq]
+        implicit val codec = Codec[RecordWithSeq]
         runListAssert(record.field, record)
       }
     }
     "decode a record with a list and a default value" in {
-      val record           = RecordWithListDefault()
-      implicit val decoder = Decoder[RecordWithListDefault]
+      val record         = RecordWithListDefault()
+      implicit val codec = Codec[RecordWithListDefault]
       runListAssert(record.field, record)
     }
     "decode a record with a seq and a default value" in {
-      val record           = RecordWithSeqDefault()
-      implicit val decoder = Decoder[RecordWithSeqDefault]
+      val record         = RecordWithSeqDefault()
+      implicit val codec = Codec[RecordWithSeqDefault]
       runListAssert(record.field, record)
     }
     "decode a record with a vector and a default value" in {
-      val record           = RecordWithVectorDefault()
-      implicit val decoder = Decoder[RecordWithVectorDefault]
+      val record         = RecordWithVectorDefault()
+      implicit val codec = Codec[RecordWithVectorDefault]
       runListAssert(record.field, record)
     }
 
@@ -52,7 +53,7 @@ class ArraySpec extends UnitSpecBase {
       forAll { record: RecordWithListOfSimpleCaseClass =>
         implicit val rootSchema = AvroSchema.toSchema[RecordWithListOfSimpleCaseClass].data
         val innerSchema         = AvroSchema.toSchema[InnerNested].data.value
-        val decoder             = Decoder[RecordWithListOfSimpleCaseClass]
+        implicit val codec      = Codec[RecordWithListOfSimpleCaseClass]
 
         val rootRecord    = new GenericData.Record(rootSchema.value.schema)
         val recordBuilder = new GenericRecordBuilder(rootRecord)
@@ -64,8 +65,7 @@ class ArraySpec extends UnitSpecBase {
           innerRecord
         }
         recordBuilder.set("field", innerRecords.asJava)
-
-        Decoder.decode[RecordWithListOfSimpleCaseClass](recordBuilder.build, decoder) should beRight(record)
+        recordBuilder.build.decode[RecordWithListOfSimpleCaseClass] should beRight(record)
       }
 
     }
@@ -73,7 +73,7 @@ class ArraySpec extends UnitSpecBase {
     "decode a record with a list of caseclass" in {
       forAll { r: RecordWithListOfCaseClass =>
         implicit val rootSchema = AvroSchema.toSchema[RecordWithListOfCaseClass].data
-        val decoder             = Decoder[RecordWithListOfCaseClass]
+        implicit val codec      = Codec[RecordWithListOfCaseClass]
         val outerSchema         = AvroSchema.toSchema[Nested].data.value
         val innerSchema         = AvroSchema.toSchema[InnerNested].data.value
 
@@ -94,7 +94,7 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Decoder.decode[RecordWithListOfCaseClass](recordBuilder.build, decoder) should beRight(r)
+        recordBuilder.build.decode[RecordWithListOfCaseClass] should beRight(r)
       }
     }
 
@@ -104,7 +104,7 @@ class ArraySpec extends UnitSpecBase {
         val outerSchema = AvroSchema.toSchema[Nested].data.value
         val innerSchema = AvroSchema.toSchema[InnerNested].data.value
 
-        val decoder = Decoder[RecordWithSeqOfCaseClass]
+        implicit val codec = Codec[RecordWithSeqOfCaseClass]
 
         val rootRecord = new GenericData.Record(rootSchema.value.schema)
 
@@ -123,15 +123,15 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Decoder.decode[RecordWithSeqOfCaseClass](recordBuilder.build, decoder) should beRight(r)
+        recordBuilder.build.decode[RecordWithSeqOfCaseClass] should beRight(r)
       }
     }
     "decode a record with a vector of caseclass" in {
       forAll { r: RecordWithVectorOfCaseClass =>
-        val rootSchema  = AvroSchema.toSchema[RecordWithVectorOfCaseClass].data
-        val outerSchema = AvroSchema.toSchema[Nested].data.value
-        val innerSchema = AvroSchema.toSchema[InnerNested].data.value
-        val decoder     = Decoder[RecordWithVectorOfCaseClass]
+        val rootSchema     = AvroSchema.toSchema[RecordWithVectorOfCaseClass].data
+        val outerSchema    = AvroSchema.toSchema[Nested].data.value
+        val innerSchema    = AvroSchema.toSchema[InnerNested].data.value
+        implicit val codec = Codec[RecordWithVectorOfCaseClass]
 
         val rootRecord = new GenericData.Record(rootSchema.value.schema)
 
@@ -150,16 +150,16 @@ class ArraySpec extends UnitSpecBase {
             outerRecord
         }.asJava
         recordBuilder.set("field", recordList)
-        Decoder.decode[RecordWithVectorOfCaseClass](recordBuilder.build, decoder) should beRight(r)
+        recordBuilder.build.decode[RecordWithVectorOfCaseClass] should beRight(r)
       }
     }
 
     "decode a record with a list of optional caseclass" in {
       forAll { r: RecordWithListOfOptionalCaseClass =>
-        val rootSchema  = AvroSchema.toSchema[RecordWithListOfOptionalCaseClass].data
-        val outerSchema = AvroSchema.toSchema[Nested].data.value
-        val innerSchema = AvroSchema.toSchema[InnerNested].data.value
-        val decoder     = Decoder[RecordWithListOfOptionalCaseClass]
+        val rootSchema     = AvroSchema.toSchema[RecordWithListOfOptionalCaseClass].data
+        val outerSchema    = AvroSchema.toSchema[Nested].data.value
+        val innerSchema    = AvroSchema.toSchema[InnerNested].data.value
+        implicit val codec = Codec[RecordWithListOfOptionalCaseClass]
 
         val rootRecord = new GenericData.Record(rootSchema.value.schema)
 
@@ -184,15 +184,15 @@ class ArraySpec extends UnitSpecBase {
 
         }.asJava
         recordBuilder.set("field", recordList)
-        Decoder.decode[RecordWithListOfOptionalCaseClass](recordBuilder.build, decoder) should beRight(r)
+        recordBuilder.build.decode[RecordWithListOfOptionalCaseClass] should beRight(r)
       }
     }
 
     "decode a list of map" in {
       forAll { writerRecord: WriterRecordWithListOfMap =>
-        val writerSchema = AvroSchema.toSchema[WriterRecordWithListOfMap].data.value
-        val decoder      = Decoder[ReaderRecordWithListOfMap]
-        val javaList     = writerRecord.field1.map(_.asJava).asJava
+        val writerSchema   = AvroSchema.toSchema[WriterRecordWithListOfMap].data.value
+        implicit val codec = Codec[ReaderRecordWithListOfMap]
+        val javaList       = writerRecord.field1.map(_.asJava).asJava
 
         val record        = new GenericData.Record(writerSchema.schema)
         val recordBuilder = new GenericRecordBuilder(record)
@@ -201,14 +201,14 @@ class ArraySpec extends UnitSpecBase {
         recordBuilder.set("field1", javaList)
 
         val expected = ReaderRecordWithListOfMap(writerRecord.field1)
-        Decoder.decode[ReaderRecordWithListOfMap](recordBuilder.build, decoder) should beRight(expected)
+        recordBuilder.build.decode[ReaderRecordWithListOfMap] should beRight(expected)
       }
     }
 
     "decode a list of enum" in {
       forAll { writerRecord: WriterRecordWithListOfEnum =>
-        val writerSchema = AvroSchema.toSchema[WriterRecordWithListOfEnum].data.value
-        val decoder      = Decoder[ReaderRecordWithListOfEnum]
+        val writerSchema   = AvroSchema.toSchema[WriterRecordWithListOfEnum].data.value
+        implicit val codec = Codec[ReaderRecordWithListOfEnum]
 
         val javaList = writerRecord.field1.map(_.toString).asJava
 
@@ -219,7 +219,7 @@ class ArraySpec extends UnitSpecBase {
         recordBuilder.set("field1", javaList)
 
         val expected = ReaderRecordWithListOfEnum(writerRecord.field1)
-        Decoder.decode[ReaderRecordWithListOfEnum](recordBuilder.build, decoder) should beRight(expected)
+        recordBuilder.build.decode[ReaderRecordWithListOfEnum] should beRight(expected)
       }
     }
 

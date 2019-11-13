@@ -1,11 +1,11 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator._
+import com.rauchenberg.avronaut.Codec
+import com.rauchenberg.avronaut.Codec._
 import com.rauchenberg.avronaut.encoder.Encoder
-import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord}
-import unit.common.RunRoundTripAssert._
 import unit.utils.UnitSpecBase
 
 class SimpleRecordSpec extends UnitSpecBase {
@@ -13,7 +13,8 @@ class SimpleRecordSpec extends UnitSpecBase {
   "encoder" should {
     "encode a case class with supported primitives to a suitable record" in new TestContext {
       forAll { record: TestRecord =>
-        val expected = new GenericData.Record(testRecordSchema.data.value.schema)
+        val schema   = Codec.schema[TestRecord].value
+        val expected = new GenericData.Record(schema)
         expected.put("string", record.string)
         expected.put("boolean", record.boolean)
         expected.put("int", record.int)
@@ -22,16 +23,14 @@ class SimpleRecordSpec extends UnitSpecBase {
         expected.put("long", record.long)
         expected.put("bytes", record.bytes)
 
-        Encoder.encode[TestRecord](
-          record,
-          testRecordEncoder
-        ) should beRight(expected.asInstanceOf[GenericRecord])
+        record.encode should beRight(expected.asInstanceOf[GenericRecord])
       }
     }
 
     "encode a case class with nested primitives to a suitable record" in new TestContext {
       forAll { record: NestedRecord =>
-        val expected    = new GenericData.Record(nestedRecordSchema.data.value.schema)
+        val schema      = Codec.schema[NestedRecord].value
+        val expected    = new GenericData.Record(schema)
         val innerRecord = new GenericData.Record(AvroSchema.toSchema[Inner].data.value.schema)
 
         innerRecord.put(0, record.inner.value)
@@ -40,27 +39,14 @@ class SimpleRecordSpec extends UnitSpecBase {
         expected.put(1, record.boolean)
         expected.put(2, innerRecord)
 
-        Encoder.encode[NestedRecord](
-          record,
-          nestedRecordEncoder
-        ) should beRight(expected.asInstanceOf[GenericRecord])
+        record.encode should beRight(expected.asInstanceOf[GenericRecord])
       }
-    }
-
-    "encode a case class with nested primitives roundtrip" in new TestContext {
-      runRoundTrip[TestRecord]
-      runRoundTrip[NestedRecord]
     }
   }
 
   trait TestContext {
-    implicit val testRecordEncoder = Encoder[TestRecord]
-    implicit val testRecordDecoder = Decoder[TestRecord]
-    implicit val testRecordSchema  = AvroSchema.toSchema[TestRecord]
-
-    implicit val nestedRecordEncoder = Encoder[NestedRecord]
-    implicit val nestedRecordDecoder = Decoder[NestedRecord]
-    implicit val nestedRecordSchema  = AvroSchema.toSchema[NestedRecord]
+    implicit val testRecordCodec: Codec[TestRecord]     = Codec[TestRecord]
+    implicit val nestedRecordCodec: Codec[NestedRecord] = Codec[NestedRecord]
   }
 
   case class TestRecord(string: String,

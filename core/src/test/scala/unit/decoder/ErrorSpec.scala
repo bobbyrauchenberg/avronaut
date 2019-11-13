@@ -1,7 +1,8 @@
 package unit.decoder
 
+import com.rauchenberg.avronaut.Codec
+import com.rauchenberg.avronaut.Codec._
 import com.rauchenberg.avronaut.common.Error
-import com.rauchenberg.avronaut.decoder.Decoder
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.GenericData
 import unit.utils.UnitSpecBase
@@ -11,9 +12,9 @@ class ErrorSpec extends UnitSpecBase {
   "Decoder" should {
 
     "be able to accumulate errors" in {
-      val schema        = AvroSchema.toSchema[ManyFields]
-      val decoder       = Decoder[ManyFields]
-      val genericRecord = new GenericData.Record(schema.data.value.schema)
+      val schema         = AvroSchema.toSchema[ManyFields]
+      implicit val codec = Codec[ManyFields]
+      val genericRecord  = new GenericData.Record(schema.data.value.schema)
 
       val expected = List(
         Error("Decoding failed for param 'field1' with value 'null' from the GenericRecord"),
@@ -23,21 +24,20 @@ class ErrorSpec extends UnitSpecBase {
         Error("Decoding failed for param 'field5' with value 'null' from the GenericRecord"),
         Error(s"The value passed to the record decoder was: ${genericRecord.toString}")
       )
-
-      Decoder.decodeAccumulating[ManyFields](genericRecord, decoder) should beLeft(expected)
+      genericRecord.decodeAccumulating[ManyFields] should beLeft(expected)
     }
 
     "be able to fail fast and return the first error" in {
-      val schema        = AvroSchema.toSchema[ManyFields]
-      val decoder       = Decoder[ManyFields]
-      val genericRecord = new GenericData.Record(schema.data.value.schema)
+      val schema         = AvroSchema.toSchema[ManyFields]
+      implicit val codec = Codec[ManyFields]
+      val genericRecord  = new GenericData.Record(schema.data.value.schema)
 
       val expected = List(
         Error(s"Decoding failed for param 'field1' with value 'null' from the GenericRecord"),
         Error(s"The value passed to the record decoder was: ${genericRecord.toString}")
       )
 
-      Decoder.decode[ManyFields](genericRecord, decoder) should beLeft(expected)
+      genericRecord.decode[ManyFields] should beLeft(expected)
     }
 
   }

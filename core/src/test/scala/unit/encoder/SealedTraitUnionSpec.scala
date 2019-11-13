@@ -1,8 +1,8 @@
 package unit.encoder
 
 import com.danielasfregola.randomdatagenerator.magnolia.RandomDataGenerator._
-import com.rauchenberg.avronaut.decoder.Decoder
-import com.rauchenberg.avronaut.encoder.Encoder
+import com.rauchenberg.avronaut.Codec
+import com.rauchenberg.avronaut.Codec._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder}
 import unit.encoder.SealedTraitUnionSpec._
@@ -17,7 +17,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
       forAll { record: XWrapper =>
         whenever(record.field == A) {
 
-          val schema        = xSchema.data.value.schema
+          val schema        = Codec.schema[XWrapper].value
           val genericRecord = new GenericRecordBuilder(schema)
 
           record.field match {
@@ -32,19 +32,17 @@ class SealedTraitUnionSpec extends UnitSpecBase {
               genericRecord.set("field", bGR)
           }
 
-          Encoder.encode[XWrapper](record, xEncoder) should
-            beRight(genericRecord.build.asInstanceOf[GenericRecord])
+          record.encode should beRight(genericRecord.build.asInstanceOf[GenericRecord])
 
         }
 
       }
     }
+
   }
 
   trait TestContext {
-    val xSchema  = AvroSchema.toSchema[XWrapper]
-    val xEncoder = Encoder[XWrapper]
-    val xDecoder = Decoder[XWrapper]
+    implicit val codec: Codec[XWrapper] = Codec[XWrapper]
   }
 
 }
@@ -56,5 +54,9 @@ object SealedTraitUnionSpec {
   case class B(field: String) extends X
 
   case class XWrapper(field: X)
+
+  sealed trait Foo
+  case class Cup(cat: Int) extends Foo
+  case class Bar(baz: Int) extends Foo
 
 }
