@@ -1,5 +1,6 @@
 package com.rauchenberg.avronaut.encoder
 
+import java.nio.ByteBuffer
 import java.time.{Instant, OffsetDateTime}
 import java.util
 import java.util.UUID
@@ -187,9 +188,10 @@ object EncoderBuilder {
   }
 
   implicit val bytesEncoder: EncoderBuilder[Array[Byte]] = new EncoderBuilder[Array[Byte]] {
-    override type Ret = Array[Byte]
+    override type Ret = ByteBuffer
 
-    override def apply(value: Array[Byte], schemaData: SchemaData, failFast: Boolean): Array[Byte] = value
+    override def apply(value: Array[Byte], schemaData: SchemaData, failFast: Boolean): Ret =
+      ByteBuffer.wrap(value)
   }
 
   implicit def mapEncoder[A](implicit aEncoder: EncoderBuilder[A]): EncoderBuilder[Map[String, A]] =

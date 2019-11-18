@@ -136,15 +136,15 @@ object SchemaBuilder {
       }
     }
 
-  implicit def uuidSchema[A] = new Typeclass[UUID] {
+  implicit def uuidSchema[A] = new SchemaBuilder[UUID] {
     override def schema: Results[AvroSchemaADT] = SchemaUUID.asRight
   }
 
-  implicit def offsetDateTimeSchema[A] = new Typeclass[OffsetDateTime] {
+  implicit def offsetDateTimeSchema[A] = new SchemaBuilder[OffsetDateTime] {
     override def schema: Results[AvroSchemaADT] = SchemaTimestampMillis.asRight
   }
 
-  implicit def instantDateTimeSchema[A] = new Typeclass[Instant] {
+  implicit def instantDateTimeSchema[A] = new SchemaBuilder[Instant] {
     override def schema: Results[AvroSchemaADT] = SchemaTimestampMillis.asRight
   }
 

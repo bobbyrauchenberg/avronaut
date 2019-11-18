@@ -16,19 +16,31 @@ case class Codecs[A](decoder: Decoder[A], encoder: Encoder[A], schemaData: Schem
 trait Codec[A] {
   val codec: Results[Codecs[A]]
   val schema: Results[Schema]
+
+  def encode(a: A): Results[GenericRecord]
+  def encodeAccumulating(a: A): Results[GenericRecord]
+  def decode(genericRecord: GenericRecord): Results[A]
+  def decodeAccumulating(genericRecord: GenericRecord): Results[A]
 }
 
 object Codec {
 
   def apply[A](implicit schemaBuilder: SchemaBuilder[A],
                encoderBuilder: EncoderBuilder[A],
-               decoderBuilder: DecoderBuilder[A]) =
+               decoderBuilder: DecoderBuilder[A]): Codec[A] =
     new Codec[A] {
       private val encoder = Encoder[A]
       private val decoder = Decoder[A]
 
       override val codec: Results[Codecs[A]] = encoder.data.map(e => Codecs(decoder, encoder, e.schemaData))
       override val schema: Results[Schema]   = encoder.data.map(_.schemaData.schema)
+
+      override def encode(a: A): Results[GenericRecord]             = Encoder.encode(a, encoder)
+      override def encodeAccumulating(a: A): Results[GenericRecord] = Encoder.encodeAccumulating(a, encoder)
+
+      override def decode(genericRecord: GenericRecord): Results[A] = Decoder.decode(genericRecord, decoder)
+      override def decodeAccumulating(genericRecord: GenericRecord): Results[A] =
+        Decoder.decodeAccumulating(genericRecord, decoder)
     }
 
   def schema[A](implicit codec: Codec[A]): Results[Schema] = codec.schema
@@ -71,10 +83,10 @@ object Codec {
   final def fromBinary[A](bytes: Array[Byte])(implicit codec: Codec[A]): Results[A] =
     Codec.schema.flatMap { schema =>
       safeL {
-        val bais                 = new ByteArrayInputStream(bytes)
-        val decoder              = DecoderFactory.get.binaryDecoder(bais, null)
-        val value: GenericRecord = new GenericDatumReader[GenericRecord](schema).read(null, decoder)
-        value.decode
+        val bais               = new ByteArrayInputStream(bytes)
+        val decoder            = DecoderFactory.get.binaryDecoder(bais, null)
+        val res: GenericRecord = new GenericDatumReader[GenericRecord](schema).read(null, decoder)
+        res.decode[A]
       }.flatMap(identity)
     }
 }

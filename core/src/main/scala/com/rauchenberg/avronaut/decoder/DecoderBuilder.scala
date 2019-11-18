@@ -1,5 +1,6 @@
 package com.rauchenberg.avronaut.decoder
 
+import java.nio.ByteBuffer
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
@@ -165,17 +166,24 @@ object DecoderBuilder {
     (value, default) match {
       case (Right(value), _)        => Right(value)
       case (Left(_), Some(default)) => Right(default)
-      case _                        => Left(List(Error(errorStr(paramName, origValue))))
+      case (Left(list), _) =>
+        Left(Nil)
+      case other =>
+        Left(List(Error(errorStr(paramName, origValue))))
     }
 
   def error[A](expected: String, actual: A): Either[Error, Nothing] = Left(Error(s"expected $expected, got $actual"))
 
   implicit val stringDecoderBuilder: DecoderBuilder[String] = new DecoderBuilder[String] {
-    override def apply[B](value: B, failFast: Boolean): Results[String] = value match {
-      case u: Utf8        => Right(u.toString)
-      case s: String      => Right(s)
-      case a: Array[Byte] => Right(new String(a))
-    }
+    override def apply[B](value: B, failFast: Boolean): Results[String] =
+      value match {
+        case u: Utf8 =>
+          Right(u.toString)
+        case s: String =>
+          Right(s)
+        case a: Array[Byte] =>
+          Right(new String(a))
+      }
   }
 
   implicit val booleanDecoderBuilder: DecoderBuilder[Boolean] = new DecoderBuilder[Boolean] {
@@ -211,7 +219,10 @@ object DecoderBuilder {
 
   implicit val bytesDecoderBuilder: DecoderBuilder[Array[Byte]] = new DecoderBuilder[Array[Byte]] {
     override def apply[B](value: B, failFast: Boolean): Results[Array[Byte]] =
-      Right(value.asInstanceOf[Array[Byte]])
+      value match {
+        case buffer: ByteBuffer => Right(buffer.array)
+      }
+
   }
 
   implicit def listDecoderBuilder[A : ClassTag](
@@ -266,33 +277,41 @@ object DecoderBuilder {
   implicit def mapDecoderBuilder[A](implicit elementDecoderBuilder: DecoderBuilder[A]): DecoderBuilder[Map[String, A]] =
     new DecoderBuilder[Map[String, A]] {
       override def apply[B](value: B, failFast: Boolean): Results[Map[String, A]] = {
+
         var cnt      = 0
         var isFailed = false
+        value
+          .asInstanceOf[java.util.Map[_, _]]
         val map = value
-          .asInstanceOf[java.util.Map[String, A]]
+          .asInstanceOf[java.util.Map[_, _]]
         val it = map.asScala.toArray.iterator
 
         val arr = new Array[(String, A)](map.size)
-
         while (it.hasNext && !isFailed) {
           val (k, v) = it.next
           v match {
             case gr: GenericRecord =>
               elementDecoderBuilder(gr, failFast) match {
-                case Left(_) =>
+                case Left(errors) =>
                   isFailed = true
-                case Right(v) => arr(cnt) = (k -> v)
+                case Right(v) =>
+                  arr(cnt) = (k.toString -> v)
               }
             case _ =>
               elementDecoderBuilder(v, failFast) match {
-                case Left(_)  => isFailed = true
-                case Right(v) => arr(cnt) = (k -> v)
+                case Left(errors) =>
+                  isFailed = true
+                case Right(v) =>
+                  arr(cnt) = (k.toString -> v)
               }
           }
           cnt += 1
         }
-        if (isFailed) Left(List(Error("couldn't decode map")))
-        else Right(arr.toMap)
+        if (isFailed) {
+          Left(List(Error("couldn't decode map")))
+        } else {
+          Right(arr.toMap)
+        }
       }
 
     }
@@ -321,8 +340,9 @@ object DecoderBuilder {
     new DecoderBuilder[Option[A]] {
       override def apply[B](value: B, failFast: Boolean): Results[Option[A]] =
         if (value == null) Right(None)
-        else
+        else {
           valueDecoderBuilder(value, failFast).map(Option(_))
+        }
     }
 
   implicit def eitherDecoderBuilder[A, B](implicit lDecoderBuilder: DecoderBuilder[A],
@@ -332,10 +352,14 @@ object DecoderBuilder {
         if (rDecoderBuilder.isString) { //anything can decode to string, so run it 2nd
           safeL(lDecoderBuilder(value, failFast)).flatten match {
             case Right(v) => Right(Left(v))
-            case Left(_) =>
+            case Left(lErrors) =>
               rDecoderBuilder(value, failFast) match {
                 case Right(v) => Right(Right(v))
-                case _        => Left(List(Error(s"couldn't decode either with value '$value'")))
+                case Left(errors) =>
+                  Left(
+                    lErrors ++
+                      errors :+
+                      Error(s"couldn't decode either, containing value '$value'"))
               }
           }
         } else {
@@ -344,7 +368,10 @@ object DecoderBuilder {
             case Left(_) =>
               lDecoderBuilder(value, failFast) match {
                 case Right(v) => Right(Left(v))
-                case _        => Left(List(Error(s"couldn't decode either with value '$value'")))
+                case Left(errors) =>
+                  Left(
+                    errors :+
+                      Error(s"couldn't decode either, containing value '$value'"))
               }
           }
         }

@@ -22,8 +22,8 @@ object Decoder {
     decoder.data.decoder(genericRecord, false)
 
   implicit class DecodeSyntax[A](val genericRecord: GenericRecord) extends AnyVal {
-    def encode(implicit decoder: Decoder[A])             = Decoder.decode(genericRecord, decoder)
-    def encodeAccumulating(implicit decoder: Decoder[A]) = Decoder.decodeAccumulating(genericRecord, decoder)
+    def decode(implicit decoder: Decoder[A])             = Decoder.decode(genericRecord, decoder)
+    def decodeAccumulating(implicit decoder: Decoder[A]) = Decoder.decodeAccumulating(genericRecord, decoder)
   }
 
 }
