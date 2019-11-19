@@ -166,7 +166,7 @@ class EitherUnionSpec extends UnitSpecBase {
         val writerSchema   = AvroSchema.toSchema[WriterRecordWithEnum].data.value
         implicit val codec = Codec[ReaderRecordWithEnum]
 
-        val builder = new GenericRecordBuilder(new GenericData.Record(writerSchema.schema))
+        val builder = new GenericRecordBuilder(writerSchema.schema)
 
         record.field1 match {
           case Left(enum)     => builder.set("field1", enum.toString)
@@ -179,6 +179,25 @@ class EitherUnionSpec extends UnitSpecBase {
 
         builder.build.decode[ReaderRecordWithEnum] should beRight(expected)
       }
+    }
+
+    "decode using the schema to resolve ambiguous cases" in {
+      implicit val codec   = Codec[RecordWithAmbiguousUnion]
+      implicit val ssCodec = Codec[Superset]
+      val schema           = codec.schema.value
+      val innerSchema      = ssCodec.schema.value
+
+      val record = RecordWithAmbiguousUnion(Superset("cup", 1, true).asLeft)
+
+      val builder = new GenericRecordBuilder(schema)
+      val innerGR = new GenericData.Record(innerSchema)
+      innerGR.put(0, record.field1.left.get.field1)
+      innerGR.put(1, record.field1.left.get.field2)
+      innerGR.put(2, record.field1.left.get.field3)
+
+      builder.set("field1", innerGR)
+
+      builder.build.decode[RecordWithAmbiguousUnion] should beRight(record)
     }
 
   }
@@ -195,6 +214,10 @@ class EitherUnionSpec extends UnitSpecBase {
   case class UnionWithOptionalEither(field: Option[Either[Cupcat, Rendal]])
   case class UnionWithEitherOfOption(field: Either[Option[Cupcat], Either[Rendal, String]])
   case class UnionWithEitherOfList(field: Either[Option[List[Cupcat]], Either[Rendal, String]])
+
+  case class Subset(field1: String, field2: Int)
+  case class Superset(field1: String, field2: Int, field3: Boolean)
+  case class RecordWithAmbiguousUnion(field1: Either[Superset, Subset])
 }
 
 private[this] object EitherUnionSpec {
