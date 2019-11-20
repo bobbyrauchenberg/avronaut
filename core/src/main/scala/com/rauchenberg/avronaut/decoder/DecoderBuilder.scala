@@ -53,7 +53,7 @@ object DecoderBuilder {
       val maybeSchema = schemaData.schemaMap.get(recordName)
 
       maybeSchema.map { schema =>
-        val it     = schema.getFields.iterator()
+        val it     = params.iterator
         var failed = false
         var cnt    = 0
         val arr    = new Array[Any](params.size)
@@ -64,8 +64,7 @@ object DecoderBuilder {
 
         def iterateFailFast = {
           while (it.hasNext && !failed) {
-            val field            = it.next()
-            val param            = params.find(_.label == field.name()).get
+            val param            = it.next()
             val paramAnnotations = getAnnotations(param.annotations)
             val paramName        = paramAnnotations.name(param.label)
 
@@ -99,16 +98,16 @@ object DecoderBuilder {
             }
           }
           if (!failed) Right(ctx.rawConstruct(arr))
-          else Left(errors.toList :+ Error("The value passed to the record decoder was: " + value.toString))
+          else Left(errors.toList :+ Error("The value passed to the record decoder was: " + value))
         }
 
         def iterateAccumulating = {
           while (it.hasNext) {
-            val field            = it.next()
-            val param            = params.find(_.label == field.name()).get
+            val param            = it.next()
             val paramAnnotations = getAnnotations(param.annotations)
             val paramName        = paramAnnotations.name(param.label)
 
+            println("paramName : " + paramName)
             val res = value match {
               case genericRecord: GenericRecord =>
                 val v = genericRecord.get(paramName)
@@ -369,8 +368,8 @@ object DecoderBuilder {
           safeL(rDecoderBuilder(value, schemaData, failFast)).flatten match {
             case Right(v) => Right(Right(v))
             case Left(lErrors) =>
-              rDecoderBuilder(value, schemaData, failFast) match {
-                case Right(v) => Right(Right(v))
+              lDecoderBuilder(value, schemaData, failFast) match {
+                case Right(v) => Right(Left(v))
                 case Left(errors) =>
                   Left(
                     lErrors ++
@@ -382,8 +381,8 @@ object DecoderBuilder {
           safeL(lDecoderBuilder(value, schemaData, failFast)).flatten match {
             case Right(v) => Right(Left(v))
             case Left(_) =>
-              lDecoderBuilder(value, schemaData, failFast) match {
-                case Right(v) => Right(Left(v))
+              rDecoderBuilder(value, schemaData, failFast) match {
+                case Right(v) => Right(Right(v))
                 case Left(errors) =>
                   Left(
                     errors :+

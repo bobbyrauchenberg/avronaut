@@ -11,27 +11,25 @@ class CodecRoundTrip extends UnitSpecBase {
 
   "codec" should {
     "encode and decode a record" in {
-      forAll { record: PrimitivesRecord =>
-        runCodecRoundTrip[PrimitivesRecord]
-        runCodecRoundTrip[NestedRecord]
-        runCodecRoundTrip[XWrapper]
-        runCodecRoundTrip[YWrapper]
-        runCodecRoundTrip[TestRecord]
-        runCodecRoundTrip[Nested]
-        runCodecRoundTrip[RecordWithListOfCaseClass]
-        runCodecRoundTrip[RecordWithListOfEither]
-        runCodecRoundTrip[EitherUnion]
-        runCodecRoundTrip[WriterUnionWithCaseClass]
-        runCodecRoundTrip[UnionWithEitherOfOption]
-        runCodecRoundTrip[UnionWithOptionalEither]
-        runCodecRoundTrip[WriterRecordWithMap]
-        runCodecRoundTrip[WriterRecordWithMapOfRecord]
-        runCodecRoundTrip[WriterRecordWithList]
-        runCodecRoundTrip[RecordWithSet]
-        runCodecRoundTrip[RecordWithOptionUnion]
-        runCodecRoundTrip[RecordWithOptionUnionOfCaseclass]
-        runCodecRoundTrip[RecordWithOptionalListCaseClass]
-      }
+      runCodecRoundTrip[PrimitivesRecord]
+      runCodecRoundTrip[NestedRecord]
+      runCodecRoundTrip[XWrapper]
+      runCodecRoundTrip[YWrapper]
+      runCodecRoundTrip[TestRecord]
+      runCodecRoundTrip[Nested]
+      runCodecRoundTrip[RecordWithListOfCaseClass]
+      runCodecRoundTrip[RecordWithListOfEither]
+      runCodecRoundTrip[EitherUnion]
+      runCodecRoundTrip[WriterUnionWithCaseClass]
+      runCodecRoundTrip[UnionWithEitherOfOption]
+      runCodecRoundTrip[UnionWithOptionalEither]
+      runCodecRoundTrip[WriterRecordWithMap]
+      runCodecRoundTrip[WriterRecordWithMapOfRecord]
+      runCodecRoundTrip[WriterRecordWithList]
+      runCodecRoundTrip[RecordWithSet]
+      runCodecRoundTrip[RecordWithOptionUnion]
+      runCodecRoundTrip[RecordWithOptionUnionOfCaseclass]
+      runCodecRoundTrip[RecordWithOptionalListCaseClass]
     }
 
   }

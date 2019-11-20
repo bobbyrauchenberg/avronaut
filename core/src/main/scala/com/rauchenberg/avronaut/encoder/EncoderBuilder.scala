@@ -71,7 +71,10 @@ object EncoderBuilder {
         def iterateAccumulating(gr: GenericData.Record,
                                 fields: collection.mutable.Buffer[String]): Results[GenericRecord] = {
           ctx.parameters.foreach { param =>
-            if (fields.contains(param.label)) {
+            val paramAnnotations = getAnnotations(param.annotations)
+            val paramName        = paramAnnotations.name(param.label)
+
+            if (fields.contains(paramName)) {
               val paramValue = param.dereference(value)
               try {
                 param.typeclass.apply(param.dereference(value), sd, failFast) match {
@@ -98,9 +101,13 @@ object EncoderBuilder {
         def iterateFailFast(gr: GenericData.Record,
                             fields: collection.mutable.Buffer[String]): Results[GenericRecord] = {
           val it = ctx.parameters.iterator
+
           while (it.hasNext && !hasErrors) {
-            val param = it.next
-            if (fields.contains(param.label)) {
+            val param            = it.next
+            val paramAnnotations = getAnnotations(param.annotations)
+            val paramName        = paramAnnotations.name(param.label)
+
+            if (fields.contains(paramName)) {
               val paramValue = param.dereference(value)
               try {
                 param.typeclass.apply(param.dereference(value), sd, failFast) match {
