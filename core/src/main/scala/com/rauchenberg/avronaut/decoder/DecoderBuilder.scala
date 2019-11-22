@@ -60,8 +60,6 @@ object DecoderBuilder {
 
         val errors = new ListBuffer[Error]()
 
-        println(schema.getFields)
-
         def iterateFailFast = {
           while (it.hasNext && !failed) {
             val param            = it.next()
@@ -107,7 +105,6 @@ object DecoderBuilder {
             val paramAnnotations = getAnnotations(param.annotations)
             val paramName        = paramAnnotations.name(param.label)
 
-            println("paramName : " + paramName)
             val res = value match {
               case genericRecord: GenericRecord =>
                 val v = genericRecord.get(paramName)
@@ -380,13 +377,14 @@ object DecoderBuilder {
                                           manifestA: Manifest[A],
                                           manifestB: Manifest[B]): DecoderBuilder[Either[A, B]] =
     new DecoderBuilder[Either[A, B]] {
-      override def apply[C](value: C, schemaData: SchemaData, failFast: Boolean): Results[Either[A, B]] =
+      override def apply[C](value: C, schemaData: SchemaData, failFast: Boolean): Results[Either[A, B]] = {
+        def trimClassName(cn: String)                          = if (cn.endsWith("$")) cn.dropRight(1) else cn
+        def isRecordToDecode(cn: String, gr: GenericContainer) = trimClassName(cn).endsWith(gr.getSchema.getName)
+
         value match {
-          case gr: GenericContainer if (manifest(manifestA).runtimeClass.toString.endsWith(gr.getSchema.getName)) =>
-            println("in ldecoder")
+          case gr: GenericContainer if isRecordToDecode(manifestA.runtimeClass.toString, gr) =>
             lDecoderBuilder(value, schemaData, failFast).map(Left(_))
-          case gr: GenericContainer if (manifest(manifestB).runtimeClass.toString.endsWith(gr.getSchema.getName)) =>
-            println("in rdecoder")
+          case gr: GenericContainer if isRecordToDecode(manifestB.runtimeClass.toString, gr) =>
             rDecoderBuilder(value, schemaData, failFast).map(Right(_))
           case _ =>
             if (lDecoderBuilder.isString) { //anything can decode to string, so run it 2nd
@@ -418,6 +416,7 @@ object DecoderBuilder {
               }
             }
         }
+      }
 
     }
 

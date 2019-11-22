@@ -6,7 +6,7 @@ import com.rauchenberg.avronaut.Codec._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import com.sksamuel.avro4s.{DefaultFieldMapper, FromRecord, SchemaFor, ToRecord}
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
-import unit.decoder.SealedTraitUnionSpec.{A, B, InSeason, InSeasonEpisode, OutOfSeason, Type, Unknown, X, XCC, XWrapper}
+import unit.decoder.SealedTraitUnionSpec.{A, B, F, I, G, Type, C, X, XCC, XWrapper}
 import unit.utils.UnitSpecBase
 
 class SealedTraitUnionSpec extends UnitSpecBase {
@@ -35,20 +35,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
     "be blah" in {
 
       forAll { x: XCC =>
-//        val cond = x.t match {
-//          case OutOfSeason(_, episode) if (episode.isRight) => true
-//          case _                                            => false
-//        }
-//        whenever(cond) {
-        val rec = XCC(InSeason("", Right(InSeasonEpisode(0, false))))
-//        val fromRecord = FromRecord[XCC]
-//
-//        println(ToRecord[XCC].to(rec))
-//
-//        fromRecord.from(ToRecord[XCC].to(rec)) shouldBe rec
-
-        rec.encode.flatMap(_.decodeAccumulating[XCC]) should beRight(rec)
-//        }
+        x.encode.flatMap(_.decodeAccumulating[XCC]) should beRight(x)
       }
     }
 
@@ -68,16 +55,13 @@ object SealedTraitUnionSpec {
   case class XWrapper(field: X)
 
   sealed trait Type extends Product with Serializable
-
-  case object Unknown                                                                                extends Type
-  case object Movie                                                                                  extends Type
-  case object StandaloneProgramme                                                                    extends Type
-  final case class InSeason(seasonId: String, episode: Either[SpecialEpisode.type, InSeasonEpisode]) extends Type
-
-  final case class OutOfSeason(seriesId: String, episode: Either[SpecialEpisode.type, OutOfSeasonEpisode]) extends Type
-  final case class OutOfSeasonEpisode(episodeNumber: Int)
-
-  final case class InSeasonEpisode(episodeNumber: Int, lastInSeason: Boolean)
+  case object C                                                                                extends Type
+  case object D                                                                                  extends Type
+  case object E                                                                    extends Type
+  final case class F(seasonId: String, episode: Either[SpecialEpisode.type, I]) extends Type
+  final case class G(seriesId: String, episode: Either[SpecialEpisode.type, H]) extends Type
+  final case class H(episodeNumber: Int)
+  final case class I(episodeNumber: Int, lastInSeason: Boolean)
   case object SpecialEpisode
 
 }
