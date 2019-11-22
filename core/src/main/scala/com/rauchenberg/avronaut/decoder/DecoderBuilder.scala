@@ -10,7 +10,7 @@ import com.rauchenberg.avronaut.common._
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
 import com.rauchenberg.avronaut.schema.SchemaData
 import magnolia.{CaseClass, Magnolia, SealedTrait}
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.generic.{GenericContainer, GenericRecord}
 import org.apache.avro.util.Utf8
 import shapeless.{:+:, CNil, Coproduct, Inr}
 
@@ -293,30 +293,45 @@ object DecoderBuilder {
     new DecoderBuilder[Map[String, A]] {
       override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Map[String, A]] = {
 
-        var cnt      = 0
+        println(1)
+        var cnt = 0
+        println(2)
         var isFailed = false
+        println(3)
         value
           .asInstanceOf[java.util.Map[_, _]]
+        println(4)
         val map = value
           .asInstanceOf[java.util.Map[_, _]]
+        println(5)
+        println("map : " + map)
         val it = map.asScala.toArray.iterator
 
+        println(6)
         val arr = new Array[(String, A)](map.size)
+        println(6.5)
         while (it.hasNext && !isFailed) {
+          println(7)
+          println("it.next : " + it.next)
           val (k, v) = it.next
           v match {
             case gr: GenericRecord =>
+              println(8)
               elementDecoderBuilder(gr, schemaData, failFast) match {
                 case Left(errors) =>
+                  println(9)
                   isFailed = true
                 case Right(v) =>
+                  println(10)
                   arr(cnt) = (k.toString -> v)
               }
             case _ =>
               elementDecoderBuilder(v, schemaData, failFast) match {
                 case Left(errors) =>
+                  println(11)
                   isFailed = true
                 case Right(v) =>
+                  println(12)
                   arr(cnt) = (k.toString -> v)
               }
           }
@@ -361,34 +376,47 @@ object DecoderBuilder {
     }
 
   implicit def eitherDecoderBuilder[A, B](implicit lDecoderBuilder: DecoderBuilder[A],
-                                          rDecoderBuilder: DecoderBuilder[B]): DecoderBuilder[Either[A, B]] =
+                                          rDecoderBuilder: DecoderBuilder[B],
+                                          manifestA: Manifest[A],
+                                          manifestB: Manifest[B]): DecoderBuilder[Either[A, B]] =
     new DecoderBuilder[Either[A, B]] {
       override def apply[C](value: C, schemaData: SchemaData, failFast: Boolean): Results[Either[A, B]] =
-        if (lDecoderBuilder.isString) { //anything can decode to string, so run it 2nd
-          safeL(rDecoderBuilder(value, schemaData, failFast)).flatten match {
-            case Right(v) => Right(Right(v))
-            case Left(lErrors) =>
-              lDecoderBuilder(value, schemaData, failFast) match {
-                case Right(v) => Right(Left(v))
-                case Left(errors) =>
-                  Left(
-                    lErrors ++
-                      errors :+
-                      Error(s"couldn't decode either, containing value '$value'"))
-              }
-          }
-        } else {
-          safeL(lDecoderBuilder(value, schemaData, failFast)).flatten match {
-            case Right(v) => Right(Left(v))
-            case Left(_) =>
-              rDecoderBuilder(value, schemaData, failFast) match {
+        value match {
+          case gr: GenericContainer if (manifest(manifestA).runtimeClass.toString.endsWith(gr.getSchema.getName)) =>
+            println("in ldecoder")
+            lDecoderBuilder(value, schemaData, failFast).map(Left(_))
+          case gr: GenericContainer if (manifest(manifestB).runtimeClass.toString.endsWith(gr.getSchema.getName)) =>
+            println("in rdecoder")
+            rDecoderBuilder(value, schemaData, failFast).map(Right(_))
+          case _ =>
+            if (lDecoderBuilder.isString) { //anything can decode to string, so run it 2nd
+              safeL(rDecoderBuilder(value, schemaData, failFast)).flatten match {
                 case Right(v) => Right(Right(v))
-                case Left(errors) =>
-                  Left(
-                    errors :+
-                      Error(s"couldn't decode either, containing value '$value'"))
+                case Left(lErrors) =>
+                  lDecoderBuilder(value, schemaData, failFast) match {
+                    case Right(v) => Right(Left(v))
+                    case Left(errors) =>
+                      Left(
+                        lErrors ++
+                          errors :+
+                          Error(s"couldn't decode either, containing value '$value'"))
+                  }
               }
-          }
+            } else {
+              println("a runtime : " + manifest(manifestA).runtimeClass)
+              println("b runtime : " + manifest(manifestB))
+              safeL(lDecoderBuilder(value, schemaData, failFast)).flatten match {
+                case Right(v) => Right(Left(v))
+                case Left(_) =>
+                  rDecoderBuilder(value, schemaData, failFast) match {
+                    case Right(v) => Right(Right(v))
+                    case Left(errors) =>
+                      Left(
+                        errors :+
+                          Error(s"couldn't decode either, containing value '$value'"))
+                  }
+              }
+            }
         }
 
     }

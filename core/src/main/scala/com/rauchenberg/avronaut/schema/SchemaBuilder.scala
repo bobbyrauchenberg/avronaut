@@ -34,6 +34,8 @@ object SchemaBuilder {
     val doc               = annotations.doc
     val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
 
+    println("namespace : " + namespace)
+
     override def schema: Results[AvroSchemaADT] =
       ctx.parameters.toList.traverse { param =>
         val paramAnnotations = getAnnotations(param.annotations)
