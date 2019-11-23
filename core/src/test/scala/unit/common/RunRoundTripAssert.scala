@@ -18,10 +18,7 @@ object RunRoundTripAssert extends UnitSpecBase {
 
   def runCodecRoundTrip[A : Arbitrary](implicit codec: Codec[A]) =
     forAll { record: A =>
-      println("encoded : " + record.encode)
       record.encode.flatMap { gr =>
-        println(gr)
-        println("decoded : " + gr.decode[A])
         gr.decode[A]
       } should beRight(record)
     }

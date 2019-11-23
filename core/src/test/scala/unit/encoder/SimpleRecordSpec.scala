@@ -21,7 +21,6 @@ class SimpleRecordSpec extends UnitSpecBase {
         expected.put("float", record.float)
         expected.put("double", record.double)
         expected.put("long", record.long)
-        expected.put("bytes", record.bytes)
 
         record.encode should beRight(expected.asInstanceOf[GenericRecord])
       }
@@ -49,13 +48,7 @@ class SimpleRecordSpec extends UnitSpecBase {
     implicit val nestedRecordCodec: Codec[NestedRecord] = Codec[NestedRecord]
   }
 
-  case class TestRecord(string: String,
-                        boolean: Boolean,
-                        int: Int,
-                        float: Float,
-                        double: Double,
-                        long: Long,
-                        bytes: Array[Byte])
+  case class TestRecord(string: String, boolean: Boolean, int: Int, float: Float, double: Double, long: Long)
   case class NestedRecord(string: String, boolean: Boolean, inner: Inner)
   case class Inner(value: String, value2: Int)
 }

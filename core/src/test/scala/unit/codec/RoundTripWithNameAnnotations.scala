@@ -11,7 +11,6 @@ class RoundTripWithNameAnnotations extends UnitSpecBase {
   "encoding and decoding" should {
     "respect annotations which change names and namespaces" in {
       runCodecRoundTrip[RecordWithNameAnnotation]
-      println(recordWithNamespaceAnnotationCodec.schema.value.toString)
       runCodecRoundTrip[RecordWithNamespaceAnnotation]
     }
   }

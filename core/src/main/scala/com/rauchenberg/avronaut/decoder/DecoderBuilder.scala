@@ -359,8 +359,6 @@ object DecoderBuilder {
                   }
               }
             } else {
-              println("a runtime : " + manifest(manifestA).runtimeClass)
-              println("b runtime : " + manifest(manifestB))
               safeL(lDecoderBuilder(value, failFast)).flatten match {
                 case Right(v) => Right(Left(v))
                 case Left(_) =>
