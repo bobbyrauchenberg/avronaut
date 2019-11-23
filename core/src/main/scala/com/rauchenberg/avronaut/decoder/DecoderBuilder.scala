@@ -7,10 +7,9 @@ import java.util.UUID
 import cats.implicits._
 import com.rauchenberg.avronaut.common.ReflectionHelpers._
 import com.rauchenberg.avronaut.common._
-import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{getAnnotations, getNameAndNamespace}
-import com.rauchenberg.avronaut.schema.SchemaData
+import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.getAnnotations
 import magnolia.{CaseClass, Magnolia, SealedTrait}
-import org.apache.avro.generic.{GenericContainer, GenericRecord}
+import org.apache.avro.generic.{GenericContainer, GenericFixed, GenericRecord}
 import org.apache.avro.util.Utf8
 import shapeless.{:+:, CNil, Coproduct, Inr}
 
@@ -23,11 +22,11 @@ trait DecoderBuilder[A] {
 
   def isString: Boolean = false
 
-  def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[A]
+  def apply[B](value: B, failFast: Boolean): Results[A]
 
 }
 
-case class Decodable[A](decoder: DecoderBuilder[A], schemaData: SchemaData)
+case class Decodable[A](decoder: DecoderBuilder[A])
 
 object DecoderBuilder {
 
@@ -42,112 +41,101 @@ object DecoderBuilder {
 
     val params = ctx.parameters.toArray
 
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[A] = {
+    override def apply[B](value: B, failFast: Boolean): Results[A] = {
 
-      val annotations       = getAnnotations(ctx.annotations)
-      val (name, namespace) = getNameAndNamespace(annotations, ctx.typeName.short, ctx.typeName.owner)
+      val it     = params.iterator
+      var failed = false
+      var cnt    = 0
+      val arr    = new Array[Any](params.size)
 
-      val DOT        = "."
-      val recordName = namespace.concat(DOT).concat(name)
+      val errors = new ListBuffer[Error]()
 
-      val maybeSchema = schemaData.schemaMap.get(recordName)
+      def iterateFailFast = {
+        while (it.hasNext && !failed) {
+          val param            = it.next()
+          val paramAnnotations = getAnnotations(param.annotations)
+          val paramName        = paramAnnotations.name(param.label)
 
-      maybeSchema.map { schema =>
-        val it     = params.iterator
-        var failed = false
-        var cnt    = 0
-        val arr    = new Array[Any](params.size)
-
-        val errors = new ListBuffer[Error]()
-
-        def iterateFailFast = {
-          while (it.hasNext && !failed) {
-            val param            = it.next()
-            val paramAnnotations = getAnnotations(param.annotations)
-            val paramName        = paramAnnotations.name(param.label)
-
-            val res = value match {
-              case genericRecord: GenericRecord =>
-                val v = genericRecord.get(paramName)
-                valueOrDefault(
-                  try {
-                    v match {
-                      case gr: GenericRecord =>
-                        param.typeclass.apply(gr, schemaData, failFast)
-                      case _ =>
-                        param.typeclass.apply(genericRecord.get(paramName), schemaData, failFast)
-                    }
-                  } catch {
-                    case scala.util.control.NonFatal(_) => Left(Nil)
-                  },
-                  param.default,
-                  param.label,
-                  v
-                )
-              case _ => Left(Nil)
-            }
-            res match {
-              case Right(v) =>
-                arr(cnt) = v
-                cnt += 1
-              case Left(l) =>
-                errors.appendAll(l)
-                failed = true
-            }
+          val res = value match {
+            case genericRecord: GenericRecord =>
+              val v = genericRecord.get(paramName)
+              valueOrDefault(
+                try {
+                  v match {
+                    case gr: GenericRecord =>
+                      param.typeclass.apply(gr, failFast)
+                    case _ =>
+                      param.typeclass.apply(genericRecord.get(paramName), failFast)
+                  }
+                } catch {
+                  case scala.util.control.NonFatal(_) => Left(Nil)
+                },
+                param.default,
+                param.label,
+                v
+              )
+            case _ => Left(Nil)
           }
-          if (!failed) Right(ctx.rawConstruct(arr))
-          else Left(errors.toList :+ Error("The value passed to the record decoder was: " + value))
-        }
-
-        def iterateAccumulating = {
-          while (it.hasNext) {
-            val param            = it.next()
-            val paramAnnotations = getAnnotations(param.annotations)
-            val paramName        = paramAnnotations.name(param.label)
-
-            val res = value match {
-              case genericRecord: GenericRecord =>
-                val v = genericRecord.get(paramName)
-                valueOrDefault(
-                  try {
-                    v match {
-                      case gr: GenericRecord =>
-                        param.typeclass.apply(gr, schemaData, failFast)
-                      case _ =>
-                        param.typeclass.apply(genericRecord.get(paramName), schemaData, failFast)
-                    }
-                  } catch {
-                    case scala.util.control.NonFatal(_) =>
-                      failed = true
-                      Left(Nil) // needed to compile, but errors are accumulated in `errors`
-                  },
-                  param.default,
-                  param.label,
-                  v
-                )
-              case _ => Left(Nil)
-            }
-            res match {
-              case Right(v) =>
-                arr(cnt) = v
-              case Left(l) =>
-                errors.appendAll(l)
-                failed = true
-            }
-            cnt += 1
+          res match {
+            case Right(v) =>
+              arr(cnt) = v
+              cnt += 1
+            case Left(l) =>
+              errors.appendAll(l)
+              failed = true
           }
-          if (!failed) Right(ctx.rawConstruct(arr))
-          else Left(errors.toList :+ Error("The value passed to the record decoder was: " + value.toString))
         }
-
-        if (failFast) {
-          iterateFailFast
-        } else {
-          iterateAccumulating
-        }
+        if (!failed) Right(ctx.rawConstruct(arr))
+        else Left(errors.toList :+ Error("The value passed to the record decoder was: " + value.toString))
       }
-    }.getOrElse(Left(List(Error(s"Could not decode $value, as unable to find a schema"))))
 
+      def iterateAccumulating = {
+        while (it.hasNext) {
+          val param            = it.next()
+          val paramAnnotations = getAnnotations(param.annotations)
+          val paramName        = paramAnnotations.name(param.label)
+
+          val res = value match {
+            case genericRecord: GenericRecord =>
+              val v = genericRecord.get(paramName)
+              valueOrDefault(
+                try {
+                  v match {
+                    case gr: GenericRecord =>
+                      param.typeclass.apply(gr, failFast)
+                    case _ =>
+                      param.typeclass.apply(genericRecord.get(paramName), failFast)
+                  }
+                } catch {
+                  case scala.util.control.NonFatal(_) =>
+                    failed = true
+                    Left(Nil) // needed to compile, but errors are accumulated in `errors`
+                },
+                param.default,
+                param.label,
+                v
+              )
+            case _ => Left(Nil)
+          }
+          res match {
+            case Right(v) =>
+              arr(cnt) = v
+            case Left(l) =>
+              errors.appendAll(l)
+              failed = true
+          }
+          cnt += 1
+        }
+        if (!failed) Right(ctx.rawConstruct(arr))
+        else Left(errors.toList :+ Error("The value passed to the record decoder was: " + value.toString))
+      }
+
+      if (failFast) {
+        iterateFailFast
+      } else {
+        iterateAccumulating
+      }
+    }
   }
 
   def dispatch[A : WeakTypeTag](ctx: SealedTrait[Typeclass, A]): Typeclass[A] = new Typeclass[A] {
@@ -160,14 +148,14 @@ object DecoderBuilder {
         .map(st => ReflectionHelpers.toCaseObject[A](st.typeName.full))
         .fold[Results[A]](emptyFail)(Right(_))
 
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[A] =
+    override def apply[B](value: B, failFast: Boolean): Results[A] =
       if (isEnum) deriveEnum(value)
       else {
         value match {
           case gr: GenericRecord =>
             ctx.subtypes
               .find(_.typeName.full == gr.getSchema.getFullName)
-              .map(_.typeclass.apply(value, schemaData, failFast))
+              .map(_.typeclass.apply(value, failFast))
               .getOrElse(emptyFail)
           case _ => deriveEnum(value)
         }
@@ -178,28 +166,21 @@ object DecoderBuilder {
     (value, default) match {
       case (Right(value), _)        => Right(value)
       case (Left(_), Some(default)) => Right(default)
-      case (Left(list), _) =>
-        Left(Nil)
-      case other =>
-        Left(List(Error(errorStr(paramName, origValue))))
+      case _                        => Left(List(Error(errorStr(paramName, origValue))))
     }
 
   def error[A](expected: String, actual: A): Either[Error, Nothing] = Left(Error(s"expected $expected, got $actual"))
 
   implicit val stringDecoderBuilder: DecoderBuilder[String] = new DecoderBuilder[String] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[String] =
-      value match {
-        case u: Utf8 =>
-          Right(u.toString)
-        case s: String =>
-          Right(s)
-        case a: Array[Byte] =>
-          Right(new String(a))
-      }
+    override def apply[B](value: B, failFast: Boolean): Results[String] = value match {
+      case u: Utf8        => Right(u.toString)
+      case s: String      => Right(s)
+      case a: Array[Byte] => Right(new String(a))
+    }
   }
 
   implicit val booleanDecoderBuilder: DecoderBuilder[Boolean] = new DecoderBuilder[Boolean] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Boolean] =
+    override def apply[B](value: B, failFast: Boolean): Results[Boolean] =
       value match {
         case true  => Right(true)
         case false => Right(false)
@@ -207,40 +188,41 @@ object DecoderBuilder {
   }
 
   implicit val intDecoderBuilder: DecoderBuilder[Int] = new DecoderBuilder[Int] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Int] =
+    override def apply[B](value: B, failFast: Boolean): Results[Int] =
       Right(value.toString.toInt)
   }
 
   implicit val longDecoderBuilder: DecoderBuilder[Long] = new DecoderBuilder[Long] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Long] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[Long] = value match {
       case l: Long => Right(l.toString.toLong)
     }
   }
 
   implicit val floatDecoderBuilder: DecoderBuilder[Float] = new DecoderBuilder[Float] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Float] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[Float] = value match {
       case f: Float => Right(f.toString.toFloat)
     }
   }
 
   implicit val doubleDecoderBuilder: DecoderBuilder[Double] = new DecoderBuilder[Double] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Double] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[Double] = value match {
       case d: Double => Right(d.toString.toDouble)
     }
   }
 
   implicit val bytesDecoderBuilder: DecoderBuilder[Array[Byte]] = new DecoderBuilder[Array[Byte]] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Array[Byte]] =
-      value match {
-        case buffer: ByteBuffer => Right(buffer.array)
-      }
-
+    override def apply[B](value: B, failFast: Boolean): Results[Array[Byte]] =
+      Right(value match {
+        case array: Array[Byte]  => array
+        case buffer: ByteBuffer  => buffer.array
+        case fixed: GenericFixed => fixed.bytes()
+      })
   }
 
   implicit def listDecoderBuilder[A : ClassTag](
       implicit elementDecoderBuilder: DecoderBuilder[A]): DecoderBuilder[List[A]] =
     new Typeclass[List[A]] {
-      override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[List[A]] = {
+      override def apply[B](value: B, failFast: Boolean): Results[List[A]] = {
         val list   = value.asInstanceOf[java.util.List[A]]
         val arr    = new Array[A](list.size)
         val it     = list.iterator()
@@ -250,9 +232,9 @@ object DecoderBuilder {
           val x = it.next()
           val el = x match {
             case gr: GenericRecord =>
-              elementDecoderBuilder(gr, schemaData, failFast)
+              elementDecoderBuilder(gr, failFast)
             case _ =>
-              elementDecoderBuilder(x, schemaData, failFast)
+              elementDecoderBuilder(x, failFast)
           }
           if (el.isRight) {
             arr(cnt) = el.right.get
@@ -268,83 +250,60 @@ object DecoderBuilder {
 
   implicit def seqDecoderBuilder[A : ClassTag](
       implicit elementDecoderBuilder: DecoderBuilder[A]): DecoderBuilder[Seq[A]] = new DecoderBuilder[Seq[A]] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Seq[A]] =
-      listDecoderBuilder[A].apply[B](value, schemaData, failFast)
+    override def apply[B](value: B, failFast: Boolean): Results[Seq[A]] =
+      listDecoderBuilder[A].apply[B](value, failFast)
   }
 
   implicit def vectorDecoderBuilder[A : ClassTag](
       implicit elementDecoderBuilder: DecoderBuilder[A]): DecoderBuilder[Vector[A]] =
     new DecoderBuilder[Vector[A]] {
-      override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Vector[A]] =
-        listDecoderBuilder[A].apply[B](value, schemaData, failFast).map(_.toVector)
+      override def apply[B](value: B, failFast: Boolean): Results[Vector[A]] =
+        listDecoderBuilder[A].apply[B](value, failFast).map(_.toVector)
     }
 
   implicit def setDecoderBuilder[A : ClassTag](
       implicit elementDecoderBuilder: DecoderBuilder[A]): DecoderBuilder[Set[A]] =
     new DecoderBuilder[Set[A]] {
-      override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Set[A]] =
-        listDecoderBuilder[A].apply[B](value, schemaData, failFast).map(_.toSet)
+      override def apply[B](value: B, failFast: Boolean): Results[Set[A]] =
+        listDecoderBuilder[A].apply[B](value, failFast).map(_.toSet)
     }
 
   implicit def mapDecoderBuilder[A](implicit elementDecoderBuilder: DecoderBuilder[A]): DecoderBuilder[Map[String, A]] =
     new DecoderBuilder[Map[String, A]] {
-      override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Map[String, A]] = {
-
-        println(1)
-        var cnt = 0
-        println(2)
+      override def apply[B](value: B, failFast: Boolean): Results[Map[String, A]] = {
+        var cnt      = 0
         var isFailed = false
-        println(3)
-        value
-          .asInstanceOf[java.util.Map[_, _]]
-        println(4)
         val map = value
-          .asInstanceOf[java.util.Map[_, _]]
-        println(5)
-        println("map : " + map)
+          .asInstanceOf[java.util.Map[_, A]]
         val it = map.asScala.toArray.iterator
 
-        println(6)
         val arr = new Array[(String, A)](map.size)
-        println(6.5)
+
         while (it.hasNext && !isFailed) {
-          println(7)
-          println("it.next : " + it.next)
           val (k, v) = it.next
           v match {
             case gr: GenericRecord =>
-              println(8)
-              elementDecoderBuilder(gr, schemaData, failFast) match {
-                case Left(errors) =>
-                  println(9)
+              elementDecoderBuilder(gr, failFast) match {
+                case Left(_) =>
                   isFailed = true
-                case Right(v) =>
-                  println(10)
-                  arr(cnt) = (k.toString -> v)
+                case Right(v) => arr(cnt) = (k.toString -> v)
               }
             case _ =>
-              elementDecoderBuilder(v, schemaData, failFast) match {
-                case Left(errors) =>
-                  println(11)
-                  isFailed = true
-                case Right(v) =>
-                  println(12)
-                  arr(cnt) = (k.toString -> v)
+              elementDecoderBuilder(v, failFast) match {
+                case Left(_)  => isFailed = true
+                case Right(v) => arr(cnt) = (k.toString -> v)
               }
           }
           cnt += 1
         }
-        if (isFailed) {
-          Left(List(Error("couldn't decode map")))
-        } else {
-          Right(arr.toMap)
-        }
+        if (isFailed) Left(List(Error("couldn't decode map")))
+        else Right(arr.toMap)
       }
 
     }
 
   implicit def offsetDateTimeDecoderBuilder: DecoderBuilder[OffsetDateTime] = new DecoderBuilder[OffsetDateTime] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[OffsetDateTime] =
+    override def apply[B](value: B, failFast: Boolean): Results[OffsetDateTime] =
       value match {
         case l: Long => Right(OffsetDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneOffset.UTC))
       }
@@ -352,24 +311,23 @@ object DecoderBuilder {
   }
 
   implicit def instantDecoderBuilder: DecoderBuilder[Instant] = new DecoderBuilder[Instant] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Instant] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[Instant] = value match {
       case l: Long => Right(Instant.ofEpochMilli(l))
     }
   }
 
   implicit def uuidDecoderBuilder: DecoderBuilder[UUID] = new DecoderBuilder[UUID] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[UUID] = value match {
+    override def apply[B](value: B, failFast: Boolean): Results[UUID] = value match {
       case s: String if (s != null) => Right(java.util.UUID.fromString(s))
     }
   }
 
   implicit def optionDecoderBuilder[A](implicit valueDecoderBuilder: DecoderBuilder[A]): DecoderBuilder[Option[A]] =
     new DecoderBuilder[Option[A]] {
-      override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[Option[A]] =
+      override def apply[B](value: B, failFast: Boolean): Results[Option[A]] =
         if (value == null) Right(None)
-        else {
-          valueDecoderBuilder(value, schemaData, failFast).map(Option(_))
-        }
+        else
+          valueDecoderBuilder(value, failFast).map(Option(_))
     }
 
   implicit def eitherDecoderBuilder[A, B](implicit lDecoderBuilder: DecoderBuilder[A],
@@ -377,21 +335,21 @@ object DecoderBuilder {
                                           manifestA: Manifest[A],
                                           manifestB: Manifest[B]): DecoderBuilder[Either[A, B]] =
     new DecoderBuilder[Either[A, B]] {
-      override def apply[C](value: C, schemaData: SchemaData, failFast: Boolean): Results[Either[A, B]] = {
+      override def apply[C](value: C, failFast: Boolean): Results[Either[A, B]] = {
         def trimClassName(cn: String)                          = if (cn.endsWith("$")) cn.dropRight(1) else cn
         def isRecordToDecode(cn: String, gr: GenericContainer) = trimClassName(cn).endsWith(gr.getSchema.getName)
 
         value match {
           case gr: GenericContainer if isRecordToDecode(manifestA.runtimeClass.toString, gr) =>
-            lDecoderBuilder(value, schemaData, failFast).map(Left(_))
+            lDecoderBuilder(value, failFast).map(Left(_))
           case gr: GenericContainer if isRecordToDecode(manifestB.runtimeClass.toString, gr) =>
-            rDecoderBuilder(value, schemaData, failFast).map(Right(_))
+            rDecoderBuilder(value, failFast).map(Right(_))
           case _ =>
             if (lDecoderBuilder.isString) { //anything can decode to string, so run it 2nd
-              safeL(rDecoderBuilder(value, schemaData, failFast)).flatten match {
+              safeL(rDecoderBuilder(value, failFast)).flatten match {
                 case Right(v) => Right(Right(v))
                 case Left(lErrors) =>
-                  lDecoderBuilder(value, schemaData, failFast) match {
+                  lDecoderBuilder(value, failFast) match {
                     case Right(v) => Right(Left(v))
                     case Left(errors) =>
                       Left(
@@ -403,10 +361,10 @@ object DecoderBuilder {
             } else {
               println("a runtime : " + manifest(manifestA).runtimeClass)
               println("b runtime : " + manifest(manifestB))
-              safeL(lDecoderBuilder(value, schemaData, failFast)).flatten match {
+              safeL(lDecoderBuilder(value, failFast)).flatten match {
                 case Right(v) => Right(Left(v))
                 case Left(_) =>
-                  rDecoderBuilder(value, schemaData, failFast) match {
+                  rDecoderBuilder(value, failFast) match {
                     case Right(v) => Right(Right(v))
                     case Left(errors) =>
                       Left(
@@ -421,7 +379,7 @@ object DecoderBuilder {
     }
 
   implicit object CNilDecoderBuilderValue extends DecoderBuilder[CNil] {
-    override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[CNil] =
+    override def apply[B](value: B, failFast: Boolean): Results[CNil] =
       List(Error("Should not have got to CNil")).asLeft
   }
 
@@ -429,9 +387,9 @@ object DecoderBuilder {
                                                           tDecoderBuilder: DecoderBuilder[T]): DecoderBuilder[H :+: T] =
     new DecoderBuilder[H :+: T] {
       type Ret = H :+: T
-      override def apply[B](value: B, schemaData: SchemaData, failFast: Boolean): Results[H :+: T] =
-        safeL(hDecoderBuilder(value, schemaData, failFast)).flatten match {
-          case Left(_)  => tDecoderBuilder(value, schemaData, failFast).map(Inr(_))
+      override def apply[B](value: B, failFast: Boolean): Results[H :+: T] =
+        safeL(hDecoderBuilder(value, failFast)).flatten match {
+          case Left(_)  => tDecoderBuilder(value, failFast).map(Inr(_))
           case Right(r) => Right(Coproduct[H :+: T](r))
         }
     }

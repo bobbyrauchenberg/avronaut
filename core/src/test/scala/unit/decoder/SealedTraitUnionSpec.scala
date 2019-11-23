@@ -6,7 +6,7 @@ import com.rauchenberg.avronaut.Codec._
 import com.rauchenberg.avronaut.schema.AvroSchema
 import com.sksamuel.avro4s.{DefaultFieldMapper, FromRecord, SchemaFor, ToRecord}
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
-import unit.decoder.SealedTraitUnionSpec.{A, B, F, I, G, Type, C, X, XCC, XWrapper}
+import unit.decoder.SealedTraitUnionSpec.{A, B, C, F, G, H, I, Type, X, XCC, XWrapper}
 import unit.utils.UnitSpecBase
 
 class SealedTraitUnionSpec extends UnitSpecBase {
@@ -32,10 +32,12 @@ class SealedTraitUnionSpec extends UnitSpecBase {
       }
     }
 
-    "be blah" in {
+    "handle " in {
 
       forAll { x: XCC =>
+        val rec = XCC(G("123", Right(H(123))))
         x.encode.flatMap(_.decodeAccumulating[XCC]) should beRight(x)
+        rec.encode.flatMap(_.decodeAccumulating[XCC]) should beRight(rec)
       }
     }
 
@@ -45,7 +47,7 @@ class SealedTraitUnionSpec extends UnitSpecBase {
 
 object SealedTraitUnionSpec {
 
-  case class XCC(t: Type)
+  case class XCC(t: Type = C)
   implicit val xCodec: Codec[XCC] = Codec[XCC]
 
   sealed trait X
@@ -54,10 +56,10 @@ object SealedTraitUnionSpec {
 
   case class XWrapper(field: X)
 
-  sealed trait Type extends Product with Serializable
-  case object C                                                                                extends Type
-  case object D                                                                                  extends Type
-  case object E                                                                    extends Type
+  sealed trait Type                                                             extends Product with Serializable
+  case object C                                                                 extends Type
+  case object D                                                                 extends Type
+  case object E                                                                 extends Type
   final case class F(seasonId: String, episode: Either[SpecialEpisode.type, I]) extends Type
   final case class G(seriesId: String, episode: Either[SpecialEpisode.type, H]) extends Type
   final case class H(episodeNumber: Int)
