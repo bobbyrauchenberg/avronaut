@@ -55,8 +55,8 @@ class SimpleRecordDefaultsSpec extends UnitSpecBase {
       schemaAsString[A] shouldBe simpleSchema(typeName, valueType, default)
 
     def simpleSchema[A](typeName: String, valueType: String, default: A) =
-      s"""{"type":"record","name":"$typeName","namespace":"unit.schema.SimpleRecordDefaultsSpec","doc":"",
-         |"fields":[{"name":"value","type":"$valueType","doc":"","default":$default}]}""".stripMargin.replace("\n", "")
+      s"""{"type":"record","name":"$typeName","namespace":"unit.schema.SimpleRecordDefaultsSpec",
+         |"fields":[{"name":"value","type":"$valueType","default":$default}]}""".stripMargin.replace("\n", "")
   }
 
   case class BoolWithDefault(value: Boolean = true)

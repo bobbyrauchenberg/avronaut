@@ -37,15 +37,15 @@ class ArraySpec extends UnitSpecBase {
     def runAssert[A : AvroSchema](name: String) =
       schemaAsString[A] shouldBe
         s"""
-           |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec","doc":"",
+           |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec",
            |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"}}]}
            |""".stripMargin.replace("\n", "")
 
     def runAssertWithDefault[A : AvroSchema](name: String) =
       schemaAsString[A] shouldBe
         s"""
-           |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec","doc":"",
-           |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"},"doc":"","default":["cup","cat"]}]}
+           |{"type":"record","name":"$name","namespace":"unit.schema.ArraySpec",
+           |"fields":[{"name":"cupcat","type":{"type":"array","items":"string"},"default":["cup","cat"]}]}
            |""".stripMargin.replace("\n", "")
   }
 

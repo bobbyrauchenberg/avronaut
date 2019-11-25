@@ -11,17 +11,16 @@ class MapSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[RecordWithMap]
       val expected =
         """{"type":"record","name":"RecordWithMap","namespace":"unit.schema.MapSpec",
-          |"doc":"","fields":[{"name":"cupcat",
-          |"type":{"type":"map","values":"string"}}]}""".stripMargin.replace("\n", "")
+          |"fields":[{"name":"cupcat","type":{"type":"map","values":"string"}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[RecordWithMap] shouldBe expected
     }
     "build a record with a Map with a default" in {
       implicit val schema = AvroSchema.toSchema[RecordWithDefaultMap]
       val expected =
-        """{"type":"record","name":"RecordWithDefaultMap","namespace":"unit.schema.MapSpec","doc":"",
+        """{"type":"record","name":"RecordWithDefaultMap","namespace":"unit.schema.MapSpec",
           |"fields":[{"name":"cupcat","type":{"type":"map","values":"string"},
-          |"doc":"","default":{"cup":"cat"}}]}""".stripMargin.replace("\n", "")
+          |"default":{"cup":"cat"}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[RecordWithDefaultMap] shouldBe expected
     }

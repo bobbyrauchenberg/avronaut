@@ -15,8 +15,7 @@ class CoproductUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"CoproductUnion","namespace":"unit.schema.CoproductUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat"
-          |,"type":["string","boolean","int"]}]}""".stripMargin.replace("\n", "")
+          |"fields":[{"name":"cupcat","type":["string","boolean","int"]}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[CoproductUnion] shouldBe expected
     }
@@ -26,8 +25,8 @@ class CoproductUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"CoproductWithStringDefault","namespace":"unit.schema.CoproductUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["string","boolean","int"]
-          |,"doc":"","default":"cupcat"}]}""".stripMargin.replace("\n", "")
+          |"fields":[{"name":"cupcat","type":["string","boolean","int"],"default":"cupcat"}]}""".stripMargin
+          .replace("\n", "")
 
       schemaAsString[CoproductWithStringDefault] shouldBe expected
     }
@@ -37,8 +36,8 @@ class CoproductUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"CoproductWithIntDefault","namespace":"unit.schema.CoproductUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["int","string","boolean"],"doc":""
-          |,"default":123}]}""".stripMargin.replace("\n", "")
+          |"fields":[{"name":"cupcat","type":["int","string","boolean"],"default":123}]}""".stripMargin.replace("\n",
+                                                                                                                "")
 
       schemaAsString[CoproductWithIntDefault] shouldBe expected
     }
@@ -47,7 +46,7 @@ class CoproductUnionSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[Nested]
       val expected =
         """
-          |{"type":"record","name":"Nested","namespace":"unit.schema.CoproductUnionSpec","doc":"",
+          |{"type":"record","name":"Nested","namespace":"unit.schema.CoproductUnionSpec",
           |"fields":[{"name":"cupcat","type":["string","int","long","boolean"]}]}""".stripMargin.replace("\n", "")
       schemaAsString[Nested] shouldBe expected
     }

@@ -54,7 +54,7 @@ class SimpleRecordSpec extends UnitSpecBase {
   trait TestContext {
     def simpleSchema(typeName: String, valueType: String) =
       s"""{"type":"record","name":"$typeName",
-         |"namespace":"unit.schema.SimpleRecordSpec","doc":"",
+         |"namespace":"unit.schema.SimpleRecordSpec",
          |"fields":[{"name":"value","type":"$valueType"}]}""".stripMargin.replace("\n", "")
   }
 

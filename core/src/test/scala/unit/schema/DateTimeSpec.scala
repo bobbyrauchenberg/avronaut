@@ -13,7 +13,7 @@ class DateTimeSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[DateTimeField]
       val expected        = """
         |{"type":"record","name":"DateTimeField","namespace":"unit.schema.DateTimeSpec"
-        |,"doc":"","fields":[{"name":"field","type":{"type":"long",
+        |,"fields":[{"name":"field","type":{"type":"long",
         |"logicalType":"timestamp-millis"}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[DateTimeField] shouldBe expected

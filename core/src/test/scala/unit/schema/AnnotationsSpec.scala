@@ -2,6 +2,7 @@ package unit.schema
 
 import com.rauchenberg.avronaut.common.annotations.SchemaAnnotations.{Doc, Name, Namespace, SchemaMetadata}
 import com.rauchenberg.avronaut.schema.AvroSchema
+import com.sksamuel.avro4s.AvroNamespace
 import unit.utils.UnitSpecBase
 import unit.common._
 
@@ -13,21 +14,21 @@ class AnnotationsSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[FieldNameAnnotation]
       runAssert[FieldNameAnnotation](
         s"""{"type":"record","name":"FieldNameAnnotation","namespace":"unit.schema.AnnotationsSpec",
-           |"doc":"","fields":[{"name":"cuppers","type":"string"}]}""".stripMargin.replace("\n", ""))
+           |"fields":[{"name":"cuppers","type":"string"}]}""".stripMargin.replace("\n", ""))
     }
 
     "add documentation if present" in new TestContext {
       implicit val schema = AvroSchema.toSchema[FieldDocAnnotation]
       runAssert[FieldDocAnnotation](
         s"""{"type":"record","name":"FieldDocAnnotation","namespace":"unit.schema.AnnotationsSpec",
-           |"doc":"","fields":[{"name":"cupcat","type":"string","doc":\"Field now deprecated"}]}""".stripMargin
+           |"fields":[{"name":"cupcat","type":"string","doc":\"Field now deprecated"}]}""".stripMargin
           .replace("\n", ""))
     }
 
     "add global namespace if present" in new TestContext {
       implicit val schema = AvroSchema.toSchema[NamespaceAnnotation]
       runAssert[NamespaceAnnotation](
-        s"""{"type":"record","name":"NamespaceAnnotation","namespace":"com.cupcat","doc":"",
+        s"""{"type":"record","name":"NamespaceAnnotation","namespace":"com.cupcat",
            |"fields":[{"name":"cupcat","type":"string"}]}""".stripMargin.replace("\n", "")
       )
     }
@@ -35,7 +36,7 @@ class AnnotationsSpec extends UnitSpecBase {
     "treat a name with a dot as a fullname, so namespace is ignored" in new TestContext {
       implicit val schema = AvroSchema.toSchema[FullName]
       runAssert[FullName](
-        s"""{"type":"record","name":"Cat","namespace":"cup","doc":"","fields":[{"name":"cupcat","type":"string"}]}"""
+        s"""{"type":"record","name":"Cat","namespace":"cup","fields":[{"name":"cupcat","type":"string"}]}"""
       )
     }
 
@@ -50,11 +51,29 @@ class AnnotationsSpec extends UnitSpecBase {
     "apply annotations to an enum" in new TestContext {
       implicit val schema = AvroSchema.toSchema[AnnotatedEnum]
       val expected =
-        """{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema","doc":"",
+        """{"type":"record","name":"AnnotatedEnum","namespace":"unit.schema",
                        |"fields":[{"name":"cupcat","type":{"type":"enum","name":"cupcat",
                        |"symbols":["AnnotatedCup","AnnotatedCat"]}}]}""".stripMargin.replace("\n", "")
 
       runAssert[AnnotatedEnum](expected)
+    }
+
+    "apply annotations to enum at case class field level" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[AnotherAnnotatedEnum]
+
+      println(schemaAsString[AnotherAnnotatedEnum])
+
+    }
+
+    "apply annotations to records that are elements of unions" in new TestContext {
+      implicit val schema = AvroSchema.toSchema[AnnotatedUnion].data.map(_.schema).value
+
+      val expected = """{"type":"record","name":"AnnotatedUnion","namespace":"unit.schema.AnnotationsSpec","fields"
+                       |:[{"name":"field","type":["null",{"type":"record","name":"InUnion","namespace":"com.cupcat",
+                       |"fields":[{"name":"field","type":"boolean"}]}]}]}
+                       |""".stripMargin.replaceAll("\n", "")
+
+      schema shouldBe expected
     }
   }
 
@@ -71,6 +90,9 @@ class AnnotationsSpec extends UnitSpecBase {
   @SchemaMetadata(Map(Doc -> "Record is now deprecated"))
   case class TopLevelDoc(cupcat: String)
 
+  case class InUnion(field: Boolean)
+  case class AnnotatedUnion(@SchemaMetadata(Map(Namespace -> "com.cupcat")) field: Option[InUnion])
+
 }
 
 @SchemaMetadata(Map(Name -> "cupcat"))
@@ -78,3 +100,10 @@ sealed trait Annotated
 case object AnnotatedCup extends Annotated
 case object AnnotatedCat extends Annotated
 case class AnnotatedEnum(cupcat: Annotated)
+
+sealed trait AnotherAnnotated
+case object A extends AnotherAnnotated
+case object B extends AnotherAnnotated
+case class AnotherAnnotatedEnum(s: String,
+                                @AvroNamespace("com.rauchenberg")
+                                @SchemaMetadata(Map(Namespace -> "com.rauchenberg")) enum: AnotherAnnotated)

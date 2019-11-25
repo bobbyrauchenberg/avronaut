@@ -13,7 +13,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[EnumCC]
       val expected =
         """
-          |{"type":"record","name":"EnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
+          |{"type":"record","name":"EnumCC","namespace":"unit.schema.SealedTraitEnum",
           |"fields":[{"name":"cupcat","type":{"type":"enum","name":"SimpleEnum","symbols":["Cupcat","Rendal"]}}]}""".stripMargin
           .replace("\n", "")
 
@@ -22,7 +22,7 @@ class SealedTraitEnumSpec extends UnitSpecBase {
     "allow name to be overriden with an annotation" in {
       implicit val schema = AvroSchema.toSchema[AnnotatedEnumCC]
       val expected =
-        """{"type":"record","name":"AnnotatedEnumCC","namespace":"unit.schema.SealedTraitEnum","doc":"",
+        """{"type":"record","name":"AnnotatedEnumCC","namespace":"unit.schema.SealedTraitEnum",
           |"fields":[{"name":"cupcat","type":{"type":"enum","name":"CupcatEnum",
           |"symbols":["AnnotatedCupcat","AnnotatedRendal"]}}]}""".stripMargin.replace("\n", "")
 
@@ -31,10 +31,10 @@ class SealedTraitEnumSpec extends UnitSpecBase {
     "handle nested enums" in {
       implicit val schema = AvroSchema.toSchema[MultipleEnumRecord]
       val expected =
-        """{"type":"record","name":"MultipleEnumRecord","namespace":"unit.schema.SealedTraitEnum","doc":"",
+        """{"type":"record","name":"MultipleEnumRecord","namespace":"unit.schema.SealedTraitEnum",
           |"fields":[{"name":"s","type":"string"},{"name":"er","type":{"type":"enum","name":"Cup",
           |"symbols":["B","C"]}},{"name":"enumRecord","type":{"type":"record","name"
-          |:"EnumRecord","doc":"","fields":[{"name":"enumField","type":{"type":"enum","name":"Cup",
+          |:"EnumRecord","fields":[{"name":"enumField","type":{"type":"enum","name":"Cup",
           |"namespace":"unit.schema.SealedTraitEnum.Cup2","symbols":["B","C"]}}]}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[MultipleEnumRecord] shouldBe expected

@@ -46,6 +46,8 @@ object SchemaBuilder {
             SchemaNamedField(paramName, paramAnnotations.doc, param.default, s.copy(namespace = ns)).asRight
           case (Right(s @ SchemaEnum(_, _, _, _, _)), Some(ns)) =>
             SchemaNamedField(paramName, paramAnnotations.doc, param.default, s.copy(namespace = ns)).asRight
+          case (Right(so @ SchemaOption(s @ SchemaRecord(_, _, _, _))), Some(ns)) =>
+            SchemaNamedField(paramName, paramAnnotations.doc, param.default, SchemaOption(s.copy(namespace = ns))).asRight
           case (other, _) => other.map(SchemaNamedField(paramName, paramAnnotations.doc, param.default, _))
         }
       }.map(SchemaRecord(name, namespace, doc, _))

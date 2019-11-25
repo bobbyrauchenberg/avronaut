@@ -11,7 +11,7 @@ class SetSpec extends UnitSpecBase {
       implicit val recordWithSetSchemaData = AvroSchema.toSchema[RecordWithSet]
 
       val expected =
-        """{"type":"record","name":"RecordWithSet","namespace":"unit.schema.SetSpec","doc":"","fields":
+        """{"type":"record","name":"RecordWithSet","namespace":"unit.schema.SetSpec","fields":
           |[{"name":"s","type":{"type":"array","items":"int"}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[RecordWithSet] shouldBe expected

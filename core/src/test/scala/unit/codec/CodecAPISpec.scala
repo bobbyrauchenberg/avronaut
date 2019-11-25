@@ -12,7 +12,7 @@ class CodecAPISpec extends UnitSpecBase {
 
       val expected =
         """{"type":"record","name":"Record","namespace":"unit.codec.CodecAPISpec",
-          |"doc":"","fields":[{"name":"field1","type":"int"},
+          |"fields":[{"name":"field1","type":"int"},
           |{"name":"field2","type":"boolean"}]}""".stripMargin.replaceAll("\n", "")
 
       Codec.schema[Record].map { schema =>

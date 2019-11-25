@@ -14,7 +14,7 @@ class EitherUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EitherUnion","namespace":"unit.schema.EitherUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"]}]}""".stripMargin.replace("\n", "")
+          |"fields":[{"name":"cupcat","type":["boolean","string"]}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[EitherUnion] shouldBe expected
     }
@@ -24,7 +24,7 @@ class EitherUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EitherUnionWithLeftDefault","namespace":"unit.schema.EitherUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["boolean","string"],"doc":"","default":true}]}""".stripMargin
+          |"fields":[{"name":"cupcat","type":["boolean","string"],"default":true}]}""".stripMargin
           .replace("\n", "")
 
       schemaAsString[EitherUnionWithLeftDefault] shouldBe expected
@@ -35,7 +35,7 @@ class EitherUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"EitherUnionWithRightDefault","namespace":"unit.schema.EitherUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["string","boolean"],"doc":"","default":"cupcat"}]}""".stripMargin
+          |"fields":[{"name":"cupcat","type":["string","boolean"],"default":"cupcat"}]}""".stripMargin
           .replace("\n", "")
 
       schemaAsString[EitherUnionWithRightDefault] shouldBe expected
@@ -46,7 +46,7 @@ class EitherUnionSpec extends UnitSpecBase {
       val expected =
         """
           |{"type":"record","name":"NestedUnion","namespace":"unit.schema.EitherUnionSpec",
-          |"doc":"","fields":[{"name":"cupcat","type":["boolean","int","string"]}]}""".stripMargin.replace("\n", "")
+          |"fields":[{"name":"cupcat","type":["boolean","int","string"]}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[NestedUnion] shouldBe expected
     }

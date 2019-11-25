@@ -14,10 +14,10 @@ package object schema {
     safeL(doc.fold(new Schema.Field(name, schema))(new Schema.Field(name, schema, _)))
 
   def schemaField[A](name: String, schema: Schema, doc: Option[String], default: A) =
-    safeL(new Schema.Field(name, schema, doc.getOrElse(""), default))
+    safeL(new Schema.Field(name, schema, doc.orNull, default))
 
   def schemaRecord[A](name: String, doc: Option[String], namespace: String, fields: List[Schema.Field]) =
-    safeL(Schema.createRecord(name, doc.getOrElse(""), namespace, false, fields.asJava))
+    safeL(Schema.createRecord(name, doc.orNull, namespace, false, fields.asJava))
 
   def schemaEnum(name: String, namespace: String, doc: Option[String], symbols: NonEmptyList[String]) =
     safeL(doc.fold(AvroSchemaBuilder.builder.enumeration(name).namespace(namespace).symbols(symbols.toList: _*)) {

@@ -12,10 +12,10 @@ class SealedTraitUnionSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[Union]
       val expected =
         """
-          |{"type":"record","name":"Union","namespace":"unit.schema.SealedTraitUnion","doc":"",
-          |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Cupcat","doc":"","fields":[]},
-          |{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string"}]},
-          |{"type":"record","name":"Rendal","doc":"","fields":[]}]}]}""".stripMargin.replace("\n", "")
+          |{"type":"record","name":"Union","namespace":"unit.schema.SealedTraitUnion",
+          |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Cupcat","fields":[]},
+          |{"type":"record","name":"Snoutley","fields":[{"name":"name","type":"string"}]},
+          |{"type":"record","name":"Rendal","fields":[]}]}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[Union] shouldBe expected
     }
@@ -23,11 +23,11 @@ class SealedTraitUnionSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[UnionWithCaseClassDefault]
       val expected =
         """
-          |{"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.schema.SealedTraitUnion","doc":"",
-          |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Snoutley","doc":"","fields":[{"name":"name","type":"string"}]},
-          |{"type":"record","name":"Cupcat","doc":"","fields":[]},
-          |{"type":"record","name":"Rendal","doc":"","fields":[]}],
-          |"doc":"","default":{"name":"cupcat"}}]}""".stripMargin.replace("\n", "")
+          |{"type":"record","name":"UnionWithCaseClassDefault","namespace":"unit.schema.SealedTraitUnion","fields"
+          |:[{"name":"cupcat","type":[{"type":"record","name":"Snoutley","fields":
+          |[{"name":"name","type":"string"}]},{"type":"record","name":"Cupcat","fields":[]},
+          |{"type":"record","name":"Rendal","fields":[]}],
+          |"default":{"name":"cupcat"}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[UnionWithCaseClassDefault] shouldBe expected
     }
@@ -35,10 +35,10 @@ class SealedTraitUnionSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[UnionWithCaseObjectDefault]
       val expected =
         """
-          |{"type":"record","name":"UnionWithCaseObjectDefault","namespace":"unit.schema.SealedTraitUnion","doc":"",
-          |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Rendal","doc":"","fields":[]},
-          |{"type":"record","name":"Cupcat","doc":"","fields":[]},{"type":"record","name":"Snoutley","doc":"",
-          |"fields":[{"name":"name","type":"string"}]}],"doc":"","default":{}}]}""".stripMargin.replace("\n", "")
+          |{"type":"record","name":"UnionWithCaseObjectDefault","namespace":"unit.schema.SealedTraitUnion",
+          |"fields":[{"name":"cupcat","type":[{"type":"record","name":"Rendal","fields":[]},
+          |{"type":"record","name":"Cupcat","fields":[]},{"type":"record","name":"Snoutley",
+          |"fields":[{"name":"name","type":"string"}]}],"default":{}}]}""".stripMargin.replace("\n", "")
 
       schemaAsString[UnionWithCaseObjectDefault] shouldBe expected
     }

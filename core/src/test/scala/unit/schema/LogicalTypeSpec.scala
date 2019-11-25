@@ -15,7 +15,7 @@ class LogicalTypeSpec extends UnitSpecBase {
       implicit val schema = AvroSchema.toSchema[RecordWithDateTime]
       val expected =
         """
-          |{"type":"record","name":"RecordWithDateTime","namespace":"unit.schema.LogicalTypeSpec","doc":"",
+          |{"type":"record","name":"RecordWithDateTime","namespace":"unit.schema.LogicalTypeSpec",
           |"fields":[{"name":"field","type":{"type":"long",
           |"logicalType":"timestamp-millis"}}]}""".stripMargin.replaceAll("\n", "")
 
@@ -25,7 +25,7 @@ class LogicalTypeSpec extends UnitSpecBase {
     "encode a UUID" in {
       implicit val schema = AvroSchema.toSchema[RecordWithUUID]
       val expected =
-        """{"type":"record","name":"RecordWithUUID","namespace":"unit.schema.LogicalTypeSpec","doc":"",
+        """{"type":"record","name":"RecordWithUUID","namespace":"unit.schema.LogicalTypeSpec",
           |"fields":[{"name":"field","type":{"type":"string","logicalType":"uuid"}}]}""".stripMargin.replaceAll("\n",
                                                                                                                 "")
 
