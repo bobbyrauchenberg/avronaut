@@ -72,7 +72,7 @@ object EncoderBuilder {
                       List(Error(errorStr(param.label, paramValue, msg))).asLeft
                     case other => gr.put(cnt, other).asRight
                   }
-                }.flatten.leftFlatMap(_.map(e => Error(errorStr(param.label, paramValue, e.msg))).asLeft)
+                }.leftFlatMap(_.map(e => Error(errorStr(param.label, paramValue, e.msg))).asLeft)
               } else List(Error(s"Could not find field ${param.label}")).asLeft
           }.map(_ => gr)
 
@@ -195,16 +195,20 @@ object EncoderBuilder {
           hm
         }
       }
-
     }
 
   implicit def listEncoder[A](implicit aEncoder: EncoderBuilder[A]): EncoderBuilder[List[A]] =
     new EncoderBuilder[List[A]] {
 
-      type Ret = java.util.List[aEncoder.Ret]
+      type Ret = java.util.List[Any]
 
       override def apply(value: List[A], schemaData: SchemaData, failFast: Boolean): Ret =
-        value.map(aEncoder(_, schemaData, failFast)).asJava
+        value.map { v =>
+          aEncoder(v, schemaData, failFast) match {
+            case Right(v) => v
+            case other    => other
+          }
+        }.asJava
     }
 
   implicit def seqEncoder[A](implicit aEncoder: EncoderBuilder[A]): EncoderBuilder[Seq[A]] =

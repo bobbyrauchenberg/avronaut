@@ -36,18 +36,6 @@ class ErrorSpec extends UnitSpecBase {
       record.encode should beLeft(expected)
     }
 
-    "fail fast for an error returned by a typeclass instance" in {
-      val record         = SingleField(true)
-      implicit val codec = Codec[SingleField]
-
-      val expected = List(
-        Error(
-          s"Encoding failed for param 'field' with value 'true', original message 'Encoding failed for param 'field' with value 'true', original message 'boolean blew up''"),
-      )
-
-      record.encode should beLeft(expected)
-    }
-
   }
 
   case class ManyFields(field1: Int, field2: String, field3: Boolean, field4: List[Int], field5: Double)
