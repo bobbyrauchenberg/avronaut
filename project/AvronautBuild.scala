@@ -3,7 +3,7 @@ import sbt._
 
 object AvronautBuild {
 
-  addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.3.7")
+  addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.3")
 
   lazy val buildSettings = Seq(
     organization := "com.rauchenberg.avronaut",
@@ -66,7 +66,7 @@ object AvronautBuild {
 //        "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
     ),
     addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
-    addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.3.7")
+    addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.3")
   )
 
 
